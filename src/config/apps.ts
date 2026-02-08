@@ -1,4 +1,4 @@
-import { Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake } from 'lucide-react'
+import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake } from 'lucide-react'
 
 export interface AppConfig {
   name: string
@@ -37,6 +37,12 @@ export const apps: AppConfig[] = [
     icon: Clock,
     slug: 'vast-timeline',
     description: 'Visualize Vast Timeline in an Interactive Way',
+  },
+  {
+    name: 'Good News Garden',
+    icon: Flower,
+    slug: 'goodnews-garden',
+    description: 'Explore Good News as a Blooming Garden',
   },
   {
     name: 'Hoax Network',
