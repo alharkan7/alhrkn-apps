@@ -95,7 +95,6 @@
     "pdfmake": "^0.2.23",
     "pg": "^8.18.0",
     "postgres": "^3.4.8",
-    "prism": "link:react-syntax-highlighter/dist/esm/styles/prism",
     "puppeteer": "^24.37.3",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",

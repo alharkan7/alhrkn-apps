@@ -460,7 +460,7 @@ export function Chart({
                       tickFormatter={yAxisConfig.tickFormatter}
                     />
                     <Tooltip
-                      content={({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string | number }) => {
+                      content={({ active, payload, label }: any) => {
                         if (active && payload && payload.length && label) {
                           const value = payload[0].value as number
                           const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
