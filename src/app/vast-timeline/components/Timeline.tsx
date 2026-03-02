@@ -16,6 +16,8 @@ interface TimelineProps {
   height: number;
   viewState: ViewState | null;
   onViewChange: (k: number, x: number) => void;
+  /** When provided, overrides the internal filter state (used by presentation mode) */
+  controlledVisiblePeriodIndices?: Set<number>;
 }
 
 const TIME_UNITS = [
@@ -65,7 +67,8 @@ const Timeline: React.FC<TimelineProps> = ({
   width,
   height,
   viewState,
-  onViewChange
+  onViewChange,
+  controlledVisiblePeriodIndices,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -75,26 +78,29 @@ const Timeline: React.FC<TimelineProps> = ({
     () => new Set(periods.map((_, i) => i))
   );
 
-  // Filter periods based on visibility
+  // Filter periods based on visibility — use external control if provided (presentation mode)
+  const effectiveVisibleIndices = controlledVisiblePeriodIndices ?? visiblePeriodIndices;
   const visiblePeriods = useMemo(
-    () => periods.filter((_, i) => visiblePeriodIndices.has(i)),
-    [periods, visiblePeriodIndices]
+    () => periods.filter((_, i) => (controlledVisiblePeriodIndices ?? visiblePeriodIndices).has(i)),
+    [periods, visiblePeriodIndices, controlledVisiblePeriodIndices]
   );
 
   // Flatten events for easier processing (only from visible periods)
   const allEvents = useMemo(() => visiblePeriods.flatMap(p => p.events), [visiblePeriods]);
 
-  // Time range calculation (based on visible periods)
+  // Time range calculation — ALWAYS use ALL periods so the scale domain stays
+  // constant even when controlledVisiblePeriodIndices hides some period blocks.
+  // This is critical: page.tsx handleJumpToEvent computes zoom transforms against
+  // the full domain; if the domain here changes, the viewState {k, x} won't align.
   const { minYear, maxYear } = useMemo(() => {
-    if (visiblePeriods.length === 0) {
-      // Fallback if no periods visible
+    if (periods.length === 0) {
       return { minYear: -1600000, maxYear: 2024 };
     }
-    const min = d3.min(visiblePeriods, d => d.start_year) ?? -1600000;
-    const max = d3.max(visiblePeriods, d => d.visual_end_year) ?? 2024;
+    const min = d3.min(periods, d => d.start_year) ?? -1600000;
+    const max = d3.max(periods, d => d.visual_end_year) ?? 2024;
     const padding = Math.abs(max - min) * 0.05;
     return { minYear: min, maxYear: max + padding };
-  }, [visiblePeriods]);
+  }, [periods]);
 
   // Initial Scale
   const initialScale = useMemo(() => {
@@ -184,16 +190,16 @@ const Timeline: React.FC<TimelineProps> = ({
   // Handle Period Toggle with Sequential Validation
   const handlePeriodToggle = (periodIndex: number) => {
     if (!canTogglePeriod(periodIndex)) return;
-    
+
     setVisiblePeriodIndices(prev => {
       const newSet = new Set(prev);
-      
+
       if (newSet.has(periodIndex)) {
         newSet.delete(periodIndex);
       } else {
         newSet.add(periodIndex);
       }
-      
+
       return newSet;
     });
 
@@ -211,7 +217,7 @@ const Timeline: React.FC<TimelineProps> = ({
   // Check if a period can be toggled
   const canTogglePeriod = (periodIndex: number): boolean => {
     const isCurrentlyVisible = visiblePeriodIndices.has(periodIndex);
-    
+
     // Find the first visible period index
     let firstVisibleIndex = -1;
     for (let i = 0; i < periods.length; i++) {
@@ -220,14 +226,14 @@ const Timeline: React.FC<TimelineProps> = ({
         break;
       }
     }
-    
+
     if (isCurrentlyVisible) {
       // Trying to unselect
       // Cannot unselect if this is the last remaining period
       if (visiblePeriodIndices.size === 1) {
         return false;
       }
-      
+
       // Can only unselect if this is the first visible period
       // This ensures we always remove from the beginning, maintaining contiguous selection
       return periodIndex === firstVisibleIndex;
@@ -387,11 +393,11 @@ const Timeline: React.FC<TimelineProps> = ({
   return (
     <div className="relative overflow-hidden bg-slate-50 border-b border-slate-200 shadow-inner select-none" style={{ width, height }}>
 
-      {/* Period Filter Button - Top Left */}
+      {/* Period Filter Button - Top Left (hidden in presentation mode) */}
       <Popover>
         <PopoverTrigger asChild>
           <button
-            className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-white p-2 sm:p-2.5 rounded-full shadow-md border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all z-20 group touch-manipulation"
+            className={`absolute top-2 sm:top-4 left-2 sm:left-4 bg-white p-2 sm:p-2.5 rounded-full shadow-md border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all z-20 group touch-manipulation ${controlledVisiblePeriodIndices ? 'opacity-0 pointer-events-none' : ''}`}
             title="Filter Periods"
           >
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-500" />
@@ -405,17 +411,16 @@ const Timeline: React.FC<TimelineProps> = ({
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {periods.map((period, index) => {
-                const isVisible = visiblePeriodIndices.has(index);
+                const isVisible = effectiveVisibleIndices.has(index);
                 const canToggle = canTogglePeriod(index);
-                
+
                 return (
                   <div
                     key={period.period_title}
-                    className={`flex items-center space-x-2 p-2 rounded border transition-all ${
-                      canToggle 
-                        ? 'hover:bg-slate-50 cursor-pointer' 
-                        : 'opacity-50 cursor-not-allowed'
-                    }`}
+                    className={`flex items-center space-x-2 p-2 rounded border transition-all ${canToggle
+                      ? 'hover:bg-slate-50 cursor-pointer'
+                      : 'opacity-50 cursor-not-allowed'
+                      }`}
                     onClick={() => canToggle && handlePeriodToggle(index)}
                   >
                     <Checkbox
@@ -579,8 +584,9 @@ const Timeline: React.FC<TimelineProps> = ({
         )}
 
         <g clipPath="url(#chart-area)">
-          {/* 1. Draw Period Blocks (Background) */}
-          {visiblePeriods.map((period, i) => {
+          {/* 1. Draw Period Blocks (Background) — ALL periods always rendered.
+               In presentation mode, locked (not-yet-revealed) periods are dimmed */}
+          {periods.map((period, i) => {
             const startX = currentScale(period.start_year);
             const endX = currentScale(period.visual_end_year);
             const w = Math.max(endX - startX, 0);
@@ -588,7 +594,12 @@ const Timeline: React.FC<TimelineProps> = ({
             // Optimization: Don't render if off screen
             if (startX > width + 200 || endX < -200) return null;
 
-            // Visibility Logic for Labels
+            // Is this period currently unlocked / visible?
+            const isUnlocked = effectiveVisibleIndices.has(i);
+            // Locked periods shown at very low opacity — context only, no label
+            const blockOpacity = isUnlocked ? 0.9 : 0.5;
+
+            // Visibility Logic for Labels (only for unlocked periods)
             const charWidth = 6.5; // Estimated width per char for font size 10
             const fullTextWidth = period.period_title.length * charWidth;
             const padding = 24;
@@ -596,13 +607,13 @@ const Timeline: React.FC<TimelineProps> = ({
             let showLabel = false;
             let lines: [string, string | null] = [period.period_title, null];
 
-            if (w > fullTextWidth + padding) {
-              // Fits in 1 line
-              showLabel = true;
-            } else if (w > (fullTextWidth / 2) + padding) {
-              // Fits in 2 lines
-              showLabel = true;
-              lines = splitPeriodTitle(period.period_title);
+            if (isUnlocked) {
+              if (w > fullTextWidth + padding) {
+                showLabel = true;
+              } else if (w > (fullTextWidth / 2) + padding) {
+                showLabel = true;
+                lines = splitPeriodTitle(period.period_title);
+              }
             }
 
             return (
@@ -613,7 +624,7 @@ const Timeline: React.FC<TimelineProps> = ({
                   width={w}
                   height={BAR_HEIGHT}
                   fill={period.color}
-                  opacity={0.9}
+                  opacity={blockOpacity}
                   stroke="white"
                   strokeWidth={1}
                 />
