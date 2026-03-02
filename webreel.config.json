@@ -1,0 +1,125 @@
+{
+    "$schema": "https://webreel.dev/schema/v1.json",
+    "outDir": "./videos",
+    "baseUrl": "http://localhost:3000",
+    "viewport": {
+        "width": 1440,
+        "height": 900
+    },
+    "defaultDelay": 500,
+    "theme": {
+        "cursorSize": 28,
+        "hud": {
+            "position": "bottom",
+            "fontSize": 46,
+            "borderRadius": 14
+        }
+    },
+    "videos": {
+        "vast-timeline-demo": {
+            "url": "/vast-timeline",
+            "output": "vast-timeline-demo.mp4",
+            "waitFor": "footer",
+            "steps": [
+                {
+                    "action": "pause",
+                    "ms": 2000
+                },
+                {
+                    "action": "scroll",
+                    "x": 500,
+                    "y": 0,
+                    "delay": 1000
+                },
+                {
+                    "action": "pause",
+                    "ms": 600
+                },
+                {
+                    "action": "scroll",
+                    "x": -1200,
+                    "y": 0,
+                    "delay": 1000
+                },
+                {
+                    "action": "pause",
+                    "ms": 600
+                },
+                {
+                    "action": "scroll",
+                    "x": 800,
+                    "y": 0,
+                    "delay": 800
+                },
+                {
+                    "action": "pause",
+                    "ms": 800
+                },
+                {
+                    "action": "click",
+                    "text": "Earliest Cave Art",
+                    "delay": 1200
+                },
+                {
+                    "action": "pause",
+                    "ms": 1500
+                },
+                {
+                    "action": "click",
+                    "text": "Kutai Inscriptions (Yupa)",
+                    "delay": 1000
+                },
+                {
+                    "action": "pause",
+                    "ms": 1500
+                },
+                {
+                    "action": "click",
+                    "text": "Founding of Majapahit",
+                    "delay": 1000
+                },
+                {
+                    "action": "pause",
+                    "ms": 1500
+                },
+                {
+                    "action": "click",
+                    "text": "Proclamation of Independence",
+                    "delay": 1000
+                },
+                {
+                    "action": "pause",
+                    "ms": 1500
+                },
+                {
+                    "action": "click",
+                    "selector": "[data-sidebar-toggle]",
+                    "delay": 800
+                },
+                {
+                    "action": "pause",
+                    "ms": 1200
+                },
+                {
+                    "action": "scroll",
+                    "y": 400,
+                    "selector": ".overflow-y-auto",
+                    "delay": 700
+                },
+                {
+                    "action": "pause",
+                    "ms": 800
+                },
+                {
+                    "action": "click",
+                    "selector": "[data-sidebar-toggle]",
+                    "delay": 800
+                },
+                {
+                    "action": "pause",
+                    "ms": 1500
+                }
+            ]
+        }
+    }
+}
