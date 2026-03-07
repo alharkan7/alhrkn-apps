@@ -19,7 +19,7 @@ export default function HomePage() {
             raihankalla.id
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Apps</span> Gallery
+            Mini <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Apps</span> Gallery
           </h1>
           <p className="mx-auto max-w-[700px] text-muted-foreground md:text-base">
             A collection of experimental apps by <a href="https://raihankalla.id" target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4 hover:text-primary">@alhrkn</a>.
