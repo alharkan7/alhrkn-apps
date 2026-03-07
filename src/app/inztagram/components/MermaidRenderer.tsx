@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Maximize, Download } from 'lucide-react';
+import { RotateCcw, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './diagram-types';
 import panzoom from 'panzoom';
@@ -22,6 +22,7 @@ interface MermaidRendererProps {
 }
 
 export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramType, diagramTheme, onThemeChange, onNewDiagram, onCodeChange, fileName, description }) => {
+    const fullscreenRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const panzoomRef = useRef<any>(null);
     const initialTransformRef = useRef<{ x: number, y: number, scale: number } | null>(null);
@@ -36,6 +37,7 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     const [pendingDownloadFormat, setPendingDownloadFormat] = useState<string>('');
     const [emailLoading, setEmailLoading] = useState(false);
     const [emailError, setEmailError] = useState<string | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Pre-validation: ensure code starts with a valid diagram type and auto-correct '--' to '-->' for flowcharts
     function getRenderableCode(rawCode: string, diagramType: string) {
@@ -55,51 +57,69 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     useEffect(() => {
         if (!code) return;
         setRenderError(null);
-        mermaid.initialize({ startOnLoad: false, theme: diagramTheme as any });
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: diagramTheme as any,
+            securityLevel: 'loose',
+            flowchart: {
+                htmlLabels: true,
+            },
+        });
 
         if (containerRef.current) {
             const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
             const graphDefinition = getRenderableCode(code, diagramType);
             containerRef.current.innerHTML = ""; // Clear previous
+            const hasHtmlTags = /<[^>]+>/.test(graphDefinition);
+            const fallbackDefinition = hasHtmlTags
+                ? graphDefinition.replace(/<[^>]*>/g, '')
+                : graphDefinition;
+            const renderCandidates = hasHtmlTags
+                ? [graphDefinition, fallbackDefinition]
+                : [graphDefinition];
 
-            // Use mermaid.render for async error handling
-            mermaid.render(id, graphDefinition)
-                .then(({ svg }) => {
-                    if (containerRef.current) {
-                        containerRef.current.innerHTML = svg;
-                        // Panzoom logic after SVG is set
-                        setTimeout(() => {
-                            const svgElem = containerRef.current?.querySelector('svg');
-                            if (svgElem) {
-                                // @ts-ignore
-                                if (containerRef.current.__panzoomInstance) {
+            const tryRender = async () => {
+                let lastError: unknown = null;
+                for (let i = 0; i < renderCandidates.length; i++) {
+                    try {
+                        const { svg } = await mermaid.render(`${id}-${i}`, renderCandidates[i]);
+                        if (containerRef.current) {
+                            containerRef.current.innerHTML = svg;
+                            setTimeout(() => {
+                                const svgElem = containerRef.current?.querySelector('svg');
+                                if (svgElem) {
                                     // @ts-ignore
-                                    containerRef.current.__panzoomInstance.dispose();
+                                    if (containerRef.current.__panzoomInstance) {
+                                        // @ts-ignore
+                                        containerRef.current.__panzoomInstance.dispose();
+                                    }
+                                    const instance = panzoom(svgElem, {
+                                        zoomDoubleClickSpeed: 1,
+                                        maxZoom: 10,
+                                        minZoom: 0.1,
+                                        bounds: false,
+                                    });
+                                    // @ts-ignore
+                                    containerRef.current.__panzoomInstance = instance;
+                                    panzoomRef.current = instance;
+                                    const transform = instance.getTransform();
+                                    initialTransformRef.current = { x: transform.x, y: transform.y, scale: transform.scale };
                                 }
-                                const instance = panzoom(svgElem, {
-                                    zoomDoubleClickSpeed: 1,
-                                    maxZoom: 10,
-                                    minZoom: 0.1,
-                                    bounds: false,
-                                });
-                                // @ts-ignore
-                                containerRef.current.__panzoomInstance = instance;
-                                panzoomRef.current = instance;
-                                // Store the initial transform
-                                const transform = instance.getTransform();
-                                initialTransformRef.current = { x: transform.x, y: transform.y, scale: transform.scale };
-                            }
-                        }, 0);
+                            }, 0);
+                        }
+                        return;
+                    } catch (err) {
+                        lastError = err;
                     }
-                })
-                .catch((err) => {
-                    let message = 'Unknown error';
-                    if (err instanceof Error) message = err.message;
-                    else if (typeof err === 'object') message = JSON.stringify(err);
-                    setRenderError('Failed to render diagram: ' + message);
-                    // eslint-disable-next-line no-console
-                    console.error('Mermaid render error:', err);
-                });
+                }
+                let message = 'Unknown error';
+                if (lastError instanceof Error) message = lastError.message;
+                else if (typeof lastError === 'object') message = JSON.stringify(lastError);
+                setRenderError('Failed to render diagram: ' + message);
+                console.error('Mermaid render error:', lastError);
+            };
+
+            void tryRender();
         }
         return () => {
             if (containerRef.current) {
@@ -136,6 +156,30 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
         }
     };
 
+    const handleToggleFullscreen = async () => {
+        const element = fullscreenRef.current;
+        if (!element) return;
+        const doc = document as Document & {
+            webkitFullscreenElement?: Element;
+            webkitExitFullscreen?: () => Promise<void> | void;
+        };
+        const isAnyFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+        if (isAnyFullscreen) {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            } else if (doc.webkitExitFullscreen) {
+                await doc.webkitExitFullscreen();
+            }
+            return;
+        }
+        const target = element as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+        if (target.requestFullscreen) {
+            await target.requestFullscreen();
+        } else if (target.webkitRequestFullscreen) {
+            await target.webkitRequestFullscreen();
+        }
+    };
+
     // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -150,6 +194,19 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showDownloadDropdown]);
+
+    useEffect(() => {
+        const doc = document as Document & { webkitFullscreenElement?: Element };
+        const onFullscreenChange = () => {
+            setIsFullscreen(Boolean(document.fullscreenElement || doc.webkitFullscreenElement));
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
+        return () => {
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
+        };
+    }, []);
 
     const initiateDownload = (format: string, downloadAction: () => void) => {
         setPendingDownloadFormat(format);
@@ -245,7 +302,8 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
 
     return (
         <div className="flex-1 flex flex-col justify-center items-center max-w-6xl mx-auto w-full px-1 md:px-4 mt-[80px] mb-[20px]">
-            <Card className="w-full max-w-6xl shadow-lg">
+            <div ref={fullscreenRef} className={isFullscreen ? 'w-screen h-screen bg-background p-2 md:p-4' : 'w-full'}>
+            <Card className={isFullscreen ? 'w-full h-full shadow-lg flex flex-col max-w-none' : 'w-full max-w-6xl shadow-lg flex flex-col'}>
                 <div className="flex items-center justify-between p-2 border-b">
                     <div className="flex items-center gap-2">
                         <Select value={diagramTheme} onValueChange={onThemeChange}>
@@ -305,7 +363,16 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                             onClick={handleResetZoom}
                             className="ml-1"
                         >
-                            <Maximize className="size-5" />
+                            <RotateCcw className="size-5" />
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            aria-label={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}
+                            onClick={handleToggleFullscreen}
+                            className="ml-1"
+                        >
+                            {isFullscreen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
                         </Button>
                         <div className="relative ml-1" ref={downloadDropdownRef}>
                             <Button
@@ -349,7 +416,7 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                         </div>
                     </div>
                 </div>
-                <CardContent className="p-0">
+                <CardContent className="p-0 flex-1">
                     {/* {autoCorrected && (
                         <div className="text-center text-yellow-600 text-xs py-2">
                             Auto-corrected '--' to {'-->'} for Mermaid flowchart syntax.
@@ -365,12 +432,13 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                     ) : (
                         <div
                             ref={containerRef}
-                            className="w-full flex justify-center items-center min-h-[300px] overflow-hidden"
+                            className={isFullscreen ? 'w-full h-full flex justify-center items-center overflow-hidden' : 'w-full flex justify-center items-center min-h-[300px] overflow-hidden'}
                             style={{ position: 'relative' }}
                         />
                     )}
                 </CardContent>
             </Card>
+            </div>
             {showEmailForm && (
                 <EmailForm
                     onSubmit={handleEmailSubmit}

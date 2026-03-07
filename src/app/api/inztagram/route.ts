@@ -1,6 +1,7 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
 import { DIAGRAM_TYPES } from '../../inztagram/components/diagram-types';
+import { jsonrepair } from 'jsonrepair';
 
 if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
   throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
@@ -17,15 +18,17 @@ const model = genAI.getGenerativeModel({
   },
 });
 
-const REQUIREMENT_VERIF_METHODS = ['analysis', 'demonstration', 'inspection', 'test'];
-
-const EXAMPLES = [
-  ...DIAGRAM_TYPES.slice(0, 3).map(t => `Example (${t.label}):\n${t.example.trim()}`)
-].join('\n\n');
-
 const REQUIREMENT_VERIF_METHODS_NOTE = `IMPORTANT: For requirementDiagram, the verifymethod field must be one of: analysis, demonstration, inspection, or test. Do NOT use any other value for verifymethod.`;
 
-const SYSTEM_PROMPT = `You are an expert in Mermaid.js diagrams. Given a natural language description, output a JSON object with two fields: { "diagramType": string, "code": string }. The diagramType must be one of the following: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (e.g., 'graph TD', 'timeline', etc.), as in the examples below. Do not include code fences or any extra text. Output ONLY the JSON object.\n\n${REQUIREMENT_VERIF_METHODS_NOTE}\n\n${EXAMPLES}`;
+const STYLING_GUIDELINES = `Styling requirements:
+- Produce clean, informative Mermaid diagrams with moderate styling that improves readability.
+- Use Mermaid-native styling where supported: classDef, class, style, linkStyle, and clear subgraph/section titles.
+- Use simple HTML tags in labels/text only when safely supported by the chosen diagram type (e.g., most flowcharts).
+- For strict-syntax diagram types (such as gantt, journey, requirementDiagram, timeline, and pie), keep labels plain text and avoid HTML tags.
+- Prefer restrained emphasis: highlight only key nodes/steps, not every element.
+- Keep high contrast and legible labels; avoid excessive decoration.
+- Never use script/style tags, inline event handlers, iframes, or external resources.
+- Keep output fully valid Mermaid syntax for the selected diagram type.`;
 
 const responseSchema = {
   type: "object",
@@ -67,56 +70,44 @@ export async function POST(req: NextRequest) {
       verifymethodNote = `\n\n${REQUIREMENT_VERIF_METHODS_NOTE}`;
     }
 
-    const SYSTEM_PROMPT = `You are an expert in Mermaid.js diagrams. Given a natural language description, output a JSON object with two fields: { "diagramType": string, "code": string }. The diagramType must be one of the following: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (e.g., 'graph TD', 'timeline', etc.), as in the examples below. Do not include code fences or any extra text. Output ONLY the JSON object.\n\n${REQUIREMENT_VERIF_METHODS_NOTE}\n\n${examplesSection}`;
+    const SYSTEM_PROMPT = `You are an expert in Mermaid.js diagrams. Given a natural language description, output a JSON object with two fields: { "diagramType": string, "code": string }. The diagramType must be one of the following: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (e.g., 'graph TD', 'timeline', etc.), as in the examples below. Do not include code fences or any extra text. Output ONLY the JSON object.\n\n${REQUIREMENT_VERIF_METHODS_NOTE}\n\n${STYLING_GUIDELINES}\n\n${examplesSection}`;
 
     let prompt;
     if (diagramType) {
-      prompt = `Diagram type: ${diagramType}\nDescription: ${description || pdfName || 'PDF'}\n\nOutput ONLY a JSON object: {\n  "diagramType": "${diagramType}",\n  "code": "..."\n}\nThe code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see example). Do not include code fences or any explanations.\n\n${examplesSection}${verifymethodNote}`;
+      prompt = `Diagram type: ${diagramType}\nDescription: ${description || pdfName || 'PDF'}\n\nOutput ONLY a JSON object: {\n  "diagramType": "${diagramType}",\n  "code": "..."\n}\nThe code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see example). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
     } else {
-      prompt = `Description: ${description || pdfName || 'PDF'}\n\nChoose the best diagram type from this list: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. Output ONLY a JSON object: {\n  "diagramType": "...",\n  "code": "..."\n}\nThe diagramType must be one of the allowed types. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see examples). Do not include code fences or any explanations.\n\n${examplesSection}${verifymethodNote}`;
+      prompt = `Description: ${description || pdfName || 'PDF'}\n\nChoose the best diagram type from this list: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. Output ONLY a JSON object: {\n  "diagramType": "...",\n  "code": "..."\n}\nThe diagramType must be one of the allowed types. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see examples). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
     }
 
-    let result;
+    const contentParts: any[] = [{ text: prompt }];
     if (pdfUrl) {
-      const chat = model.startChat();
-      let messageParts;
       if (pdfUrl.includes('vercel-blob.com')) {
-        // Use remote file reference
-        messageParts = [
-          { text: prompt },
-          { fileData: { mimeType: 'application/pdf', fileUri: pdfUrl } }
-        ];
+        contentParts.push({ fileData: { mimeType: 'application/pdf', fileUri: pdfUrl } });
       } else {
-        // Download and send as inlineData (base64)
         const pdfResponse = await fetch(pdfUrl);
         if (!pdfResponse.ok) {
           throw new Error(`Failed to download PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
         }
         const pdfBuffer = await pdfResponse.arrayBuffer();
         const base64Data = Buffer.from(pdfBuffer).toString('base64');
-        messageParts = [
-          { text: prompt },
-          { inlineData: { mimeType: 'application/pdf', data: base64Data } }
-        ];
+        contentParts.push({ inlineData: { mimeType: 'application/pdf', data: base64Data } });
       }
-      result = await chat.sendMessage(messageParts);
-    } else {
-      // Text only
-      result = await model.generateContent({
-        contents: [
-          { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-          { role: 'user', parts: [{ text: prompt }] },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-          responseSchema: responseSchema as any
-        }
-      });
     }
+
+    const result = await model.generateContent({
+      contents: [
+        { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+        { role: 'user', parts: contentParts },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+        responseSchema: responseSchema as any
+      }
+    });
 
     let responseText = result.response.text().trim();
     let parsed;
@@ -126,7 +117,11 @@ export async function POST(req: NextRequest) {
       // Try to extract JSON from text
       const match = responseText.match(/\{[\s\S]*\}/);
       if (match) {
-        parsed = JSON.parse(match[0]);
+        try {
+          parsed = JSON.parse(match[0]);
+        } catch {
+          parsed = JSON.parse(jsonrepair(match[0]));
+        }
       } else {
         return new Response(JSON.stringify({ error: 'Failed to parse model response as JSON', raw: responseText }), {
           status: 500,
