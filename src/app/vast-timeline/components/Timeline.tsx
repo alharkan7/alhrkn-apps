@@ -18,6 +18,7 @@ interface TimelineProps {
   onViewChange: (k: number, x: number) => void;
   /** When provided, overrides the internal filter state (used by presentation mode) */
   controlledVisiblePeriodIndices?: Set<number>;
+  onPeriodFocus?: (period: HistoricalPeriod) => void;
 }
 
 const TIME_UNITS = [
@@ -69,6 +70,7 @@ const Timeline: React.FC<TimelineProps> = ({
   viewState,
   onViewChange,
   controlledVisiblePeriodIndices,
+  onPeriodFocus,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -417,18 +419,17 @@ const Timeline: React.FC<TimelineProps> = ({
                 return (
                   <div
                     key={period.period_title}
-                    className={`flex items-center space-x-2 p-2 rounded border transition-all ${canToggle
-                      ? 'hover:bg-slate-50 cursor-pointer'
-                      : 'opacity-50 cursor-not-allowed'
-                      }`}
-                    onClick={() => canToggle && handlePeriodToggle(index)}
+                    className={`flex items-center space-x-2 p-2 rounded border transition-all hover:bg-slate-50 cursor-pointer ${!isVisible ? 'opacity-70' : ''}`}
+                    onClick={() => onPeriodFocus?.(period)}
                   >
-                    <Checkbox
-                      checked={isVisible}
-                      disabled={!canToggle}
-                      onCheckedChange={() => canToggle && handlePeriodToggle(index)}
-                      className="pointer-events-none"
-                    />
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                      <Checkbox
+                        checked={isVisible}
+                        disabled={!canToggle}
+                        onCheckedChange={() => canToggle && handlePeriodToggle(index)}
+                        className={canToggle ? "cursor-pointer" : "cursor-not-allowed"}
+                      />
+                    </div>
                     <div
                       className="w-4 h-4 rounded shrink-0"
                       style={{ backgroundColor: period.color }}
@@ -651,6 +652,13 @@ const Timeline: React.FC<TimelineProps> = ({
           {visibleEventsWithLayout.map(({ event, x, lane, hiddenLabel }) => {
             if (hiddenLabel) return null;
 
+            const isHighlighted = highlightedEvent &&
+              event.title === highlightedEvent.title &&
+              event.year === highlightedEvent.year;
+
+            // In presentation mode, hide all connector lines except for the active/highlighted event.
+            if (controlledVisiblePeriodIndices && !isHighlighted) return null;
+
             const { lineY2 } = getLayoutCoords(lane);
             return (
               <line
@@ -682,10 +690,15 @@ const Timeline: React.FC<TimelineProps> = ({
           {visibleEventsWithLayout.map(({ event, x, lane, hiddenLabel }) => {
             if (hiddenLabel) return null;
 
-            const { foY } = getLayoutCoords(lane);
             const isHighlighted = highlightedEvent &&
               event.title === highlightedEvent.title &&
               event.year === highlightedEvent.year;
+
+            // In presentation mode (indicated by controlledVisiblePeriodIndices),
+            // hide all labels except the one currently active/highlighted.
+            if (controlledVisiblePeriodIndices && !isHighlighted) return null;
+
+            const { foY } = getLayoutCoords(lane);
 
             return (
               <foreignObject

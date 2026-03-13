@@ -199,18 +199,20 @@ const IndonesiaHistoryPage: React.FC = () => {
     const domainEnd = maxYear + domainPadding;
     const domainWidth = domainEnd - domainStart;
 
-    // Span of the period in years, with 20% viewport padding on each side
-    const periodSpan = Math.abs(period.visual_end_year - period.start_year);
-    const viewWindow = Math.max(periodSpan * 1.4, 1); // guard against zero-span
+    // Span from the start of the chosen period to the end of the entire timeline
+    const viewSpan = Math.abs(maxYear - period.start_year);
+    // Add 10% padding (5% on each side) so it fits comfortably
+    const viewWindow = Math.max(viewSpan * 1.1, 1); // guard against zero-span
 
     const k = domainWidth / viewWindow;
 
     const scaleRef = d3.scaleLinear().domain([domainStart, domainEnd]).range([0, timelineWidth]);
-    const periodCenter = (period.start_year + period.visual_end_year) / 2;
-    const periodCenterPx = scaleRef(periodCenter);
+    // The center should be exactly halfway between the period start and the timeline end
+    const viewCenter = (period.start_year + maxYear) / 2;
+    const viewCenterPx = scaleRef(viewCenter);
 
-    // Center the period in the viewport
-    const x = (timelineWidth / 2) - (periodCenterPx * k);
+    // Center this span in the viewport
+    const x = (timelineWidth / 2) - (viewCenterPx * k);
 
     setViewState({ k, x });
 
@@ -280,7 +282,7 @@ const IndonesiaHistoryPage: React.FC = () => {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // ArrowLeft = go to next (older/earlier) event — moves left on the timeline
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      if (e.key === 'ArrowLeft') {
         e.preventDefault();
         const sorted = [...PERIODS[presentingPeriodIdx].events].sort((a, b) => b.year - a.year);
         if (presentingEventIdx < sorted.length - 1) {
@@ -289,14 +291,30 @@ const IndonesiaHistoryPage: React.FC = () => {
           setPresentingPeriodIdx(prev => prev - 1);
           setPresentingEventIdx(0);
         }
-        // ArrowRight = go back to previous (newer/later) event — moves right on the timeline
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      // ArrowRight = go back to previous (newer/later) event — moves right on the timeline
+      } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         if (presentingEventIdx > 0) {
           setPresentingEventIdx(prev => prev - 1);
         } else if (presentingPeriodIdx < PERIODS.length - 1) {
           const prevSorted = [...PERIODS[presentingPeriodIdx + 1].events].sort((a, b) => b.year - a.year);
           setPresentingPeriodIdx(prev => prev + 1);
+          setPresentingEventIdx(prevSorted.length - 1);
+        }
+      // ArrowUp = jump to the next (older/earlier) period
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (presentingPeriodIdx > 0) {
+          setPresentingPeriodIdx(prev => prev - 1);
+          setPresentingEventIdx(0);
+        }
+      // ArrowDown = jump back to the previous (newer/later) period
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (presentingPeriodIdx < PERIODS.length - 1) {
+          const prevSorted = [...PERIODS[presentingPeriodIdx + 1].events].sort((a, b) => b.year - a.year);
+          setPresentingPeriodIdx(prev => prev + 1);
+          // Jump to the most recent event of the newer period
           setPresentingEventIdx(prevSorted.length - 1);
         }
       } else if (e.key === 'Escape') {
@@ -522,6 +540,7 @@ const IndonesiaHistoryPage: React.FC = () => {
             viewState={viewState}
             onViewChange={handleTimelineViewChange}
             controlledVisiblePeriodIndices={presentationVisiblePeriods}
+            onPeriodFocus={handleJumpToPeriod}
           />
 
           {/* Helper Text Overlay */}
