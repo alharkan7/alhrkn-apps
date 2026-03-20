@@ -30,8 +30,9 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
   ], []);
 
   const handleAppClick = (slug: string) => {
-    if (slug === 'enaiblr') {
-      window.location.href = 'https://enaiblr.vercel.app/apps';
+    if (slug.startsWith('http')) {
+      window.open(slug, '_blank', 'noopener,noreferrer');
+      setIsOpen(false);
       return;
     }
 

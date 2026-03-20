@@ -125,8 +125,8 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {apps.map((app) => {
             const IconComponent = app.icon
-            const isExternal = app.slug === 'enaiblr'
-            const href = isExternal ? 'https://enaiblr.vercel.app/apps' : app.slug ? `/${app.slug}` : '/'
+            const isExternal = app.slug.startsWith('http')
+            const href = isExternal ? app.slug : app.slug ? `/${app.slug}` : '/'
 
             return (
               <Link

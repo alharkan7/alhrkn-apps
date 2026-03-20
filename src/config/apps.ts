@@ -1,4 +1,4 @@
-import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake } from 'lucide-react'
+import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig } from 'lucide-react'
 
 export interface AppConfig {
   name: string
@@ -45,6 +45,12 @@ export const apps: AppConfig[] = [
     description: 'Explore Good News as a Blooming Garden',
   },
   {
+    name: 'Wiki Reels',
+    icon: LibraryBig,
+    slug: 'https://goodreels.vercel.app',
+    description: 'Wikipedia Pages with TikTok UX + Games',
+  },
+  {
     name: 'Hoax Network',
     icon: Snowflake,
     slug: 'hoax-network',
@@ -77,7 +83,7 @@ export const apps: AppConfig[] = [
   {
     name: 'More Apps',
     icon: Infinity,
-    slug: 'enaiblr',
+    slug: 'https://enaiblr.vercel.app',
     description: 'Access Enaiblr Apps',
   },
 ]
