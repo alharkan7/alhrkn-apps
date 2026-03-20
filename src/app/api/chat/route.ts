@@ -94,7 +94,8 @@ async function uploadBase64ToGemini(base64String: string, mimeType: string, file
         const buffer = Buffer.from(base64Data, 'base64');
         const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-'));
         const extension = getFileExtension(mimeType);
-        const tempFilePath = path.join(tempDir, `${crypto.randomUUID()}.${extension}`);
+        // avoid path.join to prevent @vercel/nft from tracing all files matching this dynamic pattern
+        const tempFilePath = `${tempDir}/${crypto.randomUUID()}.${extension}`;
 
         await fs.writeFile(tempFilePath, buffer);
 

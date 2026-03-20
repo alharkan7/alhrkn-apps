@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { toPng, toJpeg } from 'html-to-image';
-import { jsPDF } from 'jspdf';
 import { Share2,FileImage, FileText, Braces, List, Link } from 'lucide-react';
 import { getNodesBounds, getViewportForBounds } from 'reactflow';
 import { Button } from "@/components/ui/button";
@@ -115,7 +113,8 @@ export default function Downloader({}: DownloaderProps) {
     const isDarkMode = document.documentElement.classList.contains('dark');
 
     // Small delay to ensure the view is updated
-    setTimeout(() => {
+    setTimeout(async () => {
+      const { toJpeg } = await import('html-to-image');
       toJpeg(viewportElement, {
         quality: 0.95,
         backgroundColor: isDarkMode ? '#020817' : '#ffffff',
@@ -148,7 +147,8 @@ export default function Downloader({}: DownloaderProps) {
     const isDarkMode = document.documentElement.classList.contains('dark');
 
     // Small delay to ensure the view is updated
-    setTimeout(() => {
+    setTimeout(async () => {
+      const { toPng } = await import('html-to-image');
       toPng(viewportElement, {
         quality: 1,
         backgroundColor: 'transparent',
@@ -185,7 +185,10 @@ export default function Downloader({}: DownloaderProps) {
     const isDarkMode = document.documentElement.classList.contains('dark');
 
     // Small delay to ensure the view is updated
-    setTimeout(() => {
+    setTimeout(async () => {
+      const { toPng } = await import('html-to-image');
+      const { jsPDF } = await import('jspdf');
+      
       toPng(viewportElement, {
         quality: 0.8, // Reduced quality for better compression
         backgroundColor: isDarkMode ? '#020817' : '#ffffff',

@@ -1,6 +1,3 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-
 // Convert HTML content to plain text by stripping tags
 export function stripHtmlTags(html: string): string {
     if (!html) return '';
@@ -9,6 +6,9 @@ export function stripHtmlTags(html: string): string {
 
 // Generate PDF from HTML content
 export async function generatePDF(title: string, htmlContent: string) {
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
+
     const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();

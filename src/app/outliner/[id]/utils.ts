@@ -1,8 +1,5 @@
 "use client";
 
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-
 // Types kept simple here to avoid cross-file coupling
 export type ResearchIdea = {
     title: string;
@@ -421,6 +418,9 @@ export function buildBibliographyPlain(entries: Array<{ html: string; text: stri
 // ---------- PDF generation ----------
 
 export async function renderPdfFromEditorData(title: string, data: any) {
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
+
     const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
