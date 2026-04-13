@@ -334,7 +334,7 @@
     {
       "period_title": "The Independent Republic",
       "start_year": 1950,
-      "end_year": 2024,
+      "end_year": 2025,
       "description": "The evolution of the modern nation-state through the Old Order, New Order, and the democratic Reformasi era[cite: 197, 217].",
       "illustrations": "https://factsanddetails.com/archives/007/202512/fd9d3604c4f89b211302e6ed283fcd782b17acf01da0678f47198adc99030f3c.jpg",
       "events": [
@@ -372,6 +372,13 @@
           "title": "Prabowo Presidency",
           "description": "Prabowo Subianto elected President, representing policy continuity from the Jokowi era[cite: 219, 222].",
           "illustrations": "https://factsanddetails.com/archives/007/202512/fd9d3604c4f89b211302e6ed283fcd782b17acf01da0678f47198adc99030f3c.jpg"
+        },
+        {
+          "date_display": "2025 CE (Jan 6)",
+          "year": 2025,
+          "title": "Makan Bergizi Gratis (MBG)",
+          "description": "President Prabowo officially launches the Free Nutritious Meal (MBG) flagship program targeting school children across Indonesia.",
+          "illustrations": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/MBG_Smakenza.jpg/500px-MBG_Smakenza.jpg"
         }
       ]
     }

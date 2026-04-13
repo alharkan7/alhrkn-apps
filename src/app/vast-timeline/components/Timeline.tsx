@@ -3,7 +3,6 @@ import * as d3 from 'd3';
 import { HistoricalPeriod, HistoricalEvent, ViewState } from '../types';
 import { Scan, Filter } from 'lucide-react';
 import { EVENT_COLORS } from '../constants';
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -331,6 +330,12 @@ const Timeline: React.FC<TimelineProps> = ({
         placed = true;
       }
 
+      // In presentation mode, force the active event to always be on top (lane 0)
+      if (controlledVisiblePeriodIndices && isHighlighted) {
+        assignedLane = 0;
+        placed = true;
+      }
+
       visibleEvents.push({
         event: evt,
         x,
@@ -340,7 +345,7 @@ const Timeline: React.FC<TimelineProps> = ({
     });
 
     return visibleEvents;
-  }, [allEvents, currentScale, width, transformState, highlightedEvent]);
+  }, [allEvents, currentScale, width, transformState, highlightedEvent, controlledVisiblePeriodIndices]);
 
   // Helper for coordinates
   const getLayoutCoords = (lane: number) => {

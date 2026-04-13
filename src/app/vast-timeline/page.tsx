@@ -9,7 +9,7 @@ import { HistoricalEvent, HistoricalPeriod, ViewState } from './types';
 import * as d3 from 'd3';
 import { AppsGrid } from '@/components/ui/apps-grid';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, Menu, X, Upload, Edit, Save, Play, Square, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutGrid, Menu, X, Edit, Save, Play, Square, ChevronLeft, ChevronRight } from 'lucide-react';
 import historyDataJson from './history-data.json';
 
 const IndonesiaHistoryPage: React.FC = () => {
