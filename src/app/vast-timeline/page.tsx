@@ -23,6 +23,7 @@ const IndonesiaHistoryPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saveRequested, setSaveRequested] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'json'>('table');
   const [jsonData, setJsonData] = useState(historyDataJson);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -403,35 +404,68 @@ const IndonesiaHistoryPage: React.FC = () => {
             }}
           >
             <h2 className="text-sm sm:text-base font-semibold text-slate-100 whitespace-nowrap">Timeline Data</h2>
-            {!isEditing ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white shrink-0"
-              >
-                <Edit size={14} />
-              </Button>
-            ) : (
-              <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-1 text-[11px] bg-slate-900/50 p-1 rounded-md border border-slate-700">
+                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}>
+                  <input 
+                    type="radio" 
+                    name="viewMode" 
+                    value="table" 
+                    checked={viewMode === 'table'} 
+                    onChange={() => {
+                        setViewMode('table');
+                        if (isEditing) setIsEditing(false); // Leave edit mode if switching back to table
+                    }}
+                    className="sr-only"
+                  />
+                  Table
+                </label>
+                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'json' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}>
+                  <input 
+                    type="radio" 
+                    name="viewMode" 
+                    value="json" 
+                    checked={viewMode === 'json'} 
+                    onChange={() => setViewMode('json')}
+                    className="sr-only"
+                  />
+                  JSON
+                </label>
+              </div>
+
+              {!isEditing ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(false)}
-                  className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
+                  onClick={() => {
+                    setViewMode('json'); // Automatically switch to JSON view when editing
+                    setIsEditing(true);
+                  }}
+                  className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white shrink-0"
                 >
-                  <X size={14} />
+                  <Edit size={14} />
                 </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => setSaveRequested(true)}
-                  className="flex items-center gap-1.5 h-7 px-2 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save size={14} />
-                </Button>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(false)}
+                    className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
+                  >
+                    <X size={14} />
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setSaveRequested(true)}
+                    className="flex items-center gap-1.5 h-7 px-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Save size={14} />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Main Page Header */}
@@ -516,6 +550,8 @@ const IndonesiaHistoryPage: React.FC = () => {
           onEditingChange={setIsEditing}
           saveRequested={saveRequested}
           onSaveComplete={() => setSaveRequested(false)}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
 
         {/* Main Timeline Area */}

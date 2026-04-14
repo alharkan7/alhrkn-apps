@@ -11,6 +11,8 @@ interface JsonSidebarProps {
     onEditingChange: (editing: boolean) => void;
     saveRequested: boolean;
     onSaveComplete: () => void;
+    viewMode: 'table' | 'json';
+    onViewModeChange: (mode: 'table' | 'json') => void;
 }
 
 const JsonSidebar: React.FC<JsonSidebarProps> = ({
@@ -23,7 +25,9 @@ const JsonSidebar: React.FC<JsonSidebarProps> = ({
     isEditing,
     onEditingChange,
     saveRequested,
-    onSaveComplete
+    onSaveComplete,
+    viewMode,
+    onViewModeChange
 }) => {
     const [editedJson, setEditedJson] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,7 +64,67 @@ const JsonSidebar: React.FC<JsonSidebarProps> = ({
     };
 
     const handleStartEdit = () => {
+        onViewModeChange('json');
         onEditingChange(true);
+    };
+
+    const renderTable = (data: any) => {
+        if (!data || !data.rawData || !Array.isArray(data.rawData)) {
+            return <div className="text-sm text-slate-400 p-3 border border-slate-700 rounded border-dashed">Invalid data format for table view. Required structure: {`{ rawData: [...] }`}</div>;
+        }
+
+        return (
+            <div className="overflow-x-auto rounded border border-slate-700 bg-slate-800/20">
+                <table className="w-full text-left text-xs border-collapse min-w-[500px]">
+                    <thead>
+                        <tr className="bg-slate-800/80 text-slate-300 border-b border-slate-700">
+                            <th className="p-3 border-r border-slate-700 font-semibold whitespace-nowrap w-[130px]">Period</th>
+                            <th className="p-3 border-r border-slate-700 font-semibold whitespace-nowrap w-[110px]">Date</th>
+                            <th className="p-3 font-semibold">Event</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.rawData.map((period: any, pIndex: number) => {
+                            const rowSpan = period.events && period.events.length > 0 ? period.events.length : 1;
+                            const events = period.events || [];
+
+                            if (events.length === 0) {
+                                return (
+                                    <tr key={`p-${pIndex}`} className="border-b border-slate-700">
+                                        <td className="p-3 border-r border-slate-700 align-top bg-slate-800/40">
+                                            <div className="font-semibold text-slate-200">{period.period_title}</div>
+                                            <div className="text-slate-400 text-[10px] mt-1.5">{period.start_year} to {period.end_year}</div>
+                                        </td>
+                                        <td className="p-3 text-slate-500 italic" colSpan={2}>No events</td>
+                                    </tr>
+                                );
+                            }
+
+                            return events.map((event: any, eIndex: number) => (
+                                <tr key={`p-${pIndex}-e-${eIndex}`} className="border-b border-slate-700 hover:bg-slate-750/50 transition-colors">
+                                    {eIndex === 0 && (
+                                        <td 
+                                            className="p-3 border-r border-slate-700 align-top bg-slate-800/40" 
+                                            rowSpan={rowSpan}
+                                        >
+                                            <div className="font-semibold text-slate-200">{period.period_title}</div>
+                                            <div className="text-slate-400 text-[10px] mt-1.5">{period.start_year} to {period.end_year}</div>
+                                        </td>
+                                    )}
+                                    <td className="p-3 border-r border-slate-700 align-top whitespace-nowrap text-slate-300 font-medium bg-slate-900/20">
+                                        {event.date_display}
+                                    </td>
+                                    <td className="p-3 align-top">
+                                        <div className="font-semibold text-slate-200 text-[13px]">{event.title}</div>
+                                        <div className="text-slate-400 mt-1.5 leading-relaxed">{event.description}</div>
+                                    </td>
+                                </tr>
+                            ));
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
     };
 
     return (
@@ -73,17 +137,21 @@ const JsonSidebar: React.FC<JsonSidebarProps> = ({
                 zIndex: 25
             }}
         >
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col w-80 sm:w-96">
                 {/* Content - Scrollable */}
                 <div className="flex-1 overflow-y-auto p-4">
                     {!isEditing ? (
-                        <pre
-                            className="text-xs overflow-x-auto bg-slate-800 p-3 rounded cursor-pointer hover:bg-slate-750 transition-colors"
-                            onClick={handleStartEdit}
-                            title="Click to edit"
-                        >
-                            {JSON.stringify(jsonData, null, 2)}
-                        </pre>
+                        viewMode === 'table' ? (
+                            renderTable(jsonData)
+                        ) : (
+                            <pre
+                                className="text-xs overflow-x-auto bg-slate-800 p-3 rounded cursor-pointer hover:bg-slate-750 transition-colors"
+                                onClick={handleStartEdit}
+                                title="Click to edit"
+                            >
+                                {JSON.stringify(jsonData, null, 2)}
+                            </pre>
+                        )
                     ) : (
                         <textarea
                             ref={textareaRef}
