@@ -1,6 +1,6 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { DatabaseService } from "@/app/finance-tracker/lib/database"
+import { DatabaseService } from "@/lib/database"
 
 const handler = NextAuth({
   debug: true,

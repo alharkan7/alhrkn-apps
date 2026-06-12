@@ -124,4 +124,6 @@ const CustomNode = ({ data, selected, id }: NodeProps<NoteData>) => {
   );
 };
 
-export default memo(CustomNode);
+const CustomNodeMemo = memo(CustomNode);
+CustomNodeMemo.displayName = 'CustomNode';
+export default CustomNodeMemo;

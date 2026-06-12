@@ -1,5 +1,16 @@
 'use client';
 
+// Suppress React Flow nodeTypes warning in development (known HMR issue with Next.js)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('[React Flow]: It looks like you')) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 import React, { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
@@ -29,9 +40,9 @@ import { AppsGrid } from '@/components/ui/apps-grid';
 import { Button } from '@/components/ui/button';
 
 
-const nodeTypes = {
+const nodeTypes = Object.freeze({
   note: CustomNode,
-};
+});
 
 // Helper: Parse Markdown to Nodes & Edges
 const parseMarkdownToGraph = (markdown: string) => {

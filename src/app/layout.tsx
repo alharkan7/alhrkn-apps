@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={spaceGrotesk.variable} suppressHydrationWarning>
+    <html lang="en" className={spaceGrotesk.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <style>{`
           .markdown-content h1 {
