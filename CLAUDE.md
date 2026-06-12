@@ -132,9 +132,8 @@ Google Gemini AI is integrated via:
 4. **FlowNote** (`/flownote`) - Node-based document authoring
 5. **Disposable Chat** (`/chat`) - AI chat with no data storage
 6. **Nusantara Timeline** (`/indonesia-history`) - Interactive history timeline
-7. **Japanese Flashcards** (`/japanese-flashcards`) - Language learning
-8. **Finance Tracker** (`/finance-tracker`) - Expense management with Excel export
-9. **Discourse Extractor** (`/dnanalyzer`) - Automatic discourse extraction
+7. **Finance Tracker** (`/finance-tracker`) - Expense management with Excel export
+8. **Discourse Extractor** (`/dnanalyzer`) - Automatic discourse extraction
 
 ## Development Workflow
 

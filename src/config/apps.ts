@@ -63,12 +63,6 @@ export const apps: AppConfig[] = [
     description: 'Chat with AI, No Data is Stored',
   },
   {
-    name: 'Japanese Flashcards',
-    icon: Languages,
-    slug: 'japanese-flashcards',
-    description: 'Simple Japanese Letters Flashcards',
-  },
-  {
     name: 'Finance Tracker',
     icon: Wallet,
     slug: 'finance-tracker',

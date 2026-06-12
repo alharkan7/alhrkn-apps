@@ -49,7 +49,6 @@
 - **Editor**: Rich text editing capabilities (`/editor`)
 - **Finance Tracker**: Personal finance management (`/finance-tracker`)
 - **Inztagram**: Social media experiment (`/inztagram`)
-- **Japanese Flashcards**: Language learning tool (`/japanese-flashcards`)
 
 ## API Structure
 **Location**: `/src/app/api/`
