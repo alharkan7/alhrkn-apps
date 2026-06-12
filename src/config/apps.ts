@@ -63,12 +63,6 @@ export const apps: AppConfig[] = [
     description: 'Chat with AI, No Data is Stored',
   },
   {
-    name: 'Finance Tracker',
-    icon: Wallet,
-    slug: 'finance-tracker',
-    description: 'Expense, Income, Budget & Excel Export',
-  },
-  {
     name: 'Discourse Extractor',
     icon: Network,
     slug: 'dnanalyzer',
