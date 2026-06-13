@@ -4,12 +4,9 @@ import React, { useRef } from 'react'
 import TextFileList from './components/TextFileList'
 import TextDisplay from './components/TextDisplay'
 import ResultsSheet from './components/ResultsSheet'
-import LoadingSkeleton from './components/LoadingSkeleton'
-import LoginScreen from './components/LoginScreen'
 import SettingsDialog from './components/SettingsDialog'
 import { Button } from '@/components/ui/button'
 import { Download, Save, Eye, EyeOff, Plus, LayoutGrid } from 'lucide-react'
-import { UserMenu } from '@/components/user-menu'
 import { AppsGrid } from '@/components/ui/apps-grid'
 import AppsFooter from '@/components/apps-footer'
 import { useAnalyzerFunctions } from './hooks/useAnalyzerFunctions'
@@ -17,9 +14,6 @@ import { useAnalyzerFunctions } from './hooks/useAnalyzerFunctions'
 export default function DNAnalyzerPage() {
   const textFileListRef = useRef<any>(null)
   const {
-    // Session and status
-    status,
-
     // State
     files,
     selectedFileId,
@@ -66,16 +60,6 @@ export default function DNAnalyzerPage() {
     setShowResults,
   } = useAnalyzerFunctions()
 
-  // Show loading skeleton when authentication status is loading
-  if (status === 'loading') {
-    return <LoadingSkeleton />
-  }
-
-  // Show login screen when not authenticated
-  if (status === 'unauthenticated') {
-    return <LoginScreen />
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 max-w-6xl">
@@ -97,7 +81,6 @@ export default function DNAnalyzerPage() {
                 }
                 useHardReload={false}
               />
-              <UserMenu />
             </div>
           </div>
 
