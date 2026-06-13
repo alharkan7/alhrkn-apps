@@ -15,7 +15,8 @@ const PdfViewer = memo(() => {
     pdfUrl, 
     isPdfViewerOpen, 
     closePdfViewer, 
-    currentPdfPage
+    currentPdfPage,
+    setPdfBase64
   } = usePdfViewerContext();
   
   // Simply pass props to the dynamically loaded component
@@ -28,6 +29,7 @@ const PdfViewer = memo(() => {
   return <PDFViewer 
     pdfBase64={pdfBase64} 
     pdfUrl={pdfUrl}
+    setPdfBase64={setPdfBase64}
     isOpen={isPdfViewerOpen} 
     onClose={closePdfViewer} 
     initialPage={validatedInitialPage} 

@@ -125,11 +125,17 @@ export function useMindMapDataProcessing({
 
       let uploadedBlobUrl: string;
       if (!blobUrl) {
-        const { upload } = await import('@vercel/blob/client');
-        const blob = await upload(file.name, file, {
-          access: 'public', handleUploadUrl: '/api/papermap/blob',
-          expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
-        } as any);
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/papermap/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          throw new Error(errData.error || 'Failed to upload to Google Cloud Storage');
+        }
+        const blob = await uploadRes.json();
         if (!blob.url) throw new Error('No blob URL returned from upload');
         uploadedBlobUrl = blob.url;
       } else {
@@ -307,11 +313,17 @@ export function useMindMapDataProcessing({
       // Upload to blob if needed
       let uploadedBlobUrl: string;
       if (!blobUrl) {
-        const { upload } = await import('@vercel/blob/client');
-        const blob = await upload(file.name, file, {
-          access: 'public', handleUploadUrl: '/api/papermap/blob',
-          expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
-        } as any);
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/papermap/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          throw new Error(errData.error || 'Failed to upload to Google Cloud Storage');
+        }
+        const blob = await uploadRes.json();
         if (!blob.url) throw new Error('No blob URL returned from upload');
         uploadedBlobUrl = blob.url;
       } else {
@@ -539,11 +551,17 @@ export function useMindMapDataProcessing({
       // Upload to blob if needed
       let uploadedBlobUrl: string;
       if (!blobUrl) {
-        const { upload } = await import('@vercel/blob/client');
-        const blob = await upload(file.name, file, {
-          access: 'public', handleUploadUrl: '/api/papermap/blob',
-          expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
-        } as any);
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/papermap/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          throw new Error(errData.error || 'Failed to upload to Google Cloud Storage');
+        }
+        const blob = await uploadRes.json();
         if (!blob.url) throw new Error('No blob URL returned from upload');
         uploadedBlobUrl = blob.url;
       } else {

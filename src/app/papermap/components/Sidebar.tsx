@@ -138,18 +138,29 @@ const Sidebar: React.FC<SidebarProps> = ({
       }, 500);
 
       try {
-        // Use the client direct upload method
-        const blob = await upload(fileToUpload.name, fileToUpload, {
-          access: 'public',
-          handleUploadUrl: '/api/papermap/blob',
+        // Use the custom GCP upload endpoint
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        
+        const response = await fetch('/api/papermap/upload', {
+            method: 'POST',
+            body: formData,
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        const blobUrl = data.url;
 
         // Clear interval and complete progress
         clearInterval(progressInterval);
         setUploadProgress(100);
-        
+
         // Return the blob URL
-        return blob.url;
+        return blobUrl;
       } catch (error) {
         // Clear interval
         clearInterval(progressInterval);
@@ -247,17 +258,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         // Extract filename from the proxy response
         const fileName = data.fileName || 'document.pdf';
         
-        // Use direct client upload
-        const blob = await upload(fileName, pdfBlob, {
-          access: 'public',
-          handleUploadUrl: '/api/papermap/blob',
-        });
+        // Use direct client upload via our API
+        const formData = new FormData();
+        formData.append('file', pdfBlob, fileName);
         
+        const uploadRes = await fetch('/api/papermap/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!uploadRes.ok) {
+            const errorData = await uploadRes.json();
+            throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const uploadData = await uploadRes.json();
+
         // Clear interval and complete progress
         clearInterval(progressInterval);
         setUploadProgress(100);
-        
-        return blob.url;
+
+        return uploadData.url;
       } catch (error) {
         // Clear interval
         clearInterval(progressInterval);

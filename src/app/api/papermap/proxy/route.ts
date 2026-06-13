@@ -53,8 +53,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Check if URL is directly to a PDF by examining the URL extension
-    const isPdfUrl = url.toLowerCase().endsWith('.pdf');
+    // Check if URL is directly to a PDF by examining the URL extension (ignoring query strings)
+    const urlWithoutQuery = url.split('?')[0];
+    const isPdfUrl = urlWithoutQuery.toLowerCase().endsWith('.pdf');
     
     // If it looks like a PDF URL, proceed with PDF handling
     if (isPdfUrl) {

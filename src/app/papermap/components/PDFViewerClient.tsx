@@ -19,6 +19,7 @@ interface PDFViewerClientProps {
   onClose: () => void;
   initialPage?: number;
   pdfUrl?: string | null;
+  setPdfBase64?: (base64: string | null) => void;
 }
 
 const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
@@ -26,7 +27,8 @@ const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
   pdfUrl,
   isOpen,
   onClose,
-  initialPage = 1
+  initialPage = 1,
+  setPdfBase64
 }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(initialPage);
@@ -35,6 +37,8 @@ const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
 
   // Store a safe copy of the PDF data
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   // Set initial scale based on device width
   useEffect(() => {
@@ -77,20 +81,60 @@ const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
     }
   }, [pdfBase64]);
 
+  // Fetch PDF via proxy if we only have a URL
+  useEffect(() => {
+    if (pdfUrl && !pdfBase64 && !pdfBytes && !isFetchingUrl && !hasAttemptedFetch) {
+      const fetchPdf = async () => {
+        try {
+          setIsFetchingUrl(true);
+          setHasAttemptedFetch(true);
+          // Use the proxy to bypass CORS
+          const proxyUrl = `/api/papermap/proxy?url=${encodeURIComponent(pdfUrl)}`;
+          const response = await fetch(proxyUrl);
+          if (!response.ok) throw new Error('Proxy fetch failed');
+          const data = await response.json();
+          if (data.success && data.base64Data) {
+            // If the parent provided a way to cache the base64, use it
+            if (setPdfBase64) {
+              // Updating the parent will send the base64 string down as a prop,
+              // triggering the other useEffect which sets pdfBytes.
+              setPdfBase64(data.base64Data);
+            } else {
+              // Only parse locally if we don't have a parent context to rely on
+              const binary = atob(data.base64Data);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              setPdfBytes(bytes);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching PDF via proxy:", error);
+        } finally {
+          setIsFetchingUrl(false);
+        }
+      };
+      fetchPdf();
+    }
+  }, [pdfUrl, pdfBase64, pdfBytes, isFetchingUrl, hasAttemptedFetch]);
+
   // Memoize the file prop to prevent unnecessary reloads
   const memoizedFile = useMemo(() => {
-    // If URL is provided, use it
-    if (pdfUrl) {
-      return pdfUrl;
-    }
-
-    // Otherwise use binary data if available
+    // ALWAYS use binary data if available to avoid CORS issues with the URL
     if (pdfBytes) {
       return { data: pdfBytes };
     }
 
+    // Only fallback to URL if we don't have bytes yet
+    // Note: This might still trigger a CORS error in react-pdf if proxy hasn't finished,
+    // but the loading state will handle the UI until bytes are ready.
+    if (pdfUrl && !isFetchingUrl) {
+       return pdfUrl;
+    }
+
     return null;
-  }, [pdfBytes, pdfUrl]);
+  }, [pdfBytes, pdfUrl, isFetchingUrl]);
 
   // Memoize the options prop to prevent unnecessary reloads
   const memoizedOptions = useMemo(() => ({
@@ -283,6 +327,7 @@ const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
               loading={
                 <div className="flex justify-center items-center h-40">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-sm text-muted-foreground">Loading document...</span>
                 </div>
               }
               error={
@@ -303,6 +348,11 @@ const PDFViewerClient: React.FC<PDFViewerClientProps> = ({
                 renderAnnotationLayer={true}
               />
             </Document>
+          ) : isFetchingUrl ? (
+            <div className="flex flex-col justify-center items-center h-full min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <span className="text-sm text-muted-foreground">Downloading PDF...</span>
+            </div>
           ) : (
             <div className="text-muted-foreground p-4">
               No PDF document is loaded.

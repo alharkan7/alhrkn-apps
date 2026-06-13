@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { LoaderCircle, AlertTriangle, Waypoints, X, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { upload } from '@vercel/blob/client';
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
@@ -187,19 +186,29 @@ const InputForm: React.FC<InputFormProps> = ({
             }, 500);
 
             try {
-                // Use the client direct upload method
-                const blob = await upload(fileToUpload.name, fileToUpload, {
-                    access: 'public',
-                    handleUploadUrl: '/api/papermap/blob',
-                    expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expire after 12 hours
-                } as any);
+                // Use the custom GCP upload endpoint
+                const formData = new FormData();
+                formData.append('file', fileToUpload);
+                
+                const response = await fetch('/api/papermap/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Upload failed');
+                }
+
+                const data = await response.json();
+                const blobUrl = data.url;
 
                 // Clear interval and complete progress
                 clearInterval(progressInterval);
                 setUploadProgress(100);
 
                 // Return the blob URL
-                return blob.url;
+                return blobUrl;
             } catch (error) {
                 // Clear interval
                 clearInterval(progressInterval);
@@ -319,20 +328,30 @@ const InputForm: React.FC<InputFormProps> = ({
                 // Extract filename from the proxy response
                 const fileName = data.fileName || 'document.pdf';
 
-                // Use direct client upload
+                // Use direct client upload via our API
                 setLoadingStage('Uploading');
-                const blob = await upload(fileName, pdfBlob, {
-                    access: 'public',
-                    handleUploadUrl: '/api/papermap/blob',
-                    expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expire after 12 hours
-                } as any);
+                
+                const formData = new FormData();
+                formData.append('file', pdfBlob, fileName);
+                
+                const uploadRes = await fetch('/api/papermap/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                    const errorData = await uploadRes.json();
+                    throw new Error(errorData.error || 'Upload failed');
+                }
+
+                const uploadData = await uploadRes.json();
 
                 // Clear interval and complete progress
                 clearInterval(progressInterval);
                 setUploadProgress(100);
                 setLoadingStage('Parsing');
 
-                return blob.url;
+                return uploadData.url;
             } catch (error) {
                 // Clear interval
                 clearInterval(progressInterval);

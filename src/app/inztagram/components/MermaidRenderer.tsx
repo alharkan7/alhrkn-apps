@@ -8,7 +8,6 @@ import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './diagram-types';
 import panzoom from 'panzoom';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toPng, toJpeg } from 'html-to-image';
-import EmailForm from '../../papermap/components/EmailForm';
 
 interface MermaidRendererProps {
     code: string;
@@ -439,19 +438,6 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                 </CardContent>
             </Card>
             </div>
-            {showEmailForm && (
-                <EmailForm
-                    onSubmit={handleEmailSubmit}
-                    onCancel={() => {
-                        setShowEmailForm(false);
-                        setPendingDownloadAction(null);
-                        setPendingDownloadFormat('');
-                    }}
-                    loading={emailLoading}
-                    error={emailError}
-                    downloadFormat={pendingDownloadFormat}
-                />
-            )}
         </div>
     );
 }; 

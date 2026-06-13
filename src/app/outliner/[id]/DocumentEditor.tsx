@@ -12,7 +12,6 @@ import { ChatTool } from '../tools/ChatTool';
 import { ResearchIdea, convertToMarkdown, convertToPlainText, convertToHTML, buildBibliographyHTML, buildBibliographyMarkdown, buildBibliographyPlain, renderPdfFromEditorData, getBibliographyEntries } from './utils';
 import { Toolbar } from '../components/Toolbar';
 import { ChatInterface } from '../components/ChatInterface';
-import EmailForm from '../../papermap/components/EmailForm';
 import { useDocumentEditor } from './hooks';
 
 export function FullDocumentEditor({ id, idea, language }: { id: string; idea: ResearchIdea; language: 'en' | 'id'; }) {
@@ -493,20 +492,6 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
                     </p>
                 </div>
             </div>
-
-            {showEmailForm && (
-                <EmailForm
-                    onSubmit={handleEmailSubmit}
-                    onCancel={() => {
-                        setShowEmailForm(false);
-                        setPendingDownloadAction(null);
-                        setPendingDownloadFormat('');
-                    }}
-                    loading={emailLoading}
-                    error={emailError}
-                    downloadFormat={pendingDownloadFormat}
-                />
-            )}
 
             {/* Chat Interface */}
             <ChatInterface
