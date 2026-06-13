@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
 import { DIAGRAM_TYPES } from '../../inztagram/components/diagram-types';
 import { jsonrepair } from 'jsonrepair';
@@ -14,7 +14,7 @@ const model = genAI.getGenerativeModel({
     temperature: 0.7,
     topP: 0.8,
     topK: 40,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 8192,
   },
 });
 
@@ -31,13 +31,12 @@ const STYLING_GUIDELINES = `Styling requirements:
 - Keep output fully valid Mermaid syntax for the selected diagram type.`;
 
 const responseSchema = {
-  type: "object",
+  type: SchemaType.OBJECT,
   properties: {
-    diagramType: { type: "string" },
-    code: { type: "string" }
+    diagramType: { type: SchemaType.STRING },
+    code: { type: SchemaType.STRING }
   },
-  required: ["diagramType", "code"],
-  propertyOrdering: ["diagramType", "code"]
+  required: ["diagramType", "code"]
 };
 
 export async function POST(req: NextRequest) {
@@ -79,31 +78,26 @@ export async function POST(req: NextRequest) {
       prompt = `Description: ${description || pdfName || 'PDF'}\n\nChoose the best diagram type from this list: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. Output ONLY a JSON object: {\n  "diagramType": "...",\n  "code": "..."\n}\nThe diagramType must be one of the allowed types. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see examples). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
     }
 
-    const contentParts: any[] = [{ text: prompt }];
+    const contentParts: any[] = [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }];
     if (pdfUrl) {
-      if (pdfUrl.includes('vercel-blob.com')) {
-        contentParts.push({ fileData: { mimeType: 'application/pdf', fileUri: pdfUrl } });
-      } else {
-        const pdfResponse = await fetch(pdfUrl);
-        if (!pdfResponse.ok) {
-          throw new Error(`Failed to download PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
-        }
-        const pdfBuffer = await pdfResponse.arrayBuffer();
-        const base64Data = Buffer.from(pdfBuffer).toString('base64');
-        contentParts.push({ inlineData: { mimeType: 'application/pdf', data: base64Data } });
+      const pdfResponse = await fetch(pdfUrl);
+      if (!pdfResponse.ok) {
+        throw new Error(`Failed to download PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
       }
+      const pdfBuffer = await pdfResponse.arrayBuffer();
+      const base64Data = Buffer.from(pdfBuffer).toString('base64');
+      contentParts.push({ inlineData: { mimeType: 'application/pdf', data: base64Data } });
     }
 
     const result = await model.generateContent({
       contents: [
-        { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
         { role: 'user', parts: contentParts },
       ],
       generationConfig: {
         temperature: 0.7,
         topP: 0.8,
         topK: 40,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
         responseSchema: responseSchema as any
       }
@@ -123,10 +117,15 @@ export async function POST(req: NextRequest) {
           parsed = JSON.parse(jsonrepair(match[0]));
         }
       } else {
-        return new Response(JSON.stringify({ error: 'Failed to parse model response as JSON', raw: responseText }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        // Fallback: try jsonrepair on the whole string directly
+        try {
+          parsed = JSON.parse(jsonrepair(responseText));
+        } catch {
+          return new Response(JSON.stringify({ error: 'Failed to parse model response as JSON', raw: responseText }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
       }
     }
     // Validate diagramType

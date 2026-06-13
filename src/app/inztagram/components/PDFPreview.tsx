@@ -136,7 +136,7 @@ export function FilePreview({ file, isUploading, onRemove, isSent = false, inMes
     }
 
     return (
-        <div className="relative w-full">
+        <div className="relative w-full flex justify-center">
             <Card
                 className={`relative flex mb-2 !items-center gap-3 p-3 ${inMessage ? 'w-full' : 'w-fit min-w-[200px]'} ${isUploading ? 'opacity-50' : ''} transition-opacity duration-200`}
                 onClick={handleFileClick}

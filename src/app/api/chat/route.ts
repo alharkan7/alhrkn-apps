@@ -123,11 +123,11 @@ async function uploadBase64ToGemini(base64String: string, mimeType: string, file
 }
 
 // Add this helper function
-async function fetchImageAsBase64(url: string): Promise<string> {
+async function fetchAsBase64(url: string): Promise<string> {
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch from url: ${response.statusText}`);
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return buffer.toString('base64');
+    return Buffer.from(arrayBuffer).toString('base64');
 }
 
 // Add system prompt configuration
@@ -191,37 +191,30 @@ export async function POST(req: NextRequest) {
                             else if (messageParts.length === 0) {
                                 if (part.type === 'image_url' && part.image_url?.url) {
                                     try {
-                                        if (part.image_url.url.includes('blob.vercel-storage.com')) {
-                                            const base64Data = await fetchImageAsBase64(part.image_url.url);
-                                            messageParts.push({
-                                                inlineData: {
-                                                    mimeType: 'image/jpeg',
-                                                    data: base64Data
-                                                }
-                                            });
+                                        let base64Data = part.image_url.url;
+                                        if (part.image_url.url.startsWith('http')) {
+                                            base64Data = await fetchAsBase64(part.image_url.url);
                                         } else {
-                                            const fileData = await uploadBase64ToGemini(
-                                                part.image_url.url,
-                                                'image/jpeg',
-                                                'uploaded_image.jpg'
-                                            );
-                                            if (fileData.data) {
-                                                messageParts.push({
-                                                    inlineData: {
-                                                        mimeType: fileData.mimeType,
-                                                        data: fileData.data
-                                                    }
-                                                });
-                                            }
+                                            base64Data = part.image_url.url.replace(/^data:.*;base64,/, '');
                                         }
+                                        messageParts.push({
+                                            inlineData: {
+                                                mimeType: 'image/jpeg',
+                                                data: base64Data
+                                            }
+                                        });
                                     } catch (error) {
                                         console.error('Failed to process image:', error);
                                         messageParts.push({ text: "⚠️ Failed to process image" });
                                     }
                                 } else if (part.type === 'file_url' && part.file_url?.url) {
                                     try {
+                                        let base64Data = part.file_url.url;
+                                        if (part.file_url.url.startsWith('http')) {
+                                            base64Data = await fetchAsBase64(part.file_url.url);
+                                        }
                                         const fileData = await uploadBase64ToGemini(
-                                            part.file_url.url,
+                                            base64Data,
                                             part.file_url.type,
                                             part.file_url.name
                                         );
