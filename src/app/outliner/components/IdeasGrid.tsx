@@ -150,7 +150,7 @@ export default function IdeasGrid({
             </div>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="w-[90vw] sm:w-[90vw] max-w-5xl max-h-[90vh] overflow-auto p-6">
+                <DialogContent className="w-[90vw] sm:w-[90vw] max-w-5xl max-h-[90vh] overflow-auto p-6" aria-describedby={undefined}>
                     {selected && (
                         <div className="space-y-4">
                             <DialogHeader>

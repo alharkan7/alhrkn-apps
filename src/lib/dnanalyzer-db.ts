@@ -1,6 +1,12 @@
-import mysql from 'mysql2/promise';
-import fs from 'fs';
-import { db } from './postgres'; // Import the PostgreSQL database
+import { db } from '@/db';
+import { eq, inArray, and } from 'drizzle-orm';
+import {
+  dnanalyzerDocuments,
+  dnanalyzerStatements,
+  dnanalyzerEntities,
+  dnanalyzerDataShortText,
+  dnanalyzerDataBoolean
+} from '@/db/schema';
 
 export interface Statement {
   statement: string;
@@ -11,6 +17,7 @@ export interface Statement {
   sourceFile?: string;
   startIndex?: number;
   endIndex?: number;
+  originalStatementId?: number;
 }
 
 export interface Document {
@@ -20,393 +27,202 @@ export interface Document {
   processed?: boolean;
 }
 
-// Initial data for DNA Analyzer Database
-const INITIAL_DATA_STATEMENTS = [
-  `INSERT IGNORE INTO CODERS (ID, Name, Red, Green, Blue, Refresh, FontSize, Password, PopupWidth, ColorByCoder, PopupDecoration, PopupAutoComplete, PermissionAddDocuments, PermissionEditDocuments, PermissionDeleteDocuments, PermissionImportDocuments, PermissionAddStatements, PermissionEditStatements, PermissionDeleteStatements, PermissionEditAttributes, PermissionEditRegex, PermissionEditStatementTypes, PermissionEditCoders, PermissionEditCoderRelations, PermissionViewOthersDocuments, PermissionEditOthersDocuments, PermissionViewOthersStatements, PermissionEditOthersStatements)
-   VALUES (1, 'Admin', 255, 0, 0, 0, 14, '', 300, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)`,
-
-  `INSERT IGNORE INTO STATEMENTTYPES (ID, Label, Red, Green, Blue) VALUES (1, 'DNA Statement', 239, 208, 51)`,
-
-  `INSERT IGNORE INTO VARIABLES (ID, Variable, DataType, StatementTypeId) VALUES
-   (1, 'person', 'short text', 1),
-   (2, 'organization', 'short text', 1),
-   (3, 'concept', 'short text', 1),
-   (4, 'agreement', 'boolean', 1)`
-];
-
 export class DNAnalyzerDB {
-  private connection: mysql.Connection | null = null;
-  private connectionConfig: mysql.ConnectionOptions | null = null;
-  private userEmail: string;
+  private userId: string;
 
-  constructor(userEmail: string) {
-    this.userEmail = userEmail;
-  }
-
-  /**
-   * Fetch user's MySQL configuration from PostgreSQL database
-   */
-  private async getUserMySQLConfig(): Promise<mysql.ConnectionOptions> {
-    try {
-      const result = await db.query(
-        'SELECT mysql_config FROM users WHERE user_id = $1',
-        [this.userEmail]
-      );
-
-      if (result.rows.length === 0) {
-        throw new Error('MySQL configuration not found. Please configure your MySQL database settings first.');
-      }
-
-      return result.rows[0].mysql_config as mysql.ConnectionOptions;
-    } catch (error) {
-      console.error('Error fetching MySQL config:', error);
-      throw error;
-    }
+  constructor(userId: string) {
+    this.userId = userId;
   }
 
   async initialize(): Promise<void> {
-    try {
-      // Fetch user's MySQL configuration from PostgreSQL
-      this.connectionConfig = await this.getUserMySQLConfig();
-
-      this.connection = await mysql.createConnection(this.connectionConfig);
-
-      // Check if tables exist and have data
-      const [tables] = await this.connection.execute(`
-        SELECT TABLE_NAME
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN ('CODERS', 'STATEMENTTYPES', 'VARIABLES')
-      `, [this.connectionConfig.database]);
-
-      const existingTables = (tables as any[]).map(row => row.TABLE_NAME);
-
-      if (existingTables.length === 0) {
-        throw new Error('Required tables not found in database. Please ensure the schema has been created.');
-      }
-
-      // Execute initial data (tables should already be created)
-      for (const statement of INITIAL_DATA_STATEMENTS) {
-        try {
-          await this.connection.execute(statement);
-        } catch (err: any) {
-          // Log but don't fail if data already exists or column names differ
-          console.warn('Warning during initialization:', err.message);
-        }
-      }
-
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  /**
-   * Save or update user's MySQL configuration and Google API key in PostgreSQL database
-   */
-  static async saveUserConfig(userEmail: string, mysqlConfig: mysql.ConnectionOptions, googleApiKey?: string): Promise<void> {
-    try {
-      // Check if config already exists
-      const existingResult = await db.query(
-        'SELECT id FROM users WHERE user_id = $1',
-        [userEmail]
-      );
-
-      if (existingResult.rows.length > 0) {
-        // Update existing config
-        const updateFields = ['mysql_config = $1'];
-        const params = [JSON.stringify(mysqlConfig)];
-
-        if (googleApiKey !== undefined) {
-          updateFields.push('google_api_key = $2');
-          params.push(googleApiKey);
-        }
-
-        await db.query(
-          `UPDATE users SET ${updateFields.join(', ')}, updated_at = NOW() WHERE user_id = $${params.length + 1}`,
-          [...params, userEmail]
-        );
-      } else {
-        // Insert new config
-        if (googleApiKey !== undefined) {
-          await db.query(
-            'INSERT INTO users (user_id, mysql_config, google_api_key) VALUES ($1, $2, $3)',
-            [userEmail, JSON.stringify(mysqlConfig), googleApiKey]
-          );
-        } else {
-          await db.query(
-            'INSERT INTO users (user_id, mysql_config) VALUES ($1, $2)',
-            [userEmail, JSON.stringify(mysqlConfig)]
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Error saving user config:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get user's MySQL configuration and Google API key (static method for API use)
-   */
-  static async getUserConfig(userEmail: string): Promise<{ mysqlConfig: mysql.ConnectionOptions | null, googleApiKey: string | null }> {
-    try {
-      const result = await db.query(
-        'SELECT mysql_config, google_api_key FROM users WHERE user_id = $1',
-        [userEmail]
-      );
-
-      if (result.rows.length === 0) {
-        return { mysqlConfig: null, googleApiKey: null };
-      }
-
-      return {
-        mysqlConfig: result.rows[0].mysql_config as mysql.ConnectionOptions,
-        googleApiKey: result.rows[0].google_api_key || null
-      };
-    } catch (error) {
-      console.error('Error fetching user config:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get user's MySQL configuration (static method for API use) - backward compatibility
-   */
-  static async getUserMySQLConfig(userEmail: string): Promise<mysql.ConnectionOptions | null> {
-    const { mysqlConfig } = await this.getUserConfig(userEmail);
-    return mysqlConfig;
-  }
-
-  /**
-   * Get user's Google API key (static method for API use)
-   */
-  static async getUserGoogleApiKey(userEmail: string): Promise<string | null> {
-    const { googleApiKey } = await this.getUserConfig(userEmail);
-    return googleApiKey;
-  }
-
-  /**
-   * Get the MySQL connection (for advanced queries)
-   */
-  getConnection(): mysql.Connection | null {
-    return this.connection;
+    // Initialization is managed by Drizzle/PostgreSQL now
   }
 
   async close(): Promise<void> {
-    if (this.connection) {
-      await this.connection.end();
-      this.connection = null;
-    }
+    // No-op for Drizzle
+  }
+
+  // Backwards compatibility stub for old API code that used raw queries
+  getConnection() {
+    return null;
   }
 
   async saveDocument(title: string, content: string): Promise<number> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    const date = Math.floor(Date.now() / 1000);
 
-    try {
-      const sql = `
-        INSERT INTO DOCUMENTS (Title, Text, Coder, Date)
-        VALUES (?, ?, 1, ?)
-      `;
-      const date = Math.floor(Date.now() / 1000); // Unix timestamp
+    const [doc] = await db.insert(dnanalyzerDocuments)
+      .values({
+        title,
+        text: content,
+        coder: 1,
+        date,
+        userId: this.userId,
+      })
+      .returning({ id: dnanalyzerDocuments.id });
 
-      const [result] = await this.connection.execute(sql, [title, content, date]);
-      return (result as any).insertId;
-    } catch (err) {
-      throw err;
-    }
+    return doc.id;
   }
 
   async updateDocument(documentId: number, title: string, content: string): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    const date = Math.floor(Date.now() / 1000);
 
-    try {
-      const sql = `
-        UPDATE DOCUMENTS
-        SET Title = ?, Text = ?, Date = ?
-        WHERE ID = ?
-      `;
-      const date = Math.floor(Date.now() / 1000); // Unix timestamp
-
-      await this.connection.execute(sql, [title, content, date, documentId]);
-    } catch (err) {
-      throw err;
-    }
+    await db.update(dnanalyzerDocuments)
+      .set({ title, text: content, date })
+      .where(and(eq(dnanalyzerDocuments.id, documentId), eq(dnanalyzerDocuments.userId, this.userId)));
   }
 
   async updateStatement(statementId: number, statement: Statement): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    await db.delete(dnanalyzerDataShortText).where(eq(dnanalyzerDataShortText.statementId, statementId));
+    await db.delete(dnanalyzerDataBoolean).where(eq(dnanalyzerDataBoolean.statementId, statementId));
 
-    try {
-      // Delete existing data for this statement
-      await this.connection.execute('DELETE FROM DATASHORTTEXT WHERE StatementId = ?', [statementId]);
-      await this.connection.execute('DELETE FROM DATABOOLEAN WHERE StatementId = ?', [statementId]);
+    const startPos = statement.startIndex ?? 0;
+    const stopPos = statement.endIndex ?? Math.max(1, startPos + statement.statement.length);
+    
+    await db.update(dnanalyzerStatements)
+      .set({ start: startPos, stop: stopPos })
+      .where(eq(dnanalyzerStatements.id, statementId));
 
-      // Re-insert the updated data
-      await this.saveEntityAndLink(statementId, 1, statement.actor); // person
-      await this.saveEntityAndLink(statementId, 2, statement.organization); // organization
-      await this.saveEntityAndLink(statementId, 3, statement.concept); // concept
-      await this.saveBooleanData(statementId, 4, statement.agree ? 1 : 0); // agreement
-    } catch (err) {
-      throw err;
-    }
+    await this.saveEntityAndLink(statementId, 1, statement.actor);
+    await this.saveEntityAndLink(statementId, 2, statement.organization);
+    await this.saveEntityAndLink(statementId, 3, statement.concept);
+    await this.saveBooleanData(statementId, 4, statement.agree ? 1 : 0);
   }
 
   async saveStatements(documentId: number, statements: Statement[]): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
-
-    if (statements.length === 0) {
-      return;
-    }
-
-    // Process all statements
     for (const statement of statements) {
       await this.saveSingleStatement(documentId, statement);
     }
   }
 
   async saveSingleStatement(documentId: number, statement: Statement): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
-
-    // Insert statement record
-    // Use startIndex and endIndex if available, otherwise fallback to default behavior
     const startPos = statement.startIndex ?? 0;
     const stopPos = statement.endIndex ?? Math.max(1, startPos + statement.statement.length);
 
-    const stmtSql = `
-      INSERT INTO STATEMENTS (StatementTypeId, DocumentId, Start, Stop, Coder)
-      VALUES (1, ?, ?, ?, 1)
-    `;
+    const [stmt] = await db.insert(dnanalyzerStatements)
+      .values({
+        statementTypeId: 1,
+        documentId,
+        start: startPos,
+        stop: stopPos,
+        coder: 1,
+      })
+      .returning({ id: dnanalyzerStatements.id });
 
-    const [result] = await this.connection.execute(stmtSql, [documentId, startPos, stopPos]);
-    const statementId = (result as any).insertId;
+    const statementId = stmt.id;
 
-    // Save statement data
-    await this.saveEntityAndLink(statementId, 1, statement.actor); // person
-    await this.saveEntityAndLink(statementId, 2, statement.organization); // organization
-    await this.saveEntityAndLink(statementId, 3, statement.concept); // concept
-    await this.saveBooleanData(statementId, 4, statement.agree ? 1 : 0); // agreement
+    await this.saveEntityAndLink(statementId, 1, statement.actor);
+    await this.saveEntityAndLink(statementId, 2, statement.organization);
+    await this.saveEntityAndLink(statementId, 3, statement.concept);
+    await this.saveBooleanData(statementId, 4, statement.agree ? 1 : 0);
   }
 
   private async saveEntityAndLink(statementId: number, variableId: number, value: string): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    if (!value || value.trim() === '') return;
 
-    if (!value || value.trim() === '') {
-      // Skip empty values
-      return;
-    }
-
-    // First, try to find existing entity with same variable and value
-    const findEntitySql = `SELECT ID FROM ENTITIES WHERE VariableId = ? AND Value = ?`;
-    const [rows] = await this.connection.execute(findEntitySql, [variableId, value]);
-    const row = (rows as any[])[0];
+    const existingEntities = await db.select({ id: dnanalyzerEntities.id })
+      .from(dnanalyzerEntities)
+      .where(and(eq(dnanalyzerEntities.variableId, variableId), eq(dnanalyzerEntities.value, value)))
+      .limit(1);
 
     let entityId: number;
 
-    if (row) {
-      entityId = row.ID;
+    if (existingEntities.length > 0) {
+      entityId = existingEntities[0].id;
     } else {
-      // Create new entity
-      const insertEntitySql = `INSERT INTO ENTITIES (VariableId, Value) VALUES (?, ?)`;
-      const [result] = await this.connection.execute(insertEntitySql, [variableId, value]);
-      entityId = (result as any).insertId;
+      const [newEntity] = await db.insert(dnanalyzerEntities)
+        .values({ variableId, value })
+        .returning({ id: dnanalyzerEntities.id });
+      entityId = newEntity.id;
     }
 
-    // Link entity to statement
-    const linkSql = `INSERT INTO DATASHORTTEXT (StatementId, VariableId, Entity) VALUES (?, ?, ?)`;
-    await this.connection.execute(linkSql, [statementId, variableId, entityId]);
+    await db.insert(dnanalyzerDataShortText).values({
+      statementId,
+      variableId,
+      entity: entityId,
+    });
   }
 
   private async saveBooleanData(statementId: number, variableId: number, value: number): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
-
-    const sql = `INSERT INTO DATABOOLEAN (StatementId, VariableId, Value) VALUES (?, ?, ?)`;
-    await this.connection.execute(sql, [statementId, variableId, value]);
+    await db.insert(dnanalyzerDataBoolean).values({
+      statementId,
+      variableId,
+      value,
+    });
   }
 
   async deleteDocument(documentId: number): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    const doc = await db.select({ id: dnanalyzerDocuments.id })
+      .from(dnanalyzerDocuments)
+      .where(and(eq(dnanalyzerDocuments.id, documentId), eq(dnanalyzerDocuments.userId, this.userId)))
+      .limit(1);
+    
+    if (doc.length === 0) throw new Error("Document not found or unauthorized");
 
-    try {
-      // First, delete all statements associated with this document
-      await this.deleteStatementsByDocumentId(documentId);
-
-      // Then delete the document itself
-      const sql = `DELETE FROM DOCUMENTS WHERE ID = ?`;
-      await this.connection.execute(sql, [documentId]);
-    } catch (err) {
-      throw err;
-    }
+    await this.deleteStatementsByDocumentId(documentId);
+    await db.delete(dnanalyzerDocuments).where(eq(dnanalyzerDocuments.id, documentId));
   }
 
   async deleteStatementsByDocumentId(documentId: number): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
+    const stmts = await db.select({ id: dnanalyzerStatements.id })
+      .from(dnanalyzerStatements)
+      .where(eq(dnanalyzerStatements.documentId, documentId));
 
-    try {
-      // Get all statement IDs for this document
-      const [statementRows] = await this.connection.execute(
-        'SELECT ID FROM STATEMENTS WHERE DocumentId = ?',
-        [documentId]
-      );
+    const statementIds = stmts.map(s => s.id);
 
-      const statementIds = (statementRows as any[]).map(row => row.ID);
-
-      if (statementIds.length > 0) {
-        // Create placeholders for the IN clause
-        const placeholders = statementIds.map(() => '?').join(',');
-
-        // Delete data associated with these statements
-        await this.connection.execute(
-          `DELETE FROM DATASHORTTEXT WHERE StatementId IN (${placeholders})`,
-          statementIds
-        );
-        await this.connection.execute(
-          `DELETE FROM DATABOOLEAN WHERE StatementId IN (${placeholders})`,
-          statementIds
-        );
-
-        // Delete the statements themselves
-        await this.connection.execute(
-          'DELETE FROM STATEMENTS WHERE DocumentId = ?',
-          [documentId]
-        );
-      }
-    } catch (err) {
-      throw err;
+    if (statementIds.length > 0) {
+      await db.delete(dnanalyzerDataShortText).where(inArray(dnanalyzerDataShortText.statementId, statementIds));
+      await db.delete(dnanalyzerDataBoolean).where(inArray(dnanalyzerDataBoolean.statementId, statementIds));
+      await db.delete(dnanalyzerStatements).where(eq(dnanalyzerStatements.documentId, documentId));
     }
   }
 
   async deleteStatement(statementId: number): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Database not initialized');
-    }
-
-    try {
-      // Delete data associated with this statement from related tables
-      await this.connection.execute('DELETE FROM DATASHORTTEXT WHERE StatementId = ?', [statementId]);
-      await this.connection.execute('DELETE FROM DATABOOLEAN WHERE StatementId = ?', [statementId]);
-
-      // Delete the statement itself
-      await this.connection.execute('DELETE FROM STATEMENTS WHERE ID = ?', [statementId]);
-    } catch (err) {
-      throw err;
-    }
+    await db.delete(dnanalyzerDataShortText).where(eq(dnanalyzerDataShortText.statementId, statementId));
+    await db.delete(dnanalyzerDataBoolean).where(eq(dnanalyzerDataBoolean.statementId, statementId));
+    await db.delete(dnanalyzerStatements).where(eq(dnanalyzerStatements.id, statementId));
   }
 
+  async loadDocuments(): Promise<any[]> {
+    const docs = await db.select()
+      .from(dnanalyzerDocuments)
+      .where(eq(dnanalyzerDocuments.userId, this.userId))
+      .orderBy(dnanalyzerDocuments.id);
+
+    return docs.map(doc => ({
+      id: doc.id,
+      title: doc.title,
+      content: doc.text,
+      date: doc.date
+    }));
+  }
+
+  async loadStatements(): Promise<any[]> {
+    // Use raw query for complex joins, it's easier and equivalent to previous MySQL query
+    const res = await db.execute(`
+      SELECT
+        s.id as "ID",
+        s.document_id as "DocumentId",
+        s.start as "startIndex",
+        s.stop as "endIndex",
+        d.title as "sourceFile",
+        COALESCE(p_entity.value, '') as "actor",
+        COALESCE(o_entity.value, '') as "organization",
+        COALESCE(c_entity.value, '') as "concept",
+        CASE WHEN agreement.value = 1 THEN true ELSE false END as "agree"
+      FROM dnanalyzer_statements s
+      LEFT JOIN dnanalyzer_documents d ON s.document_id = d.id
+      LEFT JOIN dnanalyzer_data_short_text p_data ON s.id = p_data.statement_id AND p_data.variable_id = 1
+      LEFT JOIN dnanalyzer_entities p_entity ON p_data.entity = p_entity.id
+      LEFT JOIN dnanalyzer_data_short_text o_data ON s.id = o_data.statement_id AND o_data.variable_id = 2
+      LEFT JOIN dnanalyzer_entities o_entity ON o_data.entity = o_entity.id
+      LEFT JOIN dnanalyzer_data_short_text c_data ON s.id = c_data.statement_id AND c_data.variable_id = 3
+      LEFT JOIN dnanalyzer_entities c_entity ON c_data.entity = c_entity.id
+      LEFT JOIN dnanalyzer_data_boolean agreement ON s.id = agreement.statement_id AND agreement.variable_id = 4
+      WHERE d.user_id = '${this.userId}'
+      ORDER BY s.id
+    `);
+
+    // In drizzle-orm with postgres-js, the result of db.execute is the array of rows itself.
+    return res as any[];
+  }
 }

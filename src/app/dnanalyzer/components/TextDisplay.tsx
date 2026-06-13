@@ -537,7 +537,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
 
         {/* Manual Statement Dialog */}
         <Dialog open={showManualDialog} onOpenChange={setShowManualDialog}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>{editingStatementIndex !== null ? 'Edit Statement' : 'Add Manual Statement'}</DialogTitle>
               {/* <DialogDescription>

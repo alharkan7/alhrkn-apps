@@ -1,31 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
-import GoogleProvider from "next-auth/providers/google";
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { DNAnalyzerDB, Statement } from '@/lib/dnanalyzer-db';
-
-const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid email profile",
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        },
-      },
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-};
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session?.user?.email) {
+    if (!user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -36,19 +18,17 @@ export async function POST(req: NextRequest) {
     const { documents } = body || {};
 
     if (!documents || !Array.isArray(documents)) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid "documents" parameter' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return NextResponse.json(
+        { error: 'Missing or invalid "documents" parameter' },
+        { status: 400 }
+      );
     }
 
-    // Connect to user's MySQL database
-    const db = new DNAnalyzerDB(session.user.email);
+    const db = new DNAnalyzerDB(user.id);
 
     try {
       await db.initialize();
 
-      // Save each document and its statements
       const savedDocuments = [];
       for (const doc of documents) {
         if (!doc.title || !doc.content) {
@@ -57,26 +37,20 @@ export async function POST(req: NextRequest) {
 
         let documentId: number;
 
-        // Check if this is an update (has existing ID) or a new document
         if (doc.id && typeof doc.id === 'number') {
-          // Update existing document
           await db.updateDocument(doc.id, doc.title, doc.content);
           documentId = doc.id;
 
-          // For updates, handle statements individually
           if (doc.statements && Array.isArray(doc.statements)) {
             for (const statement of doc.statements) {
               if (statement.originalStatementId && typeof statement.originalStatementId === 'number') {
-                // Update existing statement
                 await db.updateStatement(statement.originalStatementId, statement);
               } else {
-                // Insert new statement
                 await db.saveSingleStatement(documentId, statement);
               }
             }
           }
         } else {
-          // Create new document
           documentId = await db.saveDocument(doc.title, doc.content);
 
           if (doc.statements && Array.isArray(doc.statements)) {
@@ -92,13 +66,10 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return new Response(JSON.stringify({
+      return NextResponse.json({
         success: true,
-        message: `Saved ${savedDocuments.length} documents with ${savedDocuments.reduce((sum, doc) => sum + doc.statementsCount, 0)} statements to MySQL database`,
+        message: `Saved ${savedDocuments.length} documents with ${savedDocuments.reduce((sum, doc) => sum + doc.statementsCount, 0)} statements to database`,
         documents: savedDocuments
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
       });
 
     } finally {
@@ -107,9 +78,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error saving to database:', error);
-    return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(
+      { error: error?.message || 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

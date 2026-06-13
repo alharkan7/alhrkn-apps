@@ -1,28 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { NextRequest } from 'next/server';
-import { getServerSession } from "next-auth/next";
-import GoogleProvider from "next-auth/providers/google";
-import { DNAnalyzerDB } from '@/lib/dnanalyzer-db';
-
-const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid email profile",
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        },
-      },
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-};
-
-// Removed complex schema to avoid Gemini constraints
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Function to find the character indices of a statement in the original text
 function findStatementIndices(originalText: string, statement: string): { start: number; end: number } | null {
@@ -42,7 +20,6 @@ function findStatementIndices(originalText: string, statement: string): { start:
 
   if (normalizedIndex !== -1) {
     // Find the corresponding position in original text
-    // This is a simple approximation - for more accuracy, we'd need more sophisticated text matching
     const beforeNormalized = normalizedText.substring(0, normalizedIndex);
     const originalBeforeLength = beforeNormalized.length;
 
@@ -63,39 +40,38 @@ function findStatementIndices(originalText: string, statement: string): { start:
     };
   }
 
-  // If still not found, return null (statement might have been modified)
   return null;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session?.user?.email) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    // Get user's Google API key from database
-    const googleApiKey = await DNAnalyzerDB.getUserGoogleApiKey(session.user.email);
+    const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
     if (!googleApiKey) {
-      return new Response(JSON.stringify({ error: 'Google API key not configured. Please set your Google Generative AI API key in settings.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return NextResponse.json(
+        { error: 'Google API key not configured.' },
+        { status: 500 }
+      );
     }
 
     const body = await req.json();
     const { text } = body || {};
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid "text" parameter' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return NextResponse.json(
+        { error: 'Missing or invalid "text" parameter' },
+        { status: 400 }
+      );
     }
 
     // Initialize Gemini with user's API key
@@ -137,8 +113,7 @@ Return ONLY the JSON structure with the statements array. Do not include any add
 
     const result = await model.generateContent({
       contents: [
-        { role: 'user', parts: [{ text: systemInstruction }] },
-        { role: 'user', parts: [{ text: userPrompt }] }
+        { role: 'user', parts: [{ text: systemInstruction + '\n\n' + userPrompt }] }
       ],
       generationConfig: {
         temperature: 0.3,

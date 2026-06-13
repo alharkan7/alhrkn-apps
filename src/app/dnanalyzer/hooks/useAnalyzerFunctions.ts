@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 
 export interface TextFile {
     id: string
@@ -34,7 +33,6 @@ interface MySQLConfig {
 }
 
 export function useAnalyzerFunctions() {
-    const { data: session, status } = useSession()
     const hasAutoLoadedRef = useRef(false)
 
     const [files, setFiles] = useState<TextFile[]>([])
@@ -60,8 +58,8 @@ export function useAnalyzerFunctions() {
     const [googleApiKey, setGoogleApiKey] = useState('')
     const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
     const [savingConfig, setSavingConfig] = useState(false)
-    const [hasConfig, setHasConfig] = useState(false)
-    const [hasApiKey, setHasApiKey] = useState(false)
+    const [hasConfig, setHasConfig] = useState(true)
+    const [hasApiKey, setHasApiKey] = useState(true)
     const [showMySQLPassword, setShowMySQLPassword] = useState(false)
     const [showApiKey, setShowApiKey] = useState(false)
 
@@ -118,15 +116,6 @@ export function useAnalyzerFunctions() {
         processedFileIds?: string[],
         showErrorOnSkip = false
     ) => {
-        if (!session?.user?.email || !hasConfig) {
-            if (showErrorOnSkip) {
-                setSaveStatus('error')
-                setSaveMessage('Auto-save skipped: Please log in and configure your database settings.')
-                setTimeout(() => setSaveStatus('idle'), 3000)
-            }
-            return
-        }
-
         const statementsToSave = newStatements || allStatements
         if (statementsToSave.length === 0) return
 
@@ -181,12 +170,6 @@ export function useAnalyzerFunctions() {
     const handleAnalyze = async (text: string) => {
         if (!selectedFile || !text.trim()) return
 
-        if (!hasApiKey) {
-            setError('Please configure your Google Generative AI API key in settings first.')
-            setIsConfigDialogOpen(true)
-            return
-        }
-
         setLoading(true)
         setError('')
 
@@ -225,12 +208,6 @@ export function useAnalyzerFunctions() {
     }
 
     const handleBulkAnalyze = async () => {
-        if (!hasApiKey) {
-            setError('Please configure your Google Generative AI API key in settings first.')
-            setIsConfigDialogOpen(true)
-            return
-        }
-
         const unprocessedFiles = files.filter(file => !file.processed)
         if (unprocessedFiles.length === 0) {
             setError('All files have already been processed.')
@@ -395,19 +372,6 @@ export function useAnalyzerFunctions() {
     }
 
     const handleSaveToDatabase = async () => {
-        if (!session?.user?.email) {
-            setSaveStatus('error')
-            setSaveMessage('You must be logged in to save data')
-            return
-        }
-
-        if (!hasConfig) {
-            setSaveStatus('error')
-            setSaveMessage('Please configure your MySQL database settings first')
-            setIsConfigDialogOpen(true)
-            return
-        }
-
         if (allStatements.length === 0) {
             setSaveStatus('error')
             setSaveMessage('No statements to save. Please analyze some text files first.')
@@ -430,93 +394,15 @@ export function useAnalyzerFunctions() {
     }
 
     const loadUserConfig = async () => {
-        if (!session?.user?.email) return
-
-        try {
-            const response = await fetch('/api/dnanalyzer/mysql-config')
-            if (response.ok) {
-                const data = await response.json()
-                if (data.mysqlConfig) {
-                    setMysqlConfig(data.mysqlConfig)
-                    setHasConfig(true)
-                } else {
-                    setHasConfig(false)
-                }
-                if (data.googleApiKey) {
-                    setGoogleApiKey(data.googleApiKey)
-                    setHasApiKey(true)
-                } else {
-                    setGoogleApiKey('')
-                    setHasApiKey(false)
-                }
-            } else if (response.status === 404) {
-                setHasConfig(false)
-                setHasApiKey(false)
-                setGoogleApiKey('')
-            }
-        } catch (error) {
-            console.error('Error loading user config:', error)
-        }
+        // No-op since we use Supabase global config
     }
 
     const saveUserConfig = async () => {
-        if (!session?.user?.email) return
-
-        setSavingConfig(true)
-        try {
-            const requestBody: any = {}
-
-            if (mysqlConfig.host && mysqlConfig.user && mysqlConfig.password && mysqlConfig.database) {
-                requestBody.mysqlConfig = mysqlConfig
-            }
-
-            if (googleApiKey.trim()) {
-                requestBody.googleApiKey = googleApiKey.trim()
-            }
-
-            if (Object.keys(requestBody).length === 0) {
-                throw new Error('Please provide either MySQL configuration or Google API key')
-            }
-
-            const response = await fetch('/api/dnanalyzer/mysql-config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-            })
-
-            if (response.ok) {
-                if (requestBody.mysqlConfig) setHasConfig(true)
-                if (requestBody.googleApiKey) setHasApiKey(true)
-                setIsConfigDialogOpen(false)
-                setSaveStatus('success')
-                setSaveMessage('Configuration saved successfully!')
-                setTimeout(() => setSaveStatus('idle'), 3000)
-            } else {
-                const errorData = await response.json()
-                throw new Error(errorData.error || 'Failed to save configuration')
-            }
-        } catch (error: any) {
-            setSaveStatus('error')
-            setSaveMessage(error.message || 'Failed to save configuration')
-        } finally {
-            setSavingConfig(false)
-        }
+        // No-op
+        setIsConfigDialogOpen(false)
     }
 
     const handleLoadData = async () => {
-        if (!session?.user?.email) {
-            setSaveStatus('error')
-            setSaveMessage('You must be logged in to load data')
-            return
-        }
-
-        if (!hasConfig) {
-            setSaveStatus('error')
-            setSaveMessage('Please configure your MySQL database settings first')
-            setIsConfigDialogOpen(true)
-            return
-        }
-
         setLoadingData(true)
         setSaveStatus('idle')
         setSaveMessage('')
@@ -525,7 +411,7 @@ export function useAnalyzerFunctions() {
             const response = await fetch('/api/dnanalyzer/load', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userEmail: session.user.email }),
+                body: JSON.stringify({}),
             })
 
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
@@ -573,27 +459,15 @@ export function useAnalyzerFunctions() {
         }
     }
 
-    // Load user config when authenticated
+    // Auto-load data
     useEffect(() => {
-        if (session?.user?.email) {
-            loadUserConfig()
-            hasAutoLoadedRef.current = false
-        }
-    }, [session])
-
-    // Auto-load data when config is available and user is authenticated
-    useEffect(() => {
-        if (session?.user?.email && hasConfig && !hasAutoLoadedRef.current) {
+        if (!hasAutoLoadedRef.current) {
             hasAutoLoadedRef.current = true
             handleLoadData()
         }
-    }, [session?.user?.email, hasConfig])
+    }, [])
 
     return {
-        // Session and status
-        session,
-        status,
-
         // State
         files,
         selectedFileId,

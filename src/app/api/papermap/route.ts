@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { jsonrepair } from "jsonrepair";
 import { MindmapSchema, AnswerSchema } from "./schemas";
 import { eq } from 'drizzle-orm';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Initialize Google AI services
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
@@ -132,6 +133,10 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '53af2813-d152-45e4-8403-99b4c6c029f4';
 
     // Get request data
     const data = await request.json();
@@ -463,6 +468,7 @@ export async function POST(request: NextRequest) {
           // parsed_pdf_content will be updated asynchronously
           createdAt: now,
           updatedAt: now,
+          userId,
         });
 
         // Insert nodes
