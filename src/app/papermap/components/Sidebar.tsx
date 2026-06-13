@@ -3,7 +3,6 @@ import { LayoutGrid, Moon, Sun, LoaderCircle, X, Waypoints, AlertTriangle } from
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppsGrid } from "@/components/ui/apps-grid";
-import { upload } from '@vercel/blob/client';
 
 // Define file size limit constant - increased with Vercel Blob
 const MAX_FILE_SIZE_MB = 25; // Maximum file size for PDF uploads

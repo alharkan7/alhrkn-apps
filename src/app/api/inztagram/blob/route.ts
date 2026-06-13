@@ -1,26 +1,37 @@
-import { put } from '@vercel/blob';
+import { getBucket } from '@/lib/storage/client';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
     try {
         const formData = await request.formData();
-        const file = formData.get('file') as File;
+        const fileUpload = formData.get('file') as File;
         const { searchParams } = new URL(request.url);
-        const filename = searchParams.get('filename') || (file ? file.name : undefined);
+        const filename = searchParams.get('filename') || (fileUpload ? fileUpload.name : undefined);
 
-        if (!file || !filename) {
+        if (!fileUpload || !filename) {
             return NextResponse.json({ error: 'Missing file or filename' }, { status: 400 });
         }
 
-        const blob = await put(filename, file, {
-            access: 'public',
-            expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expire after 12 hours
-            addRandomSuffix: true,
-        } as any);
+        const bucket = getBucket();
+        const buffer = Buffer.from(await fileUpload.arrayBuffer());
+        
+        const safeFileName = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const filePath = `inztagram/${safeFileName}`;
+        
+        const file = bucket.file(filePath);
+        await file.save(buffer, {
+            resumable: false,
+        });
 
-        return NextResponse.json(blob);
+        const [url] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 12 * 60 * 60 * 1000, // 12 hours
+        });
+
+        return NextResponse.json({ url });
     } catch (error) {
-        console.error('Error uploading to blob:', error);
-        return NextResponse.json({ error: 'Failed to upload to Blob' }, { status: 500 });
+        console.error('Error uploading to storage:', error);
+        return NextResponse.json({ error: 'Failed to upload to storage' }, { status: 500 });
     }
 } 

@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { getBucket } from '@/lib/storage/client';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -14,13 +14,28 @@ export async function POST(request: Request) {
             throw new Error('Missing request body');
         }
         
-        const blob = await put(filename, new Blob([await request.arrayBuffer()]), {
-            access: 'public',
-            expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expire after 12 hours
-        } as any);
+        const bucket = getBucket();
+        const buffer = Buffer.from(await request.arrayBuffer());
+        
+        // Append timestamp to prevent overwriting
+        const safeFileName = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const filePath = `chat/${safeFileName}`;
+        
+        const file = bucket.file(filePath);
+        await file.save(buffer, {
+            resumable: false,
+        });
 
-        return NextResponse.json(blob);
+        // Generate a signed URL for reading the file
+        const [url] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 12 * 60 * 60 * 1000, // 12 hours
+        });
+
+        return NextResponse.json({ url });
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to upload to Blob' }, { status: 500 });
+        console.error('Error uploading to GCS:', error);
+        return NextResponse.json({ error: 'Failed to upload to storage' }, { status: 500 });
     }
 } 
