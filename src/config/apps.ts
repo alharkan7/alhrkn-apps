@@ -71,7 +71,7 @@ export const apps: AppConfig[] = [
   {
     name: 'More Apps',
     icon: Infinity,
-    slug: 'https://enaiblr.vercel.app',
+    slug: 'https://enaiblr.org',
     description: 'Access Enaiblr Apps',
   },
 ]
