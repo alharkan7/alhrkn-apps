@@ -40,16 +40,22 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
+    if (request.nextUrl.pathname === '/') {
+      return supabaseResponse
+    }
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.searchParams.set('next', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
   // if user is signed in and the current path is /login redirect the user to /
   if (user && request.nextUrl.pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    const nextUrl = request.nextUrl.searchParams.get('next') || '/'
+    url.pathname = nextUrl
+    url.searchParams.delete('next')
     return NextResponse.redirect(url)
   }
 
