@@ -5,6 +5,7 @@ interface FileData {
     type: string;
     url: string;          // Local URL for preview
     blobUrl?: string;     // Blob URL for API
+    filePath?: string;    // Bucket file path
     uploaded?: boolean;
 }
 
@@ -46,6 +47,7 @@ export function useFileUpload() {
                 setFile(prev => prev ? {
                     ...prev,
                     blobUrl: blob.url,
+                    filePath: blob.path,
                     uploaded: true
                 } : null);
             } else {

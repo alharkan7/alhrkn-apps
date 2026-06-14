@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
+import { db } from '@/db';
+import { outlinerEvents } from '@/db/schema';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
@@ -13,6 +16,16 @@ const model = genAI.getGenerativeModel({
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     const { idea, language = 'en' } = body || {};
     
@@ -125,6 +138,18 @@ Persyaratan:
           // Send completion event
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'completed' })}\n\n`));
           controller.close();
+          
+          // Record to DB
+          try {
+            await db.insert(outlinerEvents).values({
+              userId: user.id,
+              action: 'expand-stream',
+              inputPayload: JSON.stringify(body),
+              outputPayload: fullText,
+            });
+          } catch (e) {
+            console.error('Failed to log to DB', e);
+          }
           
         } catch (error) {
           console.error('Streaming error:', error);

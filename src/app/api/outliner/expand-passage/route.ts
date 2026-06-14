@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
+import { getAuthUser, logOutlinerEvent } from '../logger';
 
 // Environment validation
 const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -22,6 +23,14 @@ const structuredResponseSchema = {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { text, language = 'en', section = 'Unknown' } = body || {};
     const shouldStream = (req.headers.get('x-stream') || '').toLowerCase() === '1';
@@ -211,13 +220,18 @@ Write the content to be added after the selected text:`;
       const encoder = new TextEncoder();
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
+          let fullText = '';
           try {
             const result = await model.generateContentStream(prompt);
             for await (const chunk of result.stream) {
               const piece = String(chunk?.text?.() ?? '');
-              if (piece) controller.enqueue(encoder.encode(piece));
+              if (piece) {
+                fullText += piece;
+                controller.enqueue(encoder.encode(piece));
+              }
             }
             controller.close();
+            await logOutlinerEvent(user.id, 'expand-passage', body, fullText);
           } catch (e: any) {
             try { controller.enqueue(encoder.encode(`\n[STREAM_ERROR]: ${e?.message || 'failed'}\n`)); } catch {}
             controller.close();
@@ -271,10 +285,14 @@ Write the content to be added after the selected text:`;
       });
     }
 
+    const responseJson = {
+      paragraphs: parsed.paragraphs,
+    };
+
+    await logOutlinerEvent(user.id, 'expand-passage', body, JSON.stringify(responseJson));
+
     return new Response(
-      JSON.stringify({
-        paragraphs: parsed.paragraphs,
-      }),
+      JSON.stringify(responseJson),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

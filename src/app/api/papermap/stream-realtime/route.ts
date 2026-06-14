@@ -84,7 +84,21 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '53af2813-d152-45e4-8403-99b4c6c029f4';
+
+    if (!user?.id) {
+        return new Response(
+            createSSEMessage({ type: 'error', error: 'Unauthorized user' }),
+            {
+                status: 401,
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                }
+            }
+        );
+    }
+    const userId: string = user.id;
 
     // Start processing in the background
     (async () => {

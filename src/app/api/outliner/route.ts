@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
+import { getAuthUser, logOutlinerEvent } from './logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
@@ -86,6 +87,14 @@ const responseSchemaId = {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     const { keywords, numIdeas, language = 'en' } = body || {};
     
@@ -177,6 +186,8 @@ SEMUA TEKS HARUS DALAM BAHASA INDONESIA.`
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    await logOutlinerEvent(user.id, 'generate', body, JSON.stringify(parsed));
 
     return new Response(JSON.stringify(parsed), {
       status: 200,

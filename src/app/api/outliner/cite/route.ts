@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
+import { getAuthUser, logOutlinerEvent } from '../logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
@@ -331,6 +332,14 @@ function convertOpenAlexWorkToPaper(work: OpenAlexWork): any {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body: CitationRequest = await req.json();
     const { text, maxResults = 10, perPage: perPageRaw, page: pageRaw, searchQuery } = body;
 
@@ -378,7 +387,7 @@ export async function POST(req: NextRequest) {
     if (papers.length === 0) {
       const warningMessage = 'No papers found. This may be due to rate limiting from OpenAlex API or no relevant papers available. Please try again in a few moments or select different text.';
       
-      return new Response(JSON.stringify({
+      const responseJson = {
         keywords: keywordData.keywords,
         searchQuery: keywordData.searchQuery,
         papers: [],
@@ -386,7 +395,11 @@ export async function POST(req: NextRequest) {
         page,
         perPage,
         warning: warningMessage
-      }), {
+      };
+
+      await logOutlinerEvent(user.id, 'cite', body, JSON.stringify(responseJson));
+
+      return new Response(JSON.stringify(responseJson), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -400,6 +413,8 @@ export async function POST(req: NextRequest) {
       page,
       perPage
     };
+
+    await logOutlinerEvent(user.id, 'cite', body, JSON.stringify(response));
 
     return new Response(JSON.stringify(response), {
       status: 200,

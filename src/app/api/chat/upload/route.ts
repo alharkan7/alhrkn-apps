@@ -31,7 +31,7 @@ export async function POST(request: Request) {
             expires: Date.now() + 12 * 60 * 60 * 1000,
         });
 
-        return NextResponse.json({ url });
+        return NextResponse.json({ url, path: filePath });
     } catch (error) {
         console.error('Error uploading:', error);
         return NextResponse.json(

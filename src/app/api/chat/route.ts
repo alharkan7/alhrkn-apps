@@ -6,6 +6,9 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { tools } from '@/app/chat/utils/tools';
+import { db } from '@/db';
+import { chatSessions } from '@/db/schema';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
@@ -13,6 +16,19 @@ if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 const fileManager = new GoogleAIFileManager(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+
+// Add system prompt configuration
+const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help with a wide range of tasks including:
+- Answering questions on any topic
+- Writing and analyzing code
+- Mathematical calculations (using the calculate function when needed)
+- Explaining complex concepts
+- Helping with analysis and problem-solving
+- Processing and analyzing images and documents
+
+For mathematical calculations, use the calculate function only when precise computation is needed. Otherwise, provide direct answers to questions.
+
+Use markdown formatting to style your text answer to make it more readable and appealing for user.`;
 
 const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
@@ -22,7 +38,8 @@ const model = genAI.getGenerativeModel({
         topK: 40,
         maxOutputTokens: 8192,
     },
-    tools: tools  // Add tools configuration
+    tools: tools,  // Add tools configuration
+    systemInstruction: SYSTEM_PROMPT
 });
 
 // Helper function to get file extension from mime type
@@ -130,26 +147,32 @@ async function fetchAsBase64(url: string): Promise<string> {
     return Buffer.from(arrayBuffer).toString('base64');
 }
 
-// Add system prompt configuration
-const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help with a wide range of tasks including:
-- Answering questions on any topic
-- Writing and analyzing code
-- Mathematical calculations (using the calculate function when needed)
-- Explaining complex concepts
-- Helping with analysis and problem-solving
-- Processing and analyzing images and documents
 
-For mathematical calculations, use the calculate function only when precise computation is needed. Otherwise, provide direct answers to questions.
-
-Use markdown formatting to style your text answer to make it more readable and appealing for user.`;
 
 export async function POST(req: NextRequest) {
     try {
+        const supabase = await createServerSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user?.id) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
         const body = await req.json();
-        const { messages } = body;
+        const { messages, sessionId } = body;
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Messages array is required' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (!sessionId) {
+            return new Response(JSON.stringify({ error: 'Session ID is required' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -253,6 +276,39 @@ export async function POST(req: NextRequest) {
                             const data = { content: word + ' ' };
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
                             await new Promise(resolve => setTimeout(resolve, 50));
+                        }
+
+                        // Save the full chat session to the database
+                        const allMessages = [...messages, { role: 'assistant', content: [{ type: 'text', text }] }];
+                        let title = 'New Chat';
+                        if (allMessages.length > 0) {
+                            const firstContent = allMessages[0].content;
+                            if (typeof firstContent === 'string') {
+                                title = firstContent.substring(0, 50);
+                            } else if (Array.isArray(firstContent)) {
+                                const textPart = firstContent.find((p: any) => p.type === 'text');
+                                if (textPart && textPart.text) {
+                                    title = textPart.text.substring(0, 50);
+                                }
+                            }
+                        }
+
+                        try {
+                            await db.insert(chatSessions).values({
+                                id: sessionId,
+                                userId: user.id,
+                                title: title,
+                                messages: allMessages,
+                                updatedAt: new Date()
+                            }).onConflictDoUpdate({
+                                target: chatSessions.id,
+                                set: {
+                                    messages: allMessages,
+                                    updatedAt: new Date()
+                                }
+                            });
+                        } catch (dbError) {
+                            console.error('Failed to save chat session to DB:', dbError);
                         }
                     } catch (error) {
                         console.error('Error in chat response:', error);

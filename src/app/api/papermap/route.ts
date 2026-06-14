@@ -136,9 +136,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '53af2813-d152-45e4-8403-99b4c6c029f4';
 
-    // Get request data
+    if (!user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized user" },
+        { status: 401 }
+      );
+    }
+    const userId: string = user.id;
+
     const data = await request.json();
     const { blobUrl, textInput, isFollowUp, question, nodeContext, chatHistory, sourceUrl, originalFileName } = data;
 

@@ -60,7 +60,7 @@ export const apps: AppConfig[] = [
     name: 'Disposable Chat',
     icon: Sparkles,
     slug: 'chat',
-    description: 'Chat with AI, No Data is Stored',
+    description: 'Simple Chat App with AI',
   },
   {
     name: 'Discourse Extractor',

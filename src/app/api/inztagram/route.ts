@@ -2,6 +2,9 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
 import { DIAGRAM_TYPES } from '../../inztagram/components/diagram-types';
 import { jsonrepair } from 'jsonrepair';
+import { db } from '@/db';
+import { inztagramDiagrams } from '@/db/schema';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
   throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
@@ -41,6 +44,16 @@ const responseSchema = {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     const { description, diagramType, pdfUrl, pdfName } = body;
     if (!description && !pdfUrl) {
@@ -143,7 +156,23 @@ export async function POST(req: NextRequest) {
     if (code.endsWith("```")) code = code.slice(0, -3).trim();
     // Do NOT strip the diagram type declaration anymore
 
-    return new Response(JSON.stringify({ code, diagramType: parsed.diagramType }), {
+    // Record to database
+    let insertedId = null;
+    try {
+      const [newRecord] = await db.insert(inztagramDiagrams).values({
+        userId: user.id,
+        description: description || null,
+        diagramType: parsed.diagramType,
+        pdfUrl: pdfUrl || null,
+        pdfName: pdfName || null,
+        mermaidCode: code,
+      }).returning({ id: inztagramDiagrams.id });
+      insertedId = newRecord.id;
+    } catch (dbError) {
+      console.error('Failed to record diagram to DB:', dbError);
+    }
+
+    return new Response(JSON.stringify({ id: insertedId, code, diagramType: parsed.diagramType }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

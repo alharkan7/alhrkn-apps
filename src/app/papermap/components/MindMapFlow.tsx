@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -14,6 +14,16 @@ import { useMindMapContext, usePdfViewerContext } from '../context';
 import { reactFlowStyles } from '../styles/styles';
 import { LAYOUT_PRESETS } from '../types';
 import MindMapLoader from './MindMapLoader';
+// Suppress React Flow nodeTypes warning in development (known HMR issue with Next.js)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('[React Flow]: It looks like you')) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
 
 // Node types for ReactFlow
 const nodeTypes = {
@@ -21,7 +31,19 @@ const nodeTypes = {
 };
 
 // Edge types for ReactFlow
-const edgeTypes: EdgeTypes = {};
+const edgeTypes = {};
+
+const defaultEdgeOptions = {
+  type: 'default',
+  style: {
+    stroke: '#3182CE',
+    strokeWidth: 1.5,
+    strokeOpacity: 0.8,
+    strokeDasharray: '0',
+    zIndex: 1000
+  },
+  animated: false
+};
 
 // Pro options to remove attribution
 const proOptions = { hideAttribution: true };
@@ -166,17 +188,7 @@ const MindMapFlow = () => {
         zoomOnScroll={true}
         minZoom={0.2} // Set the minimum zoom level (max zoom-out)
         maxZoom={4} // Set the maximum zoom level (max zoom-in)
-        defaultEdgeOptions={{
-          type: 'default',
-          style: {
-            stroke: '#3182CE',
-            strokeWidth: 1.5,
-            strokeOpacity: 0.8,
-            strokeDasharray: '0',
-            zIndex: 1000
-          },
-          animated: false
-        }}
+        defaultEdgeOptions={defaultEdgeOptions}
         className="h-full"
         style={{ width: '100%', height: '100%', background: bgColor }}
         fitView

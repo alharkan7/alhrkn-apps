@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { mindmaps, mindmapNodes } from './schema';
+import { mindmaps, mindmapNodes, chatSessions } from './schema';
 
 // Replace with your actual database connection string environment variable
 const databaseUrl = process.env.DATABASE_URL;
@@ -11,7 +11,7 @@ if (!databaseUrl) {
 
 const client = postgres(databaseUrl);
 
-export const db = drizzle(client, { schema: { mindmaps, mindmapNodes } });
+export const db = drizzle(client, { schema: { mindmaps, mindmapNodes, chatSessions } });
 
 // You can add more specific types if needed later
 // export type Db = typeof db;

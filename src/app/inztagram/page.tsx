@@ -4,18 +4,14 @@ import { useState } from "react";
 import { DiagramInput } from "./components/DiagramInput";
 import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
-import { MermaidRenderer } from "./components/MermaidRenderer";
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { DIAGRAM_THEMES } from './components/diagram-types';
-import { DIAGRAM_TYPES } from './components/diagram-types';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './components/diagram-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilePreview } from './components/PDFPreview';
+import { useRouter } from 'next/navigation';
 
 export default function InztagramPage() {
+  const router = useRouter();
   const [input, setInput] = useState("");
-  const [diagramCode, setDiagramCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diagramType, setDiagramType] = useState<string | null>(null);
@@ -39,8 +35,11 @@ export default function InztagramPage() {
       });
       const data = await res.json();
       if (res.ok && data.code && data.diagramType) {
-        setDiagramCode(data.code);
-        setDiagramType(data.diagramType);
+        if (data.id) {
+          router.push(`/inztagram/${data.id}`);
+        } else {
+          setError("Diagram generated but failed to save to database.");
+        }
       } else {
         setError(data.error || "Failed to generate diagram");
       }
@@ -79,75 +78,23 @@ export default function InztagramPage() {
   const clearFile = () => setPdfFile(null);
 
   // Handler for randomize button
-  const handleRandomize = () => {
+  const handleRandomize = async () => {
     // Pick a random diagram type
     const randomIndex = Math.floor(Math.random() * DIAGRAM_TYPES.length);
     const randomType = DIAGRAM_TYPES[randomIndex];
+    
+    // Instead of directly displaying, we can just fill the input and trigger the generation
     setInput(randomType.example.trim());
-    setDiagramCode(randomType.example.trim());
-    setDiagramType(randomType.value);
-    setDiagramTheme('default');
-    setError(null);
+    handleSend(randomType.example.trim(), randomType.value, 'default');
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <div className="fixed top-0 left-0 right-0 z-50">
-        <AppsHeader
-          leftButton={diagramCode ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary" aria-label="Create new diagram">
-                  <Plus className="size-5" /> New
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Create New Diagram?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Make sure you have saved your current diagram. It will be erased.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {
-                    setDiagramCode(null);
-                    setDiagramType(null);
-                    setInput("");
-                  }}>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : null}
-        />
+        <AppsHeader />
       </div>
       <div className="flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4">
         <AnimatePresence mode="wait" initial={false}>
-          {diagramCode ? (
-            <motion.div
-              key="mermaid-renderer"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -40 }}
-              transition={{ duration: 0.1, ease: 'easeOut' }}
-              className="w-full"
-            >
-              <MermaidRenderer
-                code={diagramCode}
-                diagramType={diagramType || ''}
-                diagramTheme={diagramTheme}
-                onThemeChange={setDiagramTheme}
-                onNewDiagram={() => {
-                  setDiagramCode(null);
-                  setDiagramType(null);
-                  setInput("");
-                }}
-                onCodeChange={setDiagramCode}
-                fileName={pdfFile?.name}
-                description={input}
-              />
-            </motion.div>
-          ) : (
             <motion.div
               key="diagram-input"
               initial={{ opacity: 0, y: 40 }}
@@ -193,7 +140,6 @@ export default function InztagramPage() {
                 </div>
               </div>
             </motion.div>
-          )}
         </AnimatePresence>
       </div>
       <div className="flex-none mb-1">

@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
+import { db } from '@/db';
+import { outlinerEvents } from '@/db/schema';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
@@ -34,6 +37,16 @@ const ideaSchema = {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('=== OUTLINER STREAM API START ===');
     console.log('Environment check - GOOGLE_GENERATIVE_AI_API_KEY exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
@@ -142,6 +155,7 @@ Kendala:
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         let buffer = '';
+        let fullResponse = '';
         try {
           console.log('Starting to read from result.stream...');
           for await (const chunk of result.stream) {
@@ -159,6 +173,7 @@ Kendala:
               if (safe) {
                 console.log(`Enqueuing sanitized idea line: ${safe.substring(0, 100)}...`);
                 controller.enqueue(encoder.encode(safe + '\n'));
+                fullResponse += safe + '\n';
               }
             }
           }
@@ -168,10 +183,22 @@ Kendala:
             if (safe) {
               console.log(`Enqueuing final sanitized idea line: ${safe.substring(0, 100)}...`);
               controller.enqueue(encoder.encode(safe + '\n'));
+              fullResponse += safe + '\n';
             }
           }
           console.log(`Stream completed - processed ${chunkCount} chunks`);
           controller.close();
+          
+          try {
+            await db.insert(outlinerEvents).values({
+              userId: user.id,
+              action: 'stream',
+              inputPayload: JSON.stringify(body),
+              outputPayload: fullResponse,
+            });
+          } catch (e) {
+            console.error('Failed to log to DB', e);
+          }
         } catch (err) {
           console.error('Error in streaming:', err);
           controller.error(err);

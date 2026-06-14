@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser, logOutlinerEvent } from '../logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -25,6 +26,14 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!GEMINI_API_KEY) {
       console.error('GEMINI_API_KEY not configured');
       return NextResponse.json(
@@ -33,7 +42,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { message, context, history, files }: ChatRequest = await request.json();
+    const body: ChatRequest = await request.json();
+    const { message, context, history, files } = body;
 
     if (!message && (!files || files.length === 0)) {
       return NextResponse.json(
@@ -143,7 +153,7 @@ Please provide helpful, accurate, and relevant responses in markdown format to h
         const words = cleanResponse.split(' ');
         let index = 0;
 
-        const sendChunk = () => {
+        const sendChunk = async () => {
           if (index < words.length) {
             const chunk = words.slice(index, index + 3).join(' ') + ' ';
             const data = `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
@@ -157,6 +167,12 @@ Please provide helpful, accurate, and relevant responses in markdown format to h
             const data = `data: ${JSON.stringify({ type: 'complete' })}\n\n`;
             controller.enqueue(encoder.encode(data));
             controller.close();
+            
+            try {
+              await logOutlinerEvent(user.id, 'chat', body, cleanResponse);
+            } catch (e) {
+              console.error('Failed to log to DB:', e);
+            }
           }
         };
 

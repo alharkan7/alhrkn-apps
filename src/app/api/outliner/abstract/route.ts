@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getAuthUser, logOutlinerEvent } from '../logger';
 
 // OpenAlex API base URL
 const OPENALEX_API = 'https://api.openalex.org';
@@ -133,6 +134,14 @@ function reconstructAbstractFromInvertedIndex(invertedIndex: Record<string, numb
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized user' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body: AbstractRequest = await req.json();
     const { paperId } = body;
 
@@ -149,6 +158,8 @@ export async function POST(req: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 200));
     
     const abstractData = await fetchAbstractFromOpenAlex(paperId);
+
+    await logOutlinerEvent(user.id, 'abstract', body, JSON.stringify(abstractData));
 
     return new Response(JSON.stringify(abstractData), {
       status: 200,

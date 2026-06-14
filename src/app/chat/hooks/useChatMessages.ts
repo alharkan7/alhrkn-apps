@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Message } from '../types/types';
 
-export function useChatMessages() {
-    const [messages, setMessages] = useState<Message[]>([]);
+export function useChatMessages(initialMessages: Message[] = [], initialSessionId?: string) {
+    const [messages, setMessages] = useState<Message[]>(initialMessages);
+    const [sessionId, setSessionId] = useState(() => initialSessionId || crypto.randomUUID());
     const [isLoading, setIsLoading] = useState(false);
     const [isStreaming, setIsStreaming] = useState(false);
     
     const clearMessages = () => {
         setMessages([]);
+        setSessionId(crypto.randomUUID());
         setIsLoading(false);
         setIsStreaming(false);
     };
 
-    const sendMessage = async (input: string, file: { name: string; type: string; url: string; blobUrl?: string } | null) => {
+    const sendMessage = async (input: string, file: { name: string; type: string; url: string; blobUrl?: string; filePath?: string } | null) => {
         if ((!input.trim() && !file) || isLoading) return;
 
         const userMessage: Message = {
@@ -24,7 +26,8 @@ export function useChatMessages() {
                         image_url: { 
                             url: file.url,           // Local URL for preview
                             originalUrl: file.url,   // Keep local URL for display
-                            blobUrl: file.blobUrl    // Store blob URL for API
+                            blobUrl: file.blobUrl,   // Store blob URL for API
+                            filePath: file.filePath  // Store bucket path
                         }
                     }
                     : {
@@ -33,6 +36,7 @@ export function useChatMessages() {
                             url: file.url,           // Local URL for preview
                             originalUrl: file.url,   // Keep local URL for display
                             blobUrl: file.blobUrl,   // Store blob URL for API
+                            filePath: file.filePath, // Store bucket path
                             name: file.name, 
                             type: file.type 
                         }
@@ -62,7 +66,8 @@ export function useChatMessages() {
                                 return {
                                     type: 'image_url',
                                     image_url: { 
-                                        url: part.image_url.blobUrl || part.image_url.url  // Send blob URL to API
+                                        url: part.image_url.blobUrl || part.image_url.url,  // Send blob URL to API
+                                        filePath: part.image_url.filePath
                                     }
                                 };
                             }
@@ -71,6 +76,7 @@ export function useChatMessages() {
                                     type: 'file_url',
                                     file_url: { 
                                         url: part.file_url.blobUrl || part.file_url.url,  // Send blob URL to API
+                                        filePath: part.file_url.filePath,
                                         name: part.file_url.name,
                                         type: part.file_url.type
                                     }
@@ -89,7 +95,8 @@ export function useChatMessages() {
                 },
                 body: JSON.stringify({
                     messages: apiMessages,
-                    file
+                    file,
+                    sessionId
                 })
             });
 
@@ -174,5 +181,5 @@ export function useChatMessages() {
         }
     };
 
-    return { messages, isLoading, isStreaming, sendMessage, clearMessages };
+    return { messages, isLoading, isStreaming, sendMessage, clearMessages, sessionId };
 }

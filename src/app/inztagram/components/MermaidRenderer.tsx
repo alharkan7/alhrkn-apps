@@ -31,11 +31,6 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
     const downloadDropdownRef = useRef<HTMLDivElement>(null);
     const [autoCorrected, setAutoCorrected] = useState(false);
-    const [showEmailForm, setShowEmailForm] = useState(false);
-    const [pendingDownloadAction, setPendingDownloadAction] = useState<(() => void) | null>(null);
-    const [pendingDownloadFormat, setPendingDownloadFormat] = useState<string>('');
-    const [emailLoading, setEmailLoading] = useState(false);
-    const [emailError, setEmailError] = useState<string | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Pre-validation: ensure code starts with a valid diagram type and auto-correct '--' to '-->' for flowcharts
@@ -208,32 +203,14 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     }, []);
 
     const initiateDownload = (format: string, downloadAction: () => void) => {
-        setPendingDownloadFormat(format);
-        setPendingDownloadAction(() => downloadAction);
-        setShowEmailForm(true);
+        downloadAction();
         setShowDownloadDropdown(false);
-    };
-
-    const handleEmailSubmit = async (email: string) => {
-        setEmailLoading(true);
-        setEmailError(null);
-        try {
-            // Send email, fileName, and description to backend
-            fetch('/api/inztagram/email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, downloadFormat: pendingDownloadFormat, fileName, description }),
-            }).catch(() => { });
-            // Trigger the download immediately
-            if (pendingDownloadAction) pendingDownloadAction();
-            setShowEmailForm(false);
-            setPendingDownloadAction(null);
-            setPendingDownloadFormat('');
-        } catch (err) {
-            setEmailError('Failed to process your request. Please try again.');
-        } finally {
-            setEmailLoading(false);
-        }
+        // Optional tracking, ignore errors
+        fetch('/api/inztagram/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'anonymous', downloadFormat: format, fileName, description }),
+        }).catch(() => { });
     };
 
     // Download as PNG

@@ -6,7 +6,8 @@ import {
   timestamp,
   boolean,
   integer,
-  doublePrecision
+  doublePrecision,
+  jsonb
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -152,3 +153,48 @@ export const dnanalyzerDataBoolean = pgTable('dnanalyzer_data_boolean', {
   variableId: integer('variable_id').references(() => dnanalyzerVariables.id),
   value: integer('value'),
 });
+
+// --- Inztagram Tables ---
+
+export const inztagramDiagrams = pgTable('inztagram_diagrams', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  description: text('description'),
+  diagramType: text('diagram_type'),
+  pdfUrl: text('pdf_url'),
+  pdfName: text('pdf_name'),
+  mermaidCode: text('mermaid_code').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type InztagramDiagram = typeof inztagramDiagrams.$inferSelect;
+export type NewInztagramDiagram = typeof inztagramDiagrams.$inferInsert;
+
+// --- Outliner Tables ---
+
+export const outlinerEvents = pgTable('outliner_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  action: text('action').notNull(),
+  inputPayload: text('input_payload'),
+  outputPayload: text('output_payload'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export type OutlinerEvent = typeof outlinerEvents.$inferSelect;
+export type NewOutlinerEvent = typeof outlinerEvents.$inferInsert;
+
+// --- Chat Tables ---
+
+export const chatSessions = pgTable('chat_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  title: text('title'),
+  messages: jsonb('messages').default('[]'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type NewChatSession = typeof chatSessions.$inferInsert;
