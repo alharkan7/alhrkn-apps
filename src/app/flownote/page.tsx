@@ -29,8 +29,9 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid } from 'lucide-react';
+import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid, FileText } from 'lucide-react';
 import dagre from '@dagrejs/dagre';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 import CustomNode from './components/CustomNode';
 import Sidebar from './components/Sidebar';
@@ -53,6 +54,7 @@ const parseMarkdownToGraph = (markdown: string) => {
 
   let currentNodeId: string | null = null;
   let currentContent: string[] = [];
+  let hasCreatedRoot = false;
 
   const flushContent = () => {
     if (currentNodeId && currentContent.length > 0) {
@@ -149,6 +151,19 @@ const parseMarkdownToGraph = (markdown: string) => {
 
     } else {
       if (line.trim() !== '') {
+        if (!currentNodeId && !hasCreatedRoot) {
+          const id = uuidv4();
+          nodes.push({
+            id,
+            type: 'note',
+            position: { x: 0, y: 0 },
+            data: { title: 'Document', content: '' },
+            style: { width: 300, height: 200 },
+          });
+          currentNodeId = id;
+          hasCreatedRoot = true;
+          stack.push({ level: 1, id });
+        }
         currentContent.push(line);
       }
     }
@@ -209,6 +224,56 @@ function FlowEditor() {
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // File Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/flownote/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload document');
+      }
+
+      if (data.markdown) {
+        const { nodes: newNodes, edges: newEdges } = parseMarkdownToGraph(data.markdown);
+        
+        if (newNodes.length > 0) {
+          const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges, 'TB');
+          setNodes(layoutedNodes);
+          setEdges(layoutedEdges);
+
+          setTimeout(() => {
+            const fitView = (window as any).reactFlowInstance?.fitView;
+            if (fitView) fitView({ padding: 0.2 });
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error('File upload failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to process document');
+    } finally {
+      setIsUploadingFile(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Track window width for responsive behavior
   useEffect(() => {
@@ -536,6 +601,29 @@ function FlowEditor() {
     setIsSidebarOpen(false);
   }, [setNodes, setEdges]);
 
+  const handleNewDocument = useCallback(() => {
+    const id = uuidv4();
+    const position = { x: 250, y: 250 };
+    
+    const newNode: NoteNode = {
+      id,
+      type: 'note',
+      position,
+      data: { title: 'New Document', content: '' },
+      style: { width: 300, height: 200 },
+    };
+
+    setNodes([newNode]);
+    setEdges([]);
+    setSelectedNodeId(id);
+    setIsSidebarOpen(true);
+
+    setTimeout(() => {
+      const fitView = (window as any).reactFlowInstance?.fitView;
+      if (fitView) fitView({ padding: 0.2 });
+    }, 50);
+  }, [setNodes, setEdges]);
+
   // AI Generation Handler
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -705,15 +793,69 @@ function FlowEditor() {
 
         <Controls position="bottom-left" showInteractive={false} style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom))' }} />
 
-        {/* Top Left Panel: AI Button */}
-        <Panel position="top-left" className="ml-4 mt-4">
+        {/* Top Left Panel */}
+        <Panel position="top-left" className="ml-4 mt-4 flex gap-2">
           <button
             onClick={() => setIsAIDialogOpen(true)}
-            className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700 flex items-center justify-center"
+            className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
             title="Generate with AI"
           >
             <Sparkles size={20} className="transition-transform group-hover:scale-110" />
           </button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
+                title="Create New Document"
+              >
+                <Plus size={20} className="transition-transform group-hover:scale-110" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Create New Document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will clear your current canvas and any unsaved changes will be lost. Do you want to continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleNewDocument}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept=".docx,.odt,.epub,.html,.md,.txt,.rst,.latex,.pdf"
+            onChange={handleFileUpload} 
+          />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                disabled={isUploadingFile}
+                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center disabled:opacity-50"
+                title="Upload Document"
+              >
+                {isUploadingFile ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} className="transition-transform group-hover:scale-110" />}
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Import Document?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will clear your current canvas and visualize the uploaded document. Any unsaved changes will be lost. Do you want to continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => fileInputRef.current?.click()}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </Panel>
 
         <Panel position="top-right" className={`mr-4 mt-4 flex gap-3${isSidebarOpen ? ' invisible md:visible' : ''}`}>
@@ -739,19 +881,7 @@ function FlowEditor() {
           />
         </Panel>
 
-        {/* Bottom Right Panel: New Note Button */}
-        <Panel position="bottom-right" className="mr-4" style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          <button
-            onClick={() => addNode()}
-            className="group flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 font-medium tracking-wide px-3 py-3 md:pl-4 md:pr-5 md:py-2.5"
-            title="Create New Note"
-          >
-            <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
-              <Plus size={16} strokeWidth={3} />
-            </div>
-            <span className="hidden md:inline">New</span>
-          </button>
-        </Panel>
+
       </ReactFlow>
 
       {/* AI Dialog Modal */}
