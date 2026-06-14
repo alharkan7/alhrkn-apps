@@ -18,24 +18,26 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   const [showBubble, setShowBubble] = React.useState(false);
   const [bubblePosition, setBubblePosition] = React.useState({ top: 0, left: 0 });
 
+  const extensions = React.useMemo(() => [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2],
+      },
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-blue-600 dark:text-blue-400 underline hover:opacity-80',
+      },
+    }),
+    Placeholder.configure({
+      placeholder: placeholder || 'Type your content here...',
+    }),
+  ], [placeholder]);
+
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2],
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 dark:text-blue-400 underline hover:opacity-80',
-        },
-      }),
-      Placeholder.configure({
-        placeholder: placeholder || 'Type your content here...',
-      }),
-    ],
+    extensions,
     content: value,
     editorProps: {
       attributes: {
