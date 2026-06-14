@@ -198,3 +198,34 @@ export const chatSessions = pgTable('chat_sessions', {
 
 export type ChatSession = typeof chatSessions.$inferSelect;
 export type NewChatSession = typeof chatSessions.$inferInsert;
+
+// --- FlowNote Tables ---
+
+export const flownotes = pgTable('flownotes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  title: text('title').notNull(),
+  nodes: jsonb('nodes').default('[]'),
+  edges: jsonb('edges').default('[]'),
+  originalFileUrl: text('original_file_url'),
+  originalFileName: text('original_file_name'),
+  aiPrompt: text('ai_prompt'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type FlowNote = typeof flownotes.$inferSelect;
+export type NewFlowNote = typeof flownotes.$inferInsert;
+
+export const flownoteEvents = pgTable('flownote_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  flownoteId: uuid('flownote_id').references(() => flownotes.id, { onDelete: 'cascade' }),
+  action: text('action').notNull(),
+  inputPayload: text('input_payload'),
+  outputPayload: text('output_payload'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export type FlowNoteEvent = typeof flownoteEvents.$inferSelect;
+export type NewFlowNoteEvent = typeof flownoteEvents.$inferInsert;

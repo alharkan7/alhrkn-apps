@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { getBucket } from '@/lib/storage/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 
@@ -80,10 +81,20 @@ export async function POST(request: NextRequest) {
 
     const markdown = await fs.readFile(outputFilePath, 'utf8');
 
-    // Clean up
+    // Upload to GCP bucket
+    const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const gcpFilePath = `flownote/${safeFileName}`;
+    
+    const bucket = getBucket();
+    const gcpFile = bucket.file(gcpFilePath);
+    await gcpFile.save(buffer, {
+      resumable: false,
+    });
+
+    // Clean up local temp directory
     await fs.rm(tempDir, { recursive: true, force: true });
 
-    return NextResponse.json({ markdown });
+    return NextResponse.json({ markdown, path: gcpFilePath, fileName: file.name });
   } catch (error) {
     console.error('File upload error:', error);
     return NextResponse.json({ error: 'Failed to process document' }, { status: 500 });
