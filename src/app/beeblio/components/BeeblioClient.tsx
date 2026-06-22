@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download } from 'lucide-react'
+import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -14,7 +14,20 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
-import { Paper, MOCK_RESULTS } from '../shared'
+import { Paper } from '../shared'
+
+const cleanText = (text: string) => {
+  if (!text) return '';
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<\/?[^>]+(>|$)/g, "")
+    .replace(/\s\s+/g, ' ')
+    .trim();
+};
 
 interface BeeblioClientProps {
   pageId?: string
@@ -31,6 +44,17 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const [query, setQuery] = useState(initialQuery)
   const [isSearching, setIsSearching] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [attachment, setAttachment] = useState<{ id: string; url: string; name: string } | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('beeblio_attachment');
+      if (stored) return JSON.parse(stored);
+    }
+    return null;
+  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [results, setResults] = useState<Paper[]>([])
   const [mounted, setMounted] = useState(false)
   
@@ -47,6 +71,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
 
   // Pagination State
+  const [searchId, setSearchId] = useState<string | null>(null)
   const [structuredQueries, setStructuredQueries] = useState<any>(null)
   const [page, setPage] = useState(1)
   const [pagesCache, setPagesCache] = useState<Record<number, Paper[]>>({})
@@ -70,35 +95,56 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     if (optimizeParam) setAiOptimize(optimizeParam === 'true');
     if (reviewParam) setAiReview(reviewParam === 'true');
 
-    if (pageId && initialQuery) {
+    if (pageId && searchParams?.has('q')) {
       const runSearch = async () => {
         setIsSearching(true)
+        setSearchError(null)
         try {
-          const res = await fetch('/api/beeblio/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: initialQuery,
-              aiOptimize: tabParam === 'context' ? true : (optimizeParam === 'true'),
-              contextMode: tabParam === 'context',
-              databases: databases
-            })
-          });
-          const data = await res.json();
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
+          let data;
+
+          if (isUuid) {
+            const res = await fetch(`/api/beeblio/search/${pageId}`);
+            data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to load search history');
+          } else {
+            const res = await fetch('/api/beeblio/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                query: initialQuery,
+                aiOptimize: tabParam === 'context' ? true : (optimizeParam === 'true'),
+                contextMode: tabParam === 'context',
+                databases: databases,
+                attachmentUrl: attachment?.url
+              })
+            });
+            data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to search');
+          }
           
           if (!data.papers) throw new Error('No papers returned');
           
           setStructuredQueries(data.structuredQueries);
+          setSearchId(data.searchId);
           setPage(1);
           setPagesCache({}); // Clear cache for new query
           setResults(data.papers);
+
+          if (data.searchId && !isUuid) {
+            const newUrl = `/beeblio/${data.searchId}?q=${encodeURIComponent(initialQuery)}&tab=${tabParam || 'keywords'}&optimize=${optimizeParam || 'false'}&review=${reviewParam || 'true'}`;
+            window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+          }
           setIsSearching(false);
+          
+          if (data.isHistory) return; // Skip evaluation if loading from DB
           
           const shouldReview = reviewParam === 'true';
           if (shouldReview && data.papers.length > 0) {
             setIsEvaluating(true);
             let currentPapersToEval = data.papers.map((p: Paper) => ({
               id: p.id,
+              dbId: p.dbId,
               title: p.title,
               abstract: p.abstract
             }));
@@ -117,7 +163,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     papers: chunk,
-                    originalQuery: initialQuery
+                    originalQuery: initialQuery || "Attached File Analysis"
                   })
                 });
                 const evalData = await evalRes.json();
@@ -146,8 +192,9 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             await Promise.all(evalPromises);
             setIsEvaluating(false);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Search pipeline failed:", error);
+          setSearchError(error.message || "An unexpected error occurred");
           setIsSearching(false);
           setIsEvaluating(false);
         }
@@ -178,7 +225,9 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           contextMode: false,
           databases: databases,
           page: nextPage,
-          structuredQueries: structuredQueries
+          structuredQueries: structuredQueries,
+          searchId: searchId,
+          attachmentUrl: attachment?.url
         })
       });
       const data = await res.json();
@@ -191,7 +240,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
       if (shouldReview && data.papers.length > 0) {
         setIsEvaluating(true);
         let newPapersToEval = data.papers.map((p: Paper) => ({
-          id: p.id, title: p.title, abstract: p.abstract
+          id: p.id, dbId: p.dbId, title: p.title, abstract: p.abstract
         }));
         
         const CHUNK_SIZE = 5;
@@ -247,6 +296,59 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     }
   };
 
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/beeblio/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setAttachment({
+          id: data.file.id,
+          url: data.file.fileUrl,
+          name: data.file.fileName
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err) {
+      console.error("Upload failed", err);
+    }
+    setIsUploading(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (activeTab === 'context') setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (activeTab === 'context') {
+      const file = e.dataTransfer.files?.[0];
+      if (file) await uploadFile(file);
+    }
+  };
+
   const toggleExpand = (id: string) => {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
@@ -283,10 +385,16 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     URL.revokeObjectURL(url);
   };
 
-  const handleSearch = () => {
-    if (!query.trim()) return
-    const newPageId = Math.random().toString(36).substring(2, 10)
-    router.push(`/beeblio/${newPageId}?q=${encodeURIComponent(query)}&tab=${activeTab}&optimize=${aiOptimize}&review=${aiReview}`)
+  const handleSearch = async () => {
+    if (!query.trim() && !attachment) return
+
+    if (attachment) {
+      sessionStorage.setItem('beeblio_attachment', JSON.stringify(attachment));
+    } else {
+      sessionStorage.removeItem('beeblio_attachment');
+    }
+
+    router.push(`/beeblio/new?q=${encodeURIComponent(query)}&tab=${activeTab}&optimize=${aiOptimize}&review=${aiReview}`)
   }
 
   if (!mounted) return null
@@ -421,9 +529,29 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           {/* Glowing aura behind the search box */}
           <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200"></div>
           
+          <input 
+            type="file" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+          />
+
           {pageId ? (
             /* --- COMPACT SEARCH BAR (Results Page) --- */
-            <div className="relative rounded-full border bg-background/80 backdrop-blur-2xl shadow-md flex items-center p-1.5 pr-2 gap-1.5">
+            <div 
+              className={`relative rounded-full border bg-background/80 backdrop-blur-2xl shadow-md flex items-center p-1.5 pr-2 gap-1.5 overflow-hidden transition-all duration-200 ${isDragging && activeTab === 'context' ? 'ring-2 ring-primary border-primary' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragging && activeTab === 'context' && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 text-primary font-medium border-2 border-dashed border-primary/50 rounded-full w-[calc(100%-8px)] h-[calc(100%-8px)] justify-center bg-primary/5 pointer-events-none">
+                    <Download className="h-5 w-5 animate-bounce" />
+                    <span>Drop file to attach</span>
+                  </div>
+                </div>
+              )}
               
               {/* Keyword/Context Toggle (Icons Only) */}
               <div className="flex bg-muted/50 rounded-full border p-1 shrink-0">
@@ -455,22 +583,40 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden flex items-center shrink-0 -mr-0.5"
                   >
-                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9 transition-colors">
-                      <Paperclip className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className={`rounded-full transition-colors ${attachment ? 'text-primary bg-primary/10 px-3' : 'hover:bg-muted h-9 w-9 p-0 text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {isUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                      {attachment && <span className="ml-2 text-xs truncate max-w-[80px]">{attachment.name}</span>}
                     </Button>
+                    {attachment && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => { e.stopPropagation(); setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} 
+                        className="rounded-full h-8 w-8 ml-0.5 text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Search Box */}
-              <div className="flex-1 min-w-0 pl-1.5">
+              <div className="flex-1 min-w-0 pl-1.5 flex flex-col justify-center">
                 <Input
                   placeholder={activeTab === 'keywords' ? "Search for papers, authors, topics..." : "Paste your context or abstract..."}
-                  className="bg-transparent border-none text-base md:text-lg shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-12 truncate placeholder:text-muted-foreground/50"
+                  className="bg-transparent border-none text-base md:text-lg shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10 truncate placeholder:text-muted-foreground/50"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  disabled={activeTab === 'context' && !!attachment}
                 />
+
               </div>
 
               {/* Actions */}
@@ -486,7 +632,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
 
                 <Button 
                   onClick={handleSearch} 
-                  disabled={isSearching || !query.trim()} 
+                  disabled={isSearching || (!query.trim() && !attachment)} 
                   size="icon"
                   className="rounded-full h-11 w-11 shadow-md transition-all disabled:opacity-50 shrink-0"
                 >
@@ -502,7 +648,22 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             </div>
           ) : (
             /* --- LARGE SEARCH INTERFACE (Landing Page) --- */
-            <div className="relative rounded-[2rem] border bg-background/80 backdrop-blur-2xl shadow-xl overflow-hidden">
+            <div 
+              className={`relative rounded-[2rem] border bg-background/80 backdrop-blur-2xl shadow-xl overflow-hidden transition-all duration-200 ${isDragging && activeTab === 'context' ? 'ring-2 ring-primary border-primary' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragging && activeTab === 'context' && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm pointer-events-none">
+                  <div className="flex flex-col items-center justify-center gap-3 text-primary font-medium border-2 border-dashed border-primary/50 rounded-[calc(2rem-4px)] m-1 absolute inset-0 bg-primary/5">
+                    <div className="p-4 bg-primary/10 rounded-full animate-bounce">
+                      <Download className="h-8 w-8" />
+                    </div>
+                    <span className="text-lg">Drop file here to attach</span>
+                  </div>
+                </div>
+              )}
               
               {/* Top Bar inside Search: Tabs & Settings */}
               <div className="flex flex-row justify-between items-center px-4 pt-4 sm:px-6 sm:pt-6 gap-2">
@@ -573,6 +734,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
                           autoFocus={!pageId}
+                          disabled={!!attachment}
                         />
                       </div>
                     )}
@@ -590,11 +752,31 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
                         transition={{ duration: 0.2 }}
+                        className="flex items-center"
                       >
-                        <Button variant="outline" className="rounded-full text-muted-foreground hover:text-foreground gap-2">
-                          <Paperclip className="h-4 w-4" />
-                          <span className="hidden sm:inline">Attach</span>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                          className={`rounded-full gap-2 ${attachment ? 'border-primary text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                          {isUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                          {attachment ? (
+                            <span className="truncate max-w-[150px]">{attachment.name}</span>
+                          ) : (
+                            <span className="hidden sm:inline">Attach</span>
+                          )}
                         </Button>
+                        {attachment && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => { e.stopPropagation(); setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} 
+                            className="rounded-full h-9 w-9 ml-1 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -602,7 +784,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
 
                 <Button 
                   onClick={handleSearch} 
-                  disabled={isSearching || !query.trim()} 
+                  disabled={isSearching || (!query.trim() && !attachment)} 
                   size="lg"
                   className="rounded-full font-semibold shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
                 >
@@ -643,6 +825,19 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             </motion.div>
             <h3 className="text-xl font-medium text-muted-foreground animate-pulse">Extracting from Scientific Databases...</h3>
           </motion.div>
+        )}
+
+        {/* --- Error Message --- */}
+        {searchError && !isSearching && (
+          <div className="w-full max-w-5xl mx-auto px-4 mt-8">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-3">
+              <div className="bg-destructive/20 p-3 rounded-full">
+                <X className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold text-lg">Search Failed</h3>
+              <p className="text-sm opacity-90 max-w-2xl">{searchError}</p>
+            </div>
+          </div>
         )}
 
         {/* --- Results Section --- */}
@@ -773,13 +968,13 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                               )}
                             </div>
 
-                            <h4 className="text-2xl sm:text-3xl font-bold leading-[1.2] text-foreground group-hover:text-primary transition-colors break-words">
+                            <h4 className="text-2xl font-bold leading-snug text-foreground group-hover:text-primary transition-colors break-words">
                               {paper.url ? (
                                 <a href={paper.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors inline">
-                                  {paper.title} 
+                                  {cleanText(paper.title)} 
                                 </a>
                               ) : (
-                                paper.title
+                                cleanText(paper.title)
                               )}
                             </h4>
                             
@@ -790,7 +985,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                             <div className="relative z-10 text-muted-foreground text-sm sm:text-base leading-relaxed">
                               {expandedCards[paper.id] ? (
                                 <span>
-                                  {paper.abstract}{' '}
+                                  {cleanText(paper.abstract)}{' '}
                                   <button onClick={() => toggleExpand(paper.id)} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
                                     Show less <ChevronDown className="h-3 w-3 rotate-180" />
                                   </button>
@@ -798,16 +993,16 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                               ) : (
                                 <span>
                                   <span className="md:hidden">
-                                    {paper.abstract.length > 80 ? `${paper.abstract.slice(0, 80).trim()}... ` : `${paper.abstract} `}
-                                    {paper.abstract.length > 80 && (
+                                    {cleanText(paper.abstract).length > 100 ? `${cleanText(paper.abstract).slice(0, 100).trim()}... ` : `${cleanText(paper.abstract)} `}
+                                    {cleanText(paper.abstract).length > 100 && (
                                       <button onClick={() => toggleExpand(paper.id)} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
                                         Show more <ChevronDown className="h-3 w-3" />
                                       </button>
                                     )}
                                   </span>
                                   <span className="hidden md:inline">
-                                    {paper.abstract.length > 180 ? `${paper.abstract.slice(0, 180).trim()}... ` : `${paper.abstract} `}
-                                    {paper.abstract.length > 180 && (
+                                    {cleanText(paper.abstract).length > 180 ? `${cleanText(paper.abstract).slice(0, 180).trim()}... ` : `${cleanText(paper.abstract)} `}
+                                    {cleanText(paper.abstract).length > 180 && (
                                       <button onClick={() => toggleExpand(paper.id)} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
                                         Show more <ChevronDown className="h-3 w-3" />
                                       </button>

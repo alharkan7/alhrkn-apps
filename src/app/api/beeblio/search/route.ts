@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { Paper } from '@/app/beeblio/shared';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { db } from '@/db';
+import { eq } from 'drizzle-orm';
+import { beeblioSearches, beeblioPapers, beeblioSettings, beeblioFiles } from '@/db/schema';
+import { downloadFile } from '@/lib/storage';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
 
@@ -27,7 +32,14 @@ const querySchema: any = {
 
 export async function POST(req: Request) {
   try {
-    const { query, aiOptimize, contextMode, databases = { openalex: true, crossref: true, semanticScholar: true }, page = 1, structuredQueries } = await req.json();
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { query, aiOptimize, contextMode, databases = { openalex: true, crossref: true, semanticScholar: true }, page = 1, structuredQueries, searchId, attachmentUrl } = await req.json();
 
     let finalQueries = structuredQueries || {
       openAlexQuery: query,
@@ -45,14 +57,54 @@ export async function POST(req: Request) {
             responseSchema: querySchema,
           }
         });
-        const prompt = contextMode 
-          ? `You are an expert academic librarian. Your ONLY job is to extract the 3-5 most critical keywords from the text below and generate three tailored search queries:\n1. openAlexQuery: A precise boolean query (using AND/OR).\n2. crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n3. semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n\nText: ${query.substring(0, 3000)}`
+        let inlineDataPart: any = undefined;
+        let additionalTextContext = '';
+
+        if (attachmentUrl) {
+          try {
+            const bucketName = process.env.GOOGLE_CLOUD_BUCKET || '';
+            const prefix = `https://storage.googleapis.com/${bucketName}/`;
+            
+            if (attachmentUrl.startsWith(prefix)) {
+              const destination = attachmentUrl.slice(prefix.length);
+              const buffer = await downloadFile(destination);
+              const ext = destination.split('.').pop()?.toLowerCase() || '';
+
+              if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
+                let mimeType = 'application/pdf';
+                if (ext === 'png') mimeType = 'image/png';
+                if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+                
+                inlineDataPart = {
+                  inlineData: {
+                    data: buffer.toString('base64'),
+                    mimeType
+                  }
+                };
+              } else {
+                // For markdown, txt, csv, etc, append directly to prompt text
+                additionalTextContext = `\n\n--- ATTACHED DOCUMENT CONTENT ---\n${buffer.toString('utf8').substring(0, 100000)}`;
+              }
+            }
+          } catch(e) {
+            console.warn("Failed to download attachment for Gemini from GCS:", e);
+          }
+        }
+
+        const promptText = contextMode 
+          ? `You are an expert academic librarian. Your ONLY job is to extract the 3-5 most critical keywords from the text below and the attached document (if any), and generate three tailored search queries:\n1. openAlexQuery: A precise boolean query (using AND/OR).\n2. crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n3. semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n\nText: ${query.substring(0, 3000)}${additionalTextContext}`
           : `You are an expert academic librarian. Rewrite the user search into tailored queries for three databases:\n1. openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n2. crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n3. semanticScholarQuery: Keywords or short phrases.\n\nInput: ${query.substring(0, 500)}`;
         
-        const result = await model.generateContent(prompt);
+        const promptParts: any[] = [promptText];
+        if (inlineDataPart) promptParts.push(inlineDataPart);
+
+        const result = await model.generateContent(promptParts);
         finalQueries = JSON.parse(result.response.text());
       } catch (err: any) {
         console.warn('Query optimization failed, falling back to original query.', err.message);
+        if (!query.trim() && contextMode) {
+          throw new Error(`AI Optimization failed. Your Gemini API key might be out of quota or encountering an error: ${err.message}`);
+        }
       }
     }
 
@@ -170,7 +222,76 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ papers: allPapers, structuredQueries: finalQueries });
+    let currentSearchId = searchId;
+
+    if (!currentSearchId) {
+      const [searchRecord] = await db.insert(beeblioSearches).values({
+        userId: user.id,
+        originalQuery: query,
+        contextText: contextMode ? query : null,
+        databases,
+        structuredQueries: finalQueries
+      }).returning({ id: beeblioSearches.id });
+      
+      currentSearchId = searchRecord.id;
+
+      // Save user settings specific to this search
+      try {
+        await db.insert(beeblioSettings).values({
+          userId: user.id,
+          searchId: currentSearchId,
+          activeDatabases: databases,
+          aiOptimize,
+          aiReview: true,
+          updatedAt: new Date()
+        });
+      } catch (e) {
+        console.warn("Failed to save user settings:", e);
+      }
+
+      // Link attachment to this search
+      if (attachmentUrl) {
+        try {
+          await db.update(beeblioFiles)
+            .set({ searchId: currentSearchId })
+            .where(eq(beeblioFiles.fileUrl, attachmentUrl));
+        } catch (e) {
+          console.warn("Failed to link file to search:", e);
+        }
+      }
+    }
+
+    let insertedPapers: any[] = [];
+    if (allPapers.length > 0) {
+      try {
+        insertedPapers = await db.insert(beeblioPapers).values(
+          allPapers.map(p => ({
+            userId: user.id,
+            searchId: currentSearchId,
+            paperId: p.id,
+            source: (p as any).database || p.source || 'Unknown',
+            title: p.title,
+            abstract: p.abstract,
+            authors: p.authors,
+            year: p.year,
+            citations: p.citations,
+            url: p.url,
+          }))
+        ).returning({ id: beeblioPapers.id, paperId: beeblioPapers.paperId });
+      } catch (dbErr) {
+        console.error("Failed to insert papers into DB:", dbErr);
+      }
+    }
+
+    const papersToReturn = allPapers.map(p => {
+      const dbRecord = insertedPapers.find(ip => ip.paperId === p.id);
+      return {
+        ...p,
+        dbId: dbRecord?.id
+      };
+    });
+
+    return NextResponse.json({ papers: papersToReturn, structuredQueries: finalQueries, searchId: currentSearchId });
 
   } catch (error: any) {
     console.error('Search API Error:', error);

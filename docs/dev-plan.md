@@ -83,6 +83,12 @@ Users can provide search parameters via a tabbed interface:
 - [x] Establish React state for inputs and toggles.
 
 ### Phase 2: Database Integrations
+- [x] Integrate Database & Storage
+- [x] Define `beeblio_` prefixed tables
+- [x] Save all queries and settings
+- [x] Save papers mapped to search
+- [x] Save Gemini evaluations
+- [x] File upload to `beeblio` GCS bucket and pass to Geminitegrations
 - [x] Create fetching utilities for OpenAlex, Crossref, and Semantic Scholar.
 - [x] Integrate parallel fetching logic into Server APIs (`src/app/api/beeblio/search/route.ts`).
 
@@ -98,7 +104,34 @@ Users can provide search parameters via a tabbed interface:
 - [x] Implement an Export feature (BibTeX format) directly from the client.
 
 ### Phase 5: Production Architecture Level-Ups
-- [ ] Implement Database-Specific Tailored Queries (JSON) in Layer 1.
-- [ ] Enforce Strict JSON Schema outputs in Layer 2 (Evaluate API).
-- [ ] Refactor Frontend Evaluation to use Parallel Chunking (4 batches of 5) to prevent hallucinations.
-- [ ] Enable Batch Streaming so the UI updates progressively as chunks finish.
+- [x] Implement Database-Specific Tailored Queries (JSON) in Layer 1.
+- [x] Enforce Strict JSON Schema outputs in Layer 2 (Evaluate API).
+- [x] Refactor Frontend Evaluation to use Parallel Chunking (batches of 5) to prevent hallucinations.
+- [x] Enable Batch Streaming so the UI updates progressively as chunks finish.
+- [x] Implement True Next/Prev Pagination with Client-Side Page Caching.
+
+## 7. Operational Cost Estimates (Gemini 2.5 Flash)
+Calculated based on standard Gemini 1.5/2.5 Flash pricing:
+- **Input Tokens**: ~$0.075 per 1 Million
+- **Output Tokens**: ~$0.30 per 1 Million
+
+### Layer 1: AI Query Optimization (Once per search)
+- **Standard Keyword Search**:
+  - Input: ~120 tokens (System prompt + user query)
+  - Output: ~60 tokens (JSON object with 3 tailored queries)
+  - Cost: `~$0.000027` per search.
+- **Context Mode Search**:
+  - Input: ~850 tokens (System prompt + ~3,000 character user context)
+  - Output: ~60 tokens
+  - Cost: `~$0.000081` per search. (Even with a massive paragraph of context, it's still less than one-hundredth of a cent).
+
+### Layer 2: AI Review & Scoring (Per Page of 15 papers)
+The pipeline processes 15 papers in 3 parallel chunks of 5 papers each.
+- **Input per chunk**: ~1,500 tokens (5 abstracts + system instructions)
+- **Output per chunk**: ~150 tokens (JSON array of 5 scores & rubrics)
+- **Cost per chunk**: `~$0.00015`
+- **Total Cost per Page (3 chunks)**: `~$0.00047` per page of results.
+
+### Total Pipeline Cost
+A full search that fetches 15 results and evaluates all of them costs **`~$0.0005` (half of one-tenth of a cent)**. 
+For exactly **$1.00**, you can run **~2,000 complete End-to-End AI Searches**. Because we implemented structured query caching, pagination to subsequent pages only incurs the Layer 2 cost (`~$0.00047`), making deep diving into results even cheaper.

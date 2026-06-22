@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { db } from '@/db';
+import { beeblioEvaluations } from '@/db/schema';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
 
@@ -26,6 +29,13 @@ const evaluationSchema: any = {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { papers, originalQuery } = await req.json();
 
     if (!papers || papers.length === 0) {
@@ -82,6 +92,25 @@ Calculate an overallScore (average of the three, weighted slightly towards Relev
           }
         };
       });
+    }
+
+    if (evaluations && evaluations.length > 0) {
+      try {
+        await db.insert(beeblioEvaluations).values(
+          evaluations.map((e: any) => {
+            const paperDbId = papers.find((p: any) => p.id === e.id)?.dbId;
+            return {
+              userId: user.id,
+              paperId: paperDbId, // From search route dbId
+              originalQuery,
+              overallScore: e.overallScore,
+              rubrics: e.rubrics
+            };
+          }).filter((e: any) => e.paperId) // Only insert if we have a valid paper UUID
+        );
+      } catch (dbErr) {
+        console.error("Failed to insert evaluations into DB:", dbErr);
+      }
     }
 
     return NextResponse.json({ evaluations });
