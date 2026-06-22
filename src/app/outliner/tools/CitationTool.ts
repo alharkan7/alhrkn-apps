@@ -230,16 +230,16 @@ export class CitationTool {
         // Create modal with custom CSS variables
         this.modal = document.createElement('div');
         this.modal.setAttribute('data-citation-modal', 'true');
-        this.modal.className = 'fixed inset-0 flex items-center justify-center z-50 font-sans bg-black/80';
+        this.modal.className = 'fixed inset-0 flex items-center justify-center z-50 font-sans bg-black/60 backdrop-blur-sm transition-all duration-300';
 
 
         const modalContent = document.createElement('div');
-        modalContent.className = 'max-w-4xl max-h-[90vh] w-[90vw] overflow-hidden rounded-lg bg-background border shadow-lg flex flex-col';
+        modalContent.className = 'max-w-4xl max-h-[90vh] w-[90vw] overflow-hidden rounded-[2rem] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex flex-col';
 
 
         // Header
         const header = document.createElement('div');
-        header.className = 'p-5 border-b flex justify-between items-center bg-muted/40';
+        header.className = 'p-6 border-b border-border/50 flex justify-between items-center bg-transparent';
 
 
         const title = document.createElement('h3');
@@ -261,14 +261,14 @@ export class CitationTool {
 
         const prevBtn = document.createElement('button');
         prevBtn.textContent = 'Prev';
-        prevBtn.className = 'px-3 py-1.5 rounded-md border bg-background text-sm font-medium cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
+        prevBtn.className = 'px-4 py-2 rounded-full border border-border/50 bg-background/50 backdrop-blur text-sm font-medium cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
 
         prevBtn.disabled = page <= 1;
         prevBtn.onclick = () => this.goToPage(page - 1);
 
         const nextBtn = document.createElement('button');
         nextBtn.textContent = 'Next';
-        nextBtn.className = 'px-3 py-1.5 rounded-md border bg-primary text-primary-foreground text-sm font-medium cursor-pointer transition-colors hover:bg-primary/90 disabled:opacity-50';
+        nextBtn.className = 'px-4 py-2 rounded-full border border-transparent bg-primary text-primary-foreground text-sm font-medium cursor-pointer transition-colors hover:bg-primary/90 disabled:opacity-50 shadow-md shadow-primary/20';
 
         const hasMore = totalFound ? (page * perPage) < totalFound : showingCount === perPage;
         nextBtn.disabled = !hasMore;
@@ -288,7 +288,7 @@ export class CitationTool {
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '×';
-        closeBtn.className = 'border-none text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded transition-colors duration-200 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground';
+        closeBtn.className = 'border-none text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 bg-transparent text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10';
 
         closeBtn.onclick = () => this.closeModal();
 
@@ -301,30 +301,25 @@ export class CitationTool {
 
         // Content
         const content = document.createElement('div');
-        content.className = 'p-5 overflow-y-auto max-h-[78vh] bg-background';
+        content.className = 'p-6 overflow-y-auto max-h-[78vh] bg-transparent';
 
 
         // Search info with editable keywords
         const searchInfo = document.createElement('div');
-        searchInfo.className = 'mb-5 p-3 rounded-md text-sm bg-muted/50 border text-foreground';
+        searchInfo.className = 'mb-6 p-4 rounded-[1.5rem] text-sm bg-zinc-50/80 dark:bg-zinc-900/40 border border-border/50 text-foreground shadow-inner';
 
 
         const searchRow = document.createElement('div');
         searchRow.className = 'flex items-center justify-between gap-2';
 
         const keywordsLeft = document.createElement('div');
-        const keywordsLabel = document.createElement('strong');
-        keywordsLabel.textContent = 'Keywords: ';
-        const keywordsValue = document.createElement('span');
-        keywordsValue.textContent = data.keywords?.join(', ') || 'N/A';
-        keywordsLeft.appendChild(keywordsLabel);
-        keywordsLeft.appendChild(keywordsValue);
+        keywordsLeft.className = 'flex items-center gap-2 flex-wrap flex-1';
 
         const actionsRight = document.createElement('div');
         actionsRight.className = 'flex items-center gap-2';
         const editBtn = document.createElement('button');
         editBtn.title = 'Edit keywords';
-        editBtn.className = 'p-1.5 rounded-md border bg-background text-foreground text-xs cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground';
+        editBtn.className = 'p-2 rounded-full border border-border/50 bg-white/50 dark:bg-zinc-800/50 text-foreground text-xs cursor-pointer transition-colors hover:bg-white dark:hover:bg-zinc-700 shadow-sm';
 
         // Pencil icon SVG
         const editIcon = document.createElement('span');
@@ -339,18 +334,17 @@ export class CitationTool {
             const input = document.createElement('input');
             input.type = 'text';
             input.value = (data.keywords && data.keywords.length > 0) ? data.keywords.join(', ') : '';
-            input.placeholder = 'keyword1, keyword2, keyword3';
-            input.className = 'flex-1 px-2 py-1 rounded-md border text-sm bg-background text-foreground';
+            input.placeholder = 'e.g. artificial intelligence, machine learning';
+            input.className = 'flex-1 px-4 py-2 rounded-full border border-border/50 bg-white dark:bg-zinc-950 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-sm';
 
 
             const saveBtn = document.createElement('button');
             saveBtn.innerHTML = CHECK_ICON_SVG;
-            saveBtn.className = 'rounded-md border cursor-pointer transition-colors hover:bg-primary/90 bg-primary text-primary-foreground w-7 h-7 inline-flex items-center justify-center p-0';
-
+            saveBtn.className = 'rounded-full border border-transparent cursor-pointer transition-all hover:bg-primary/90 hover:scale-105 bg-primary text-primary-foreground w-9 h-9 inline-flex items-center justify-center p-0 shadow-md shadow-primary/20 shrink-0';
 
             const cancelBtn = document.createElement('button');
             cancelBtn.innerHTML = X_ICON_SVG;
-            cancelBtn.className = 'rounded-md border cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground bg-background text-foreground w-7 h-7 inline-flex items-center justify-center p-0';
+            cancelBtn.className = 'rounded-full border border-border/50 cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/10 bg-white dark:bg-zinc-800 text-foreground w-9 h-9 inline-flex items-center justify-center p-0 shadow-sm shrink-0';
 
 
             const submit = async () => {
@@ -391,7 +385,27 @@ export class CitationTool {
 
         const renderView = () => {
             searchRow.innerHTML = '';
-            keywordsValue.textContent = data.keywords?.join(', ') || 'Waiting for input...';
+            keywordsLeft.innerHTML = '';
+            
+            const keywordsLabel = document.createElement('span');
+            keywordsLabel.textContent = 'Keywords:';
+            keywordsLabel.className = 'font-medium text-muted-foreground mr-1';
+            keywordsLeft.appendChild(keywordsLabel);
+
+            if (data.keywords && data.keywords.length > 0) {
+                data.keywords.forEach((kw: string) => {
+                    const tag = document.createElement('span');
+                    tag.textContent = kw;
+                    tag.className = 'px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border border-border/50 text-xs font-medium shadow-sm';
+                    keywordsLeft.appendChild(tag);
+                });
+            } else {
+                const tag = document.createElement('span');
+                tag.textContent = 'None';
+                tag.className = 'px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border border-border/50 text-xs font-medium shadow-sm text-muted-foreground';
+                keywordsLeft.appendChild(tag);
+            }
+
             actionsRight.innerHTML = '';
             actionsRight.appendChild(editBtn);
             searchRow.appendChild(keywordsLeft);
@@ -632,7 +646,7 @@ export class CitationTool {
 
     private createPaperCard(paper: any, index: number): HTMLDivElement {
         const card = document.createElement('div');
-        card.className = 'rounded-lg p-4 transition-all duration-200 hover:-translate-y-0.5 border bg-card text-card-foreground shadow-sm hover:shadow-md flex flex-col h-full overflow-visible';
+        card.className = 'rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 border border-border/50 bg-zinc-50/80 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-800 text-card-foreground shadow-sm hover:shadow-xl flex flex-col h-full overflow-visible group';
 
         // Remove manual hover listeners as we use Tailwind classes
 
@@ -682,7 +696,7 @@ export class CitationTool {
 
         // Add Cite button
         const citeBtn = document.createElement('button');
-        citeBtn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium cursor-pointer transition-colors hover:bg-primary/90 bg-primary text-primary-foreground';
+        citeBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full border border-transparent text-xs font-medium cursor-pointer transition-all hover:bg-primary/90 bg-primary text-primary-foreground shadow-sm shadow-primary/20 group-hover:scale-105';
 
         citeBtn.innerHTML = `<span class="icon" aria-hidden="true">${CITE_ICON_SVG}</span><span>Cite</span>`;
 
@@ -692,7 +706,7 @@ export class CitationTool {
         // Add Show Abstract button
         const abstractBtn = document.createElement('button');
         abstractBtn.setAttribute('data-abstract-btn', 'true');
-        abstractBtn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-medium cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground bg-background text-foreground';
+        abstractBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/50 text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/10 bg-background/50 text-foreground';
 
         abstractBtn.innerHTML = `<span class="icon" aria-hidden="true">${ABSTRACT_ICON_SVG}</span><span>Abstract</span>`;
         abstractBtn.onclick = () => this.toggleAbstract(paper, card);

@@ -85,20 +85,15 @@ export async function POST(req: NextRequest) {
         userPrompt: `Task: Propose ${ideasCount} distinct research ideas based on the following keywords.
 Keywords: ${keywords}
 
-Output format: Newline-delimited JSON (NDJSON). Emit exactly one JSON object per line, with no leading or trailing commentary, and no enclosing array. For each idea, output an object with the following shape: {
-  "title": string,
-  "abstract": {
-    "background": string,
-    "literatureReview": string,
-    "method": string,
-    "analysisTechnique": string,
-    "impact": string
-  }
-}
+Output format: Newline-delimited JSON (NDJSON). Emit exactly one JSON object per line, with no leading or trailing commentary, and no enclosing array.
+Example format for each line:
+{"title":"...","abstract":{"background":"...","literatureReview":"...","method":"...","analysisTechnique":"...","impact":"..."}}
 
-Constraints:
+CRITICAL CONSTRAINTS:
+- DO NOT PRETTY PRINT THE JSON.
+- EACH JSON OBJECT MUST BE FULLY MINIFIED AND FIT ENTIRELY ON A SINGLE LINE.
+- DO NOT INCLUDE ANY NEWLINE CHARACTERS WITHIN THE JSON OBJECT.
 - Start output immediately; do not wait to finish planning.
-- Do not include unescaped newline characters in values (use \\n if needed).
 - Keep sections compact and concrete (2–4 sentences each).
 - Avoid duplication across ideas.
 - Do not include markdown, code fences, or any text other than NDJSON lines.`
@@ -110,20 +105,15 @@ Kata kunci: ${keywords}
 
 PENTING: Semua konten (judul, background, literature review, method, analysis technique, impact) HARUS dalam Bahasa Indonesia.
 
-Format output: Newline-delimited JSON (NDJSON). Emitkan tepat satu objek JSON per baris, tanpa komentar awal atau akhir, dan tanpa array pembungkus. Untuk setiap ide, outputkan objek dengan bentuk berikut: {
-  "title": string,
-  "abstract": {
-    "background": string,
-    "literatureReview": string,
-    "method": string,
-    "analysisTechnique": string,
-    "impact": string
-  }
-}
+Format output: Newline-delimited JSON (NDJSON). Emitkan tepat satu objek JSON per baris, tanpa komentar awal atau akhir, dan tanpa array pembungkus.
+Format contoh untuk setiap baris:
+{"title":"...","abstract":{"background":"...","literatureReview":"...","method":"...","analysisTechnique":"...","impact":"..."}}
 
-Kendala:
+KENDALA KRITIS:
+- JANGAN PRETTY PRINT JSON.
+- SETIAP OBJEK JSON HARUS SEPENUHNYA DIMINIFY DAN MUAT SELURUHNYA DALAM SATU BARIS.
+- JANGAN SERTAKAN KARAKTER NEWLINE DI DALAM OBJEK JSON.
 - Mulai output segera; jangan menunggu untuk menyelesaikan perencanaan.
-- Jangan sertakan karakter newline yang tidak di-escape dalam nilai (gunakan \\n jika diperlukan).
 - Jaga agar setiap bagian ringkas dan konkret (2–4 kalimat).
 - Hindari duplikasi antar ide.
 - Jangan sertakan markdown, code fences, atau teks lain selain baris NDJSON.
@@ -137,8 +127,7 @@ Kendala:
 
     const result = await model.generateContentStream({
       contents: [
-        { role: 'user', parts: [{ text: config.systemInstruction }] },
-        { role: 'user', parts: [{ text: config.userPrompt }] },
+        { role: 'user', parts: [{ text: config.systemInstruction + '\n\n' + config.userPrompt }] },
       ],
       generationConfig: {
         temperature: 0.7,

@@ -464,32 +464,35 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
     }, [id, idea, holderId, debouncedSave, language, startStreaming, createSkeletonBlocks, ensureMiniAIToolbar, warmInlineToolsOnce, hideMiniToolbar, positionMiniToolbar, scheduleMiniToolbarShow, cancelScheduledMiniShow]);
 
     return (
-        <div className="prose prose-neutral dark:prose-invert max-w-none">
+        <div className="prose prose-neutral dark:prose-invert max-w-none w-full pb-32">
             <Toolbar onDownload={handleDownload} onOpenChat={handleOpenChat} />
 
-            {!isReady && (
-                <div className="text-center py-8 text-gray-500">
-                    {language === 'en' ? 'Loading editor...' : 'Memuat editor...'}
-                </div>
-            )}
-            <div
-                id={holderId}
-                ref={containerRef}
-                style={{
-                    display: isReady ? 'block' : 'none',
-                    minHeight: '200px',
-                    position: 'relative'
-                }}
-                className="editor-container text-foreground"
-            />
+            <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200">
+                {!isReady && (
+                    <div className="text-center py-8 text-gray-500 font-sans animate-pulse">
+                        {language === 'en' ? 'Loading editor...' : 'Memuat editor...'}
+                    </div>
+                )}
+                
+                <div
+                    id={holderId}
+                    ref={containerRef}
+                    style={{
+                        display: isReady ? 'block' : 'none',
+                        minHeight: '200px',
+                        position: 'relative'
+                    }}
+                    className="editor-container text-foreground font-serif leading-relaxed prose-headings:font-serif prose-h1:text-center prose-h1:font-normal prose-h2:font-normal prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-p:text-justify"
+                />
 
-            {/* Bibliography Section */}
-            <div className="border-t">
-                <h2 className="text-2xl font-bold mb-6 text-foreground">References</h2>
-                <div id="bibliography-container" className="space-y-4 break-words">
-                    <p data-bibliography-placeholder="true" className="text-muted-foreground italic">
-                        Citations will appear here as you add them to your document using the citation tool.
-                    </p>
+                {/* Bibliography Section */}
+                <div className="mt-16 pt-8 border-t border-black/10 dark:border-white/10">
+                    <h2 className="text-2xl font-serif font-normal mb-6 text-foreground text-center">References</h2>
+                    <div id="bibliography-container" className="space-y-4 break-words font-serif text-[15px] leading-relaxed pl-6 -indent-6">
+                        <p data-bibliography-placeholder="true" className="text-muted-foreground italic text-center indent-0">
+                            Citations will appear here as you add them to your document using the citation tool.
+                        </p>
+                    </div>
                 </div>
             </div>
 

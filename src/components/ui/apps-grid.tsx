@@ -77,7 +77,7 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
         {trigger}
       </PopoverTrigger>
       <PopoverContent
-        className="w-[240px] p-2 bg-muted"
+        className="w-[260px] p-3 bg-background/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl"
         align="end"
         onPointerDownOutside={(e: Event) => {
           if (e.target instanceof Element && e.target.closest('.apps-grid-content')) {
@@ -98,11 +98,11 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
               //   <TooltipTrigger asChild disabled={!showTooltips}>
               <Button
                 key={app.slug}
-                variant="outline"
-                className="relative h-[90px] w-[100px] flex flex-col items-center justify-center gap-3 rounded-xl"
+                variant="ghost"
+                className="relative h-[90px] w-full flex flex-col items-center justify-center gap-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 group"
                 onClick={() => handleAppClick(app.slug)}
               >
-                <Icon className="size-5 text-text" />
+                <Icon className="size-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:scale-110 duration-300" />
                 <div className="w-full flex">
                   <span className="text-xs font-medium line-clamp-2 text-center whitespace-normal break-words w-full">{app.name}</span>
                 </div>
@@ -117,8 +117,8 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
         </div>
         <div className="mt-2 pt-3 border-t border-border">
           <Button
-            variant="default"
-            className="w-full flex items-center justify-start gap-2 text-xs"
+            variant="ghost"
+            className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors"
             onClick={() => window.location.href = 'mailto:alharkan7@gmail.com'}
           >
             <Mail className='mr-1 ml-2' />

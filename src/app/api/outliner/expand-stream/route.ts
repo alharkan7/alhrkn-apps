@@ -110,8 +110,7 @@ Persyaratan:
           
           const result = await model.generateContentStream({
             contents: [
-              { role: 'user', parts: [{ text: config.systemInstruction }] },
-              { role: 'user', parts: [{ text: config.userPrompt }] },
+              { role: 'user', parts: [{ text: config.systemInstruction + '\n\n' + config.userPrompt }] },
             ],
             generationConfig: {
               temperature: 0.7,

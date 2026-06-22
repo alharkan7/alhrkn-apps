@@ -277,10 +277,10 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[400px] sm:w-[500px] !p-4">
+      <SheetContent side="right" className="w-[400px] sm:w-[500px] !p-6 border-l border-border/50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.1)] flex flex-col">
         <SheetHeader>
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2">
+            <SheetTitle className="flex items-center gap-2 text-xl font-bold">
               Chat Assistant
             </SheetTitle>
             <Button
@@ -309,9 +309,9 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 ${message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground'
+                  className={`max-w-[85%] rounded-3xl px-5 py-3 shadow-sm ${message.role === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-sm'
+                      : 'bg-muted/60 backdrop-blur-sm text-foreground rounded-bl-sm border border-border/50'
                     }`}
                 >
                   {/* File attachments display */}
@@ -335,7 +335,7 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
 
                   {/* Message content with markdown rendering */}
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm max-w-none">
+                    <div className="prose prose-sm max-w-none text-[15px] leading-relaxed">
                       {message.isStreaming && !message.content ? (
                         // Show typing indicator inside bubble when no content yet
                         <div className="flex items-center gap-1 py-2">
@@ -470,7 +470,7 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 rounded-full bg-muted/50 border-border/50 focus-visible:ring-blue-500/50 px-5"
             />
             <input
               type="file"
@@ -485,14 +485,15 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
-              className="px-2"
+              className="rounded-full h-10 w-10 shrink-0"
             >
               <Paperclip className="h-4 w-4" />
             </Button>
             <Button
               onClick={sendMessage}
               disabled={(!inputMessage.trim() && attachedFiles.length === 0) || isLoading}
-              size="sm"
+              size="icon"
+              className="rounded-full h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
             >
               <Send className="h-4 w-4" />
             </Button>

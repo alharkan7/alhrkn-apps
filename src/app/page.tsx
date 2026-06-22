@@ -10,10 +10,17 @@ import { useTheme } from 'next-themes'
 export default function HomePage() {
   const { theme, setTheme } = useTheme()
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center w-full pt-16 pb-0 px-4 text-center bg-gradient-to-b from-background to-muted/20 overflow-hidden">
-        <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      <section className="relative flex flex-col items-center justify-center w-full pt-16 pb-0 px-4 text-center overflow-hidden z-10">
         <div className="space-y-4 max-w-3xl mx-auto relative z-10">
           <a 
             href="https://raihankalla.id" 
@@ -121,7 +128,7 @@ export default function HomePage() {
       </section>
 
       {/* Apps Grid */}
-      <section id="apps" className="container mx-auto px-4 py-12 md:py-16">
+      <section id="apps" className="container mx-auto px-4 py-12 md:py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {apps.map((app) => {
             const IconComponent = app.icon
@@ -157,7 +164,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t bg-muted/40">
+      <footer className="mt-auto border-t border-border/50 bg-background/40 backdrop-blur-xl relative z-10">
         <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground text-center md:text-left">
             © {new Date().getFullYear()} Al Harkan. All rights reserved.

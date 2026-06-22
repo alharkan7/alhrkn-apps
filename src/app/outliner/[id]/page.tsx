@@ -4,13 +4,19 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import '../styles/editor.css';
 import { ResearchIdea} from './utils';
-import { FullDocumentEditor } from './DocumentEditor';
+import dynamic from 'next/dynamic';
+
+const FullDocumentEditor = dynamic(
+  () => import('./DocumentEditor').then((mod) => mod.FullDocumentEditor),
+  { ssr: false }
+);
 
 export default function OutlinerDetailPage() {
     const params = useParams();
     const id = (params?.id as string) || '';
     const [idea, setIdea] = useState<ResearchIdea | null>(null);
     const [language, setLanguage] = useState<'en' | 'id'>('en');
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (!id) return;
@@ -31,6 +37,8 @@ export default function OutlinerDetailPage() {
             console.error('Error loading idea from localStorage:', error);
             // Clear corrupted data
             localStorage.removeItem(`outliner:${id}`);
+        } finally {
+            setIsLoading(false);
         }
     }, [id]);
 
@@ -47,8 +55,15 @@ export default function OutlinerDetailPage() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
             </div>
 
-            <div className="relative z-10 min-h-[100vh] w-full max-w-3xl mx-auto px-4 py-2 flex flex-col">
-                {!idea ? (
+            <div className="relative z-10 min-h-[100vh] w-full max-w-5xl mx-auto px-4 sm:px-8 py-4 flex flex-col">
+                {isLoading ? (
+                    <div className="text-center pt-24">
+                        <div className="animate-pulse flex flex-col items-center">
+                            <div className="h-8 w-64 bg-muted rounded mb-4"></div>
+                            <div className="h-4 w-48 bg-muted rounded"></div>
+                        </div>
+                    </div>
+                ) : !idea ? (
                     <div className="text-center pt-24">
                         <p className="opacity-70 mb-4">No content found for this paper. It may have expired from your browser storage.</p>
                         <button

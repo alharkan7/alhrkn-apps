@@ -47,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={spaceGrotesk.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
 
-      <body className={`${spaceGrotesk.className} font-sans`}>
+      <body className={`${spaceGrotesk.className} font-sans`} suppressHydrationWarning>
         <TooltipProvider>
           <ThemeProvider
             attribute="class"
