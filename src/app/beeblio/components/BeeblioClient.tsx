@@ -49,7 +49,15 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   // Pagination State
   const [structuredQueries, setStructuredQueries] = useState<any>(null)
   const [page, setPage] = useState(1)
+  const [pagesCache, setPagesCache] = useState<Record<number, Paper[]>>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // Sync evaluations/results to pages cache automatically
+  useEffect(() => {
+    if (results.length > 0) {
+      setPagesCache(prev => ({ ...prev, [page]: results }))
+    }
+  }, [results, page])
 
   useEffect(() => {
     setMounted(true)
@@ -82,6 +90,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           
           setStructuredQueries(data.structuredQueries);
           setPage(1);
+          setPagesCache({}); // Clear cache for new query
           setResults(data.papers);
           setIsSearching(false);
           
@@ -149,9 +158,15 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     }
   }, [pageId, initialQuery, databases.openalex, databases.crossref, databases.semanticScholar])
 
-  const loadMore = async () => {
-    setIsLoadingMore(true);
+  const goToNextPage = async () => {
     const nextPage = page + 1;
+    if (pagesCache[nextPage] && pagesCache[nextPage].length > 0) {
+      setPage(nextPage);
+      setResults(pagesCache[nextPage]);
+      return;
+    }
+
+    setIsLoadingMore(true);
     setPage(nextPage);
     try {
       const res = await fetch('/api/beeblio/search', {
@@ -169,12 +184,8 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
       const data = await res.json();
       if (!data.papers) throw new Error('No papers returned');
 
-      setResults(prev => {
-        // Deduplicate against existing results
-        const existingIds = new Set(prev.map(p => p.id));
-        const newPapers = data.papers.filter((p: Paper) => !existingIds.has(p.id));
-        return [...prev, ...newPapers];
-      });
+      // Replace results for the next page
+      setResults(data.papers);
       
       const shouldReview = searchParams?.get('review') === 'true';
       if (shouldReview && data.papers.length > 0) {
@@ -221,8 +232,19 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
       }
     } catch (e) {
       console.error(e);
+      setPage(page); // Revert page on failure
     }
     setIsLoadingMore(false);
+  };
+
+  const goToPrevPage = () => {
+    if (page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      if (pagesCache[prevPage]) {
+        setResults(pagesCache[prevPage]);
+      }
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -804,18 +826,32 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
               </div>
 
               {results.length > 0 && !isSearching && (
-                <div className="mt-8 flex justify-center pb-8">
+                <div className="mt-8 flex justify-center items-center gap-4 pb-8">
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    onClick={loadMore} 
+                    onClick={goToPrevPage} 
+                    disabled={page === 1 || isLoadingMore || isEvaluating}
+                    className="rounded-full px-6 bg-card"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+                  </Button>
+                  
+                  <span className="text-sm font-medium text-muted-foreground w-16 text-center">
+                    Page {page}
+                  </span>
+
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={goToNextPage} 
                     disabled={isLoadingMore || isEvaluating}
-                    className="rounded-full px-8 bg-card"
+                    className="rounded-full px-6 bg-card"
                   >
                     {isLoadingMore ? (
-                      <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Loading more...</>
+                      <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
                     ) : (
-                      <><ChevronDown className="mr-2 h-4 w-4" /> Load More Results</>
+                      <>Next <ArrowRight className="ml-2 h-4 w-4" /></>
                     )}
                   </Button>
                 </div>
