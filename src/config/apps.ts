@@ -18,7 +18,7 @@ export const apps: AppConfig[] = [
     name: 'Beeblio',
     icon: BookOpen,
     slug: 'beeblio',
-    description: 'AI-Powered Scientific Literature Review',
+    description: 'AI-Powered Scientific Literature Search',
   },
   {
     name: 'Inztagram',

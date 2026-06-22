@@ -46,3 +46,5 @@ next-env.d.ts
 *.mp4
 
 app-key*
+
+test-*

@@ -7,8 +7,43 @@ Instead of relying solely on exact keyword matches, Beeblio understands research
 ## 2. Architecture & Tech Stack
 - **Framework**: Next.js 14+ (App Router)
 - **Styling**: Tailwind CSS + Framer Motion (for micro-animations) + Radix UI (Shadcn UI)
-- **AI Integration**: `@ai-sdk/google` (Vercel AI SDK with Gemini Pro/Flash)
+- **AI Integration**: `@google/generative-ai` (Gemini 2.5 Flash/Pro)
 - **Data Sources**: OpenAlex API, Crossref API, Semantic Scholar API
+
+## 3. System Workflow (Architecture Diagram)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as BeeblioClient (Frontend)
+    participant S_API as /api/beeblio/search
+    participant E_API as /api/beeblio/evaluate
+    participant GEMINI as Gemini API
+    participant DB as Databases (OpenAlex, S2, Crossref)
+
+    U->>UI: Enter Query (Keywords or Context)
+    UI->>S_API: POST { query, databases, aiOptimize }
+    opt If aiOptimize == true
+        S_API->>GEMINI: Prompt: Optimize Query
+        GEMINI-->>S_API: Optimized Boolean Query
+    end
+    S_API->>DB: Promise.all() Fetch (Parallel)
+    DB-->>S_API: Raw JSON Results
+    S_API->>S_API: Deduplicate & Clean Data
+    S_API-->>UI: Array of 20 Papers
+
+    opt If aiReview == true
+        UI->>E_API: POST { papers, originalQuery }
+        E_API->>GEMINI: Evaluate 3 Rubrics per Paper
+        GEMINI-->>E_API: JSON Array of Scores
+        E_API-->>UI: Hydrated Scores
+        UI->>UI: Re-sort UI based on AI overallScore
+    end
+    
+    UI-->>U: Render curated results list
+    U->>UI: Export to BibTeX
+    UI-->>U: beeblio_export.bib Download
+```
 
 ## 3. Core Features & AI Layers
 ### 3.1. Input Mechanism
@@ -41,21 +76,23 @@ Users can provide search parameters via a tabbed interface:
   - `ResultsFeed`: A list of `PaperCard`s.
   - `PaperCard`: Displays Title, Authors, Year, Citations, Source. Expandable section for the Abstract. Distinctive glowing border or badge for AI-recommended papers.
 
-## 5. Phased Execution Plan
+## 6. Phased Execution Plan
 ### Phase 1: Foundation & UI Construction
-- Register app in `apps.ts`.
-- Build the static UI components in `src/app/beeblio/page.tsx` (Search bar, settings, mock paper cards).
-- Establish React state for inputs and toggles.
+- [x] Register app in `apps.ts`.
+- [x] Build the static UI components in `src/app/beeblio/page.tsx` (Search bar, settings, mock paper cards).
+- [x] Establish React state for inputs and toggles.
 
 ### Phase 2: Database Integrations
-- Create fetching utilities for OpenAlex, Crossref, and Semantic Scholar.
-- Integrate fetching logic into Server Actions (`src/app/beeblio/actions.ts`).
+- [x] Create fetching utilities for OpenAlex, Crossref, and Semantic Scholar.
+- [x] Integrate parallel fetching logic into Server APIs (`src/app/api/beeblio/search/route.ts`).
 
 ### Phase 3: AI Layers (Gemini)
-- Implement Layer 1 (Query Optimization) Server Action.
-- Implement Layer 2 (Results Review) Server Action.
-- Wire the UI to trigger these Server Actions based on the toggle states.
+- [x] Implement Layer 1 (Query Optimization) in Search API.
+- [x] Implement Layer 2 (Results Review) in Evaluate API (`src/app/api/beeblio/evaluate/route.ts`).
+- [x] Add developer fallback logic for API Quota (429) errors.
+- [x] Wire the UI to trigger these APIs based on toggle states.
 
 ### Phase 4: Polish & Export
-- Add Framer Motion animations for cards entering the screen.
-- Implement an Export feature (JSON/Markdown) similar to the Python prototype.
+- [x] Add Framer Motion animations for cards entering the screen and dynamic layout sorting.
+- [x] Fix mobile responsiveness (grid layouts, text wrapping).
+- [x] Implement an Export feature (BibTeX format) directly from the client.

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Search, Settings, Sparkles, Database, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown } from 'lucide-react'
+import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -30,6 +30,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const [filterSource, setFilterSource] = useState<string>('all')
   const [query, setQuery] = useState(initialQuery)
   const [isSearching, setIsSearching] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
   const [results, setResults] = useState<Paper[]>([])
   const [mounted, setMounted] = useState(false)
   
@@ -39,7 +40,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const [databases, setDatabases] = useState({
     openalex: true,
     crossref: true,
-    semanticScholar: true
+    semanticScholar: false
   })
 
   // Expandable cards state
@@ -48,31 +49,139 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   useEffect(() => {
     setMounted(true)
     
-    // If we land on a dynamic route with an ID, simulate the fetching process
-    if (pageId) {
-      setIsSearching(true)
-      const timer = setTimeout(() => {
-        setResults(MOCK_RESULTS)
-        setIsSearching(false)
-      }, 2000)
-      return () => clearTimeout(timer)
-    } else {
+    const tabParam = searchParams?.get('tab') as 'keywords' | 'context' | null;
+    const optimizeParam = searchParams?.get('optimize');
+    const reviewParam = searchParams?.get('review');
+    
+    if (tabParam) setActiveTab(tabParam);
+    if (optimizeParam) setAiOptimize(optimizeParam === 'true');
+    if (reviewParam) setAiReview(reviewParam === 'true');
+
+    if (pageId && initialQuery) {
+      const runSearch = async () => {
+        setIsSearching(true)
+        try {
+          const res = await fetch('/api/beeblio/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: initialQuery,
+              aiOptimize: tabParam === 'context' ? true : (optimizeParam === 'true'),
+              contextMode: tabParam === 'context',
+              databases: databases
+            })
+          });
+          const data = await res.json();
+          
+          if (!data.papers) throw new Error('No papers returned');
+          
+          setResults(data.papers);
+          setIsSearching(false);
+          
+          const shouldReview = reviewParam === 'true';
+          if (shouldReview && data.papers.length > 0) {
+            setIsEvaluating(true);
+            let currentPapersToEval = data.papers.map((p: Paper) => ({
+              id: p.id,
+              title: p.title,
+              abstract: p.abstract
+            }));
+            
+            // Progressive evaluation with retry for dropped papers
+            for (let attempt = 0; attempt < 3; attempt++) {
+              if (currentPapersToEval.length === 0) break;
+
+              const evalRes = await fetch('/api/beeblio/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  papers: currentPapersToEval,
+                  originalQuery: initialQuery
+                })
+              });
+              
+              const evalData = await evalRes.json();
+              
+              if (evalData.evaluations && evalData.evaluations.length > 0) {
+                // Hydrate the ones that succeeded
+                setResults(currentResults => {
+                  const resultsCopy = [...currentResults];
+                  evalData.evaluations.forEach((evaluation: any) => {
+                    const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                    if (paperIndex !== -1) {
+                      resultsCopy[paperIndex] = {
+                        ...resultsCopy[paperIndex],
+                        overallScore: evaluation.overallScore,
+                        rubrics: evaluation.rubrics
+                      };
+                    }
+                  });
+                  return resultsCopy;
+                });
+
+                // Filter out papers that were successfully evaluated so we only retry missing ones
+                const evaluatedIds = new Set(evalData.evaluations.map((e: any) => e.id));
+                currentPapersToEval = currentPapersToEval.filter((p: any) => !evaluatedIds.has(p.id));
+              } else {
+                // If API failed entirely or returned no evaluations, stop retrying to prevent infinite loops
+                break;
+              }
+            }
+            setIsEvaluating(false);
+          }
+        } catch (error) {
+          console.error("Search pipeline failed:", error);
+          setIsSearching(false);
+          setIsEvaluating(false);
+        }
+      }
+      runSearch();
+    } else if (!pageId) {
       setResults([])
     }
-  }, [pageId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, initialQuery])
 
   const toggleExpand = (id: string) => {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  const handleExportBibtex = () => {
+    const currentResults = [...results].filter(r => filterSource === 'all' || r.source === filterSource).sort((a, b) => {
+      if (sortBy === 'score') return (b.overallScore || 0) - (a.overallScore || 0)
+      if (sortBy === 'year') return b.year - a.year
+      if (sortBy === 'citations') return b.citations - a.citations
+      return 0
+    });
+
+    const bibtex = currentResults.map(paper => {
+      const firstAuthor = paper.authors[0] ? paper.authors[0].split(' ').pop() : 'Unknown';
+      const key = `${firstAuthor}${paper.year}`.replace(/[^a-zA-Z0-9]/g, '');
+      return `@article{${key},
+  title={${paper.title}},
+  author={${paper.authors.join(' and ')}},
+  year={${paper.year}},
+  journal={${paper.source}},
+  abstract={${paper.abstract || ''}},
+  url={${paper.url || ''}}
+}`;
+    }).join('\n\n');
+
+    const blob = new Blob([bibtex], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'beeblio_export.bib';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleSearch = () => {
     if (!query.trim()) return
-    
-    // Generate a random page ID
     const newPageId = Math.random().toString(36).substring(2, 10)
-    
-    // Navigate to the dynamic route, which will trigger the loading effect
-    router.push(`/beeblio/${newPageId}?q=${encodeURIComponent(query)}`)
+    router.push(`/beeblio/${newPageId}?q=${encodeURIComponent(query)}&tab=${activeTab}&optimize=${aiOptimize}&review=${aiReview}`)
   }
 
   if (!mounted) return null
@@ -88,14 +197,21 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           <div className="space-y-4">
             <div className="flex items-center justify-between group">
               <div className="space-y-1">
-                <label className="text-sm font-medium group-hover:text-indigo-500 transition-colors">Query Optimizer</label>
-                <p className="text-[11px] text-muted-foreground">Rewrite input to strict Boolean logic</p>
+                <label className={`text-sm font-medium transition-colors ${activeTab === 'context' ? 'text-muted-foreground' : 'group-hover:text-indigo-500'}`}>Query Optimizer</label>
+                <p className="text-[11px] text-muted-foreground">
+                  {activeTab === 'context' ? 'Required for Context Search' : 'Rewrite input to strict Boolean logic'}
+                </p>
               </div>
-              <Switch checked={aiOptimize} onCheckedChange={setAiOptimize} className="data-[state=checked]:bg-indigo-500" />
+              <Switch 
+                checked={activeTab === 'context' ? true : aiOptimize} 
+                disabled={activeTab === 'context'} 
+                onCheckedChange={setAiOptimize} 
+                className="data-[state=checked]:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+              />
             </div>
             <div className="flex items-center justify-between group">
               <div className="space-y-1">
-                <label className="text-sm font-medium group-hover:text-amber-500 transition-colors">AI Synthesis Review</label>
+                <label className="text-sm font-medium group-hover:text-amber-500 transition-colors">AI Reviewer</label>
                 <p className="text-[11px] text-muted-foreground">Evaluate and rank fetched papers</p>
               </div>
               <Switch checked={aiReview} onCheckedChange={setAiReview} className="data-[state=checked]:bg-amber-500" />
@@ -108,7 +224,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
         <div className="space-y-4">
           <h4 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
             <Database className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
-            Data Sources
+            Databases
           </h4>
           <div className="space-y-3">
             {Object.entries(databases).map(([key, value]) => (
@@ -271,7 +387,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                 >
                   {isSearching ? (
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}>
-                      <Sparkles className="h-5 w-5 text-amber-300" />
+                      <LoaderCircle className="h-5 w-5 text-amber-300" />
                     </motion.div>
                   ) : (
                     <ArrowRight className="h-5 w-5 rotate-135" />
@@ -388,7 +504,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   {isSearching ? (
                     <span className="flex items-center gap-3">
                       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}>
-                        <Sparkles className="h-5 w-5 text-amber-300" />
+                        <LoaderCircle className="h-5 w-5 text-amber-300" />
                       </motion.div>
                       Synthesizing...
                     </span>
@@ -413,14 +529,14 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             className="flex flex-col items-center justify-center py-20 space-y-6"
           >
             <motion.div 
-              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }} 
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              animate={{ rotate: 360 }} 
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
               className="relative"
             >
-              <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full"></div>
-              <Sparkles className="h-12 w-12 text-indigo-500 relative z-10" />
+              <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full"></div>
+              <LoaderCircle className="h-12 w-12 text-indigo-500 relative z-10" />
             </motion.div>
-            <h3 className="text-xl font-medium text-muted-foreground animate-pulse">Running AI Synthesis Review...</h3>
+            <h3 className="text-xl font-medium text-muted-foreground animate-pulse">Extracting from Scientific Databases...</h3>
           </motion.div>
         )}
 
@@ -433,7 +549,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-8 relative z-20"
             >
-              <div className="flex flex-row items-center justify-between gap-2 pb-4 border-b">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2 pb-4 border-b">
                 <div className="flex items-center gap-2 md:gap-3">
                   <h3 className="text-xl md:text-2xl font-semibold tracking-tight">
                     <span className="md:hidden">Results</span>
@@ -442,34 +558,44 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   <Badge variant="neutral" className="font-normal whitespace-nowrap">{results.length} Papers</Badge>
                 </div>
                 
-                <div className="flex items-center gap-2 md:gap-3">
+                <div className="flex items-center gap-2 md:gap-3 self-end md:self-auto">
+                  <Button variant="outline" size="sm" onClick={handleExportBibtex} className="h-8 rounded-full px-3 md:px-4 text-xs font-medium border-muted-foreground/30 hover:bg-muted/50 bg-muted/30 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                    <Download className="h-3.5 w-3.5 md:mr-1.5" /> 
+                    <span className="hidden md:inline">BibTeX</span>
+                  </Button>
                   <div className="relative">
                     <select 
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full px-2.5 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-9 md:w-auto"
+                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full pl-8 pr-2 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-[76px] md:w-auto"
                     >
                       <option value="score" className="text-foreground">Sort by: Score</option>
                       <option value="year" className="text-foreground">Sort by: Year</option>
                       <option value="citations" className="text-foreground">Sort by: Citations</option>
                     </select>
-                    <ArrowUpDown className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none md:hidden" />
-                    <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none hidden md:block" />
+                    {/* Fake Label for Mobile */}
+                    <div className="absolute inset-0 flex items-center pl-8 pointer-events-none md:hidden text-sm font-medium text-muted-foreground">
+                      Sort
+                    </div>
+                    <ArrowUpDown className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
                   </div>
                   <div className="relative">
                     <select 
                       value={filterSource}
                       onChange={(e) => setFilterSource(e.target.value)}
-                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full px-2.5 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-9 md:w-auto"
+                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full pl-8 pr-2 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-[150px] md:max-w-60 text-ellipsis overflow-hidden whitespace-nowrap"
                     >
                       <option value="all" className="text-foreground">All Sources</option>
                       {uniqueSources.map(source => (
                         <option key={source} value={source} className="text-foreground">{source}</option>
                       ))}
                     </select>
-                    <Filter className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none md:hidden" />
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none hidden md:block" />
+                    {/* Fake Label for Mobile */}
+                    <div className="absolute inset-0 flex items-center pl-8 pointer-events-none md:hidden text-sm font-medium text-muted-foreground">
+                      Publisher
+                    </div>
+                    <Filter className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
                   </div>
                 </div>
@@ -483,10 +609,12 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   return 0
                 }).map((paper, idx) => (
                   <motion.div 
+                    layout
                     key={paper.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ layout: { type: "spring", stiffness: 300, damping: 30 }, opacity: { delay: idx * 0.05 }, y: { delay: idx * 0.05 } }}
+                    className="min-w-0 w-full"
                   >
                     <div className="relative group rounded-3xl transition-all duration-500 hover:-translate-y-1 border shadow-sm bg-card">
                       
@@ -494,7 +622,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                       <div className="relative h-full rounded-3xl p-6 sm:p-8 flex flex-col gap-5">
 
                         <div className="flex items-start justify-between gap-6 relative z-10">
-                          <div className="space-y-4 w-full">
+                          <div className="space-y-4 w-full min-w-0">
                             
                             <div className="flex items-center justify-between gap-3 mb-2 w-full min-w-0">
                               <div className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -503,46 +631,54 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                                 <Badge variant="neutral" className="text-muted-foreground hover:text-foreground rounded-full px-3 py-1 font-normal whitespace-nowrap shrink-0">{paper.source}</Badge>
                               </div>
                               
-                              {aiReview && paper.overallScore !== undefined && (
+                              {aiReview && (
                                 <div className="relative group/score shrink-0 cursor-default">
-                                  <Badge className="bg-muted text-foreground border shadow-sm hover:bg-muted/80 px-4 py-1.5 rounded-full font-bold text-sm">
-                                    {paper.overallScore.toFixed(1)}
-                                  </Badge>
-                                  {/* Tooltip */}
-                                  {paper.rubrics && (
-                                    <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-popover text-popover-foreground shadow-2xl border opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100]">
-                                      <div className="space-y-2">
-                                        <div className="flex justify-between items-center text-xs">
-                                          <span className="text-muted-foreground font-medium uppercase tracking-wider">Relevance</span>
-                                          <span className="font-bold text-foreground">{paper.rubrics.relevance.toFixed(1)}</span>
+                                  {paper.overallScore !== undefined ? (
+                                    <>
+                                      <Badge className="bg-muted text-foreground border shadow-sm hover:bg-muted/80 px-4 py-1.5 rounded-full font-bold text-sm">
+                                        {paper.overallScore.toFixed(1)}
+                                      </Badge>
+                                      {/* Tooltip */}
+                                      {paper.rubrics && (
+                                        <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-popover text-popover-foreground shadow-2xl border opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100]">
+                                          <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-xs">
+                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Relevance</span>
+                                              <span className="font-bold text-foreground">{paper.rubrics.relevance.toFixed(1)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs">
+                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Methodology</span>
+                                              <span className="font-bold text-foreground">{paper.rubrics.methodology.toFixed(1)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs">
+                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Novelty</span>
+                                              <span className="font-bold text-foreground">{paper.rubrics.novelty.toFixed(1)}</span>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                          <span className="text-muted-foreground font-medium uppercase tracking-wider">Methodology</span>
-                                          <span className="font-bold text-foreground">{paper.rubrics.methodology.toFixed(1)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                          <span className="text-muted-foreground font-medium uppercase tracking-wider">Novelty</span>
-                                          <span className="font-bold text-foreground">{paper.rubrics.novelty.toFixed(1)}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
+                                      )}
+                                    </>
+                                  ) : isEvaluating ? (
+                                    <Badge variant="neutral" className="bg-transparent border text-muted-foreground border-muted-foreground/30 px-3 py-1.5 rounded-full text-xs font-medium gap-1.5 flex items-center shadow-sm">
+                                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                                      <span className="hidden sm:inline">AI Reviewing</span>
+                                    </Badge>
+                                  ) : null}
                                 </div>
                               )}
                             </div>
 
-                            <h4 className="text-2xl sm:text-3xl font-bold leading-[1.2] text-foreground group-hover:text-primary transition-colors">
+                            <h4 className="text-2xl sm:text-3xl font-bold leading-[1.2] text-foreground group-hover:text-primary transition-colors break-words">
                               {paper.url ? (
-                                <a href={paper.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors inline-flex items-baseline gap-2">
+                                <a href={paper.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors inline">
                                   {paper.title} 
-                                  {/* <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary/50 translate-y-1" /> */}
                                 </a>
                               ) : (
                                 paper.title
                               )}
                             </h4>
                             
-                            <p className="text-muted-foreground text-base">
+                            <p className="text-muted-foreground text-base break-words">
                               {paper.authors.join(' • ')}
                             </p>
                             
