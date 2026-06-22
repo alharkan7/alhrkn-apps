@@ -96,3 +96,9 @@ Users can provide search parameters via a tabbed interface:
 - [x] Add Framer Motion animations for cards entering the screen and dynamic layout sorting.
 - [x] Fix mobile responsiveness (grid layouts, text wrapping).
 - [x] Implement an Export feature (BibTeX format) directly from the client.
+
+### Phase 5: Production Architecture Level-Ups
+- [ ] Implement Database-Specific Tailored Queries (JSON) in Layer 1.
+- [ ] Enforce Strict JSON Schema outputs in Layer 2 (Evaluate API).
+- [ ] Refactor Frontend Evaluation to use Parallel Chunking (4 batches of 5) to prevent hallucinations.
+- [ ] Enable Batch Streaming so the UI updates progressively as chunks finish.

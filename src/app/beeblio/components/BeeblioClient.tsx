@@ -87,46 +87,47 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
               abstract: p.abstract
             }));
             
-            // Progressive evaluation with retry for dropped papers
-            for (let attempt = 0; attempt < 3; attempt++) {
-              if (currentPapersToEval.length === 0) break;
-
-              const evalRes = await fetch('/api/beeblio/evaluate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  papers: currentPapersToEval,
-                  originalQuery: initialQuery
-                })
-              });
-              
-              const evalData = await evalRes.json();
-              
-              if (evalData.evaluations && evalData.evaluations.length > 0) {
-                // Hydrate the ones that succeeded
-                setResults(currentResults => {
-                  const resultsCopy = [...currentResults];
-                  evalData.evaluations.forEach((evaluation: any) => {
-                    const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
-                    if (paperIndex !== -1) {
-                      resultsCopy[paperIndex] = {
-                        ...resultsCopy[paperIndex],
-                        overallScore: evaluation.overallScore,
-                        rubrics: evaluation.rubrics
-                      };
-                    }
-                  });
-                  return resultsCopy;
-                });
-
-                // Filter out papers that were successfully evaluated so we only retry missing ones
-                const evaluatedIds = new Set(evalData.evaluations.map((e: any) => e.id));
-                currentPapersToEval = currentPapersToEval.filter((p: any) => !evaluatedIds.has(p.id));
-              } else {
-                // If API failed entirely or returned no evaluations, stop retrying to prevent infinite loops
-                break;
-              }
+            // Parallel Chunking (Batches of 5)
+            const CHUNK_SIZE = 5;
+            const chunks = [];
+            for (let i = 0; i < currentPapersToEval.length; i += CHUNK_SIZE) {
+              chunks.push(currentPapersToEval.slice(i, i + CHUNK_SIZE));
             }
+
+            const evalPromises = chunks.map(async (chunk) => {
+              try {
+                const evalRes = await fetch('/api/beeblio/evaluate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    papers: chunk,
+                    originalQuery: initialQuery
+                  })
+                });
+                const evalData = await evalRes.json();
+                
+                if (evalData.evaluations && evalData.evaluations.length > 0) {
+                  setResults(currentResults => {
+                    const resultsCopy = [...currentResults];
+                    evalData.evaluations.forEach((evaluation: any) => {
+                      const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                      if (paperIndex !== -1) {
+                        resultsCopy[paperIndex] = {
+                          ...resultsCopy[paperIndex],
+                          overallScore: evaluation.overallScore,
+                          rubrics: evaluation.rubrics
+                        };
+                      }
+                    });
+                    return resultsCopy;
+                  });
+                }
+              } catch (e) {
+                console.error("Chunk evaluation failed", e);
+              }
+            });
+
+            await Promise.all(evalPromises);
             setIsEvaluating(false);
           }
         } catch (error) {

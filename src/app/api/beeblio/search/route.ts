@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { Paper } from '@/app/beeblio/shared';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
@@ -15,24 +15,44 @@ function invertAbstract(invertedIndex: Record<string, number[]>): string {
   return words.filter(Boolean).join(' ');
 }
 
+const querySchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    openAlexQuery: { type: SchemaType.STRING, description: "Boolean search query tailored for OpenAlex" },
+    crossrefQuery: { type: SchemaType.STRING, description: "Flat keyword search string tailored for Crossref" },
+    semanticScholarQuery: { type: SchemaType.STRING, description: "Keyword search string tailored for Semantic Scholar" }
+  },
+  required: ["openAlexQuery", "crossrefQuery", "semanticScholarQuery"]
+};
+
 export async function POST(req: Request) {
   try {
     const { query, aiOptimize, contextMode, databases = { openalex: true, crossref: true, semanticScholar: true } } = await req.json();
 
-    let finalQuery = query;
+    let finalQueries = {
+      openAlexQuery: query,
+      crossrefQuery: query,
+      semanticScholarQuery: query
+    };
 
     // AI Query Optimization
     if ((aiOptimize || contextMode) && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-2.5-flash',
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: querySchema,
+          }
+        });
         const prompt = contextMode 
-          ? `You are an expert academic librarian. Your ONLY job is to extract the 3-5 most critical keywords from the text below and format them as a concise boolean search query (using AND/OR) suitable for PubMed or OpenAlex. Do NOT output anything else. Do NOT output markdown or prefixes.\n\nText: ${query.substring(0, 3000)}`
-          : `You are an expert academic librarian. Rewrite the user search into a strict, highly optimized boolean search query for a scientific database using AND/OR operators. Return ONLY the search query string without any markdown or quotes.\n\nInput: ${query.substring(0, 500)}`;
+          ? `You are an expert academic librarian. Your ONLY job is to extract the 3-5 most critical keywords from the text below and generate three tailored search queries:\n1. openAlexQuery: A precise boolean query (using AND/OR).\n2. crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n3. semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n\nText: ${query.substring(0, 3000)}`
+          : `You are an expert academic librarian. Rewrite the user search into tailored queries for three databases:\n1. openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n2. crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n3. semanticScholarQuery: Keywords or short phrases.\n\nInput: ${query.substring(0, 500)}`;
         
         const result = await model.generateContent(prompt);
-        finalQuery = result.response.text().trim();
-      } catch (err) {
-        console.warn('Query optimization failed, falling back to original query.', err);
+        finalQueries = JSON.parse(result.response.text());
+      } catch (err: any) {
+        console.warn('Query optimization failed, falling back to original query.', err.message);
       }
     }
 
@@ -46,7 +66,7 @@ export async function POST(req: Request) {
     if (databases.openalex !== false) {
       fetchPromises.push((async () => {
         try {
-          let url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQuery)}&per-page=15`;
+          let url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQueries.openAlexQuery)}&per-page=15`;
           if (email) url += `&mailto=${encodeURIComponent(email)}`;
           if (openAlexKey) url += `&api_key=${encodeURIComponent(openAlexKey)}`;
           
@@ -76,7 +96,7 @@ export async function POST(req: Request) {
     if (databases.semanticScholar !== false) {
       fetchPromises.push((async () => {
         try {
-          const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(finalQuery)}&fields=title,authors,year,citationCount,venue,abstract,url&limit=15`;
+          const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(finalQueries.semanticScholarQuery)}&fields=title,authors,year,citationCount,venue,abstract,url&limit=15`;
           const headers: any = {};
           if (s2Key) headers['x-api-key'] = s2Key;
           
@@ -106,7 +126,7 @@ export async function POST(req: Request) {
     if (databases.crossref !== false) {
       fetchPromises.push((async () => {
         try {
-          let url = `https://api.crossref.org/works?query=${encodeURIComponent(finalQuery)}&select=DOI,title,author,issued,is-referenced-by-count,container-title,abstract,URL&rows=15`;
+          let url = `https://api.crossref.org/works?query=${encodeURIComponent(finalQueries.crossrefQuery)}&select=DOI,title,author,issued,is-referenced-by-count,container-title,abstract,URL&rows=15`;
           if (email) url += `&mailto=${encodeURIComponent(email)}`;
           
           const res = await fetch(url);
@@ -148,7 +168,7 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ papers: allPapers, optimizedQuery: finalQuery });
+    return NextResponse.json({ papers: allPapers, optimizedQuery: finalQueries.openAlexQuery });
 
   } catch (error: any) {
     console.error('Search API Error:', error);
