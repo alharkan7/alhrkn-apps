@@ -15,7 +15,7 @@ function invertAbstract(invertedIndex: Record<string, number[]>): string {
   return words.filter(Boolean).join(' ');
 }
 
-const querySchema = {
+const querySchema: any = {
   type: SchemaType.OBJECT,
   properties: {
     openAlexQuery: { type: SchemaType.STRING, description: "Boolean search query tailored for OpenAlex" },
@@ -27,16 +27,16 @@ const querySchema = {
 
 export async function POST(req: Request) {
   try {
-    const { query, aiOptimize, contextMode, databases = { openalex: true, crossref: true, semanticScholar: true } } = await req.json();
+    const { query, aiOptimize, contextMode, databases = { openalex: true, crossref: true, semanticScholar: true }, page = 1, structuredQueries } = await req.json();
 
-    let finalQueries = {
+    let finalQueries = structuredQueries || {
       openAlexQuery: query,
       crossrefQuery: query,
       semanticScholarQuery: query
     };
 
     // AI Query Optimization
-    if ((aiOptimize || contextMode) && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
+    if (!structuredQueries && (aiOptimize || contextMode) && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
       try {
         const model = genAI.getGenerativeModel({ 
           model: 'gemini-2.5-flash',
@@ -59,6 +59,8 @@ export async function POST(req: Request) {
     const email = process.env.OPENALEX_EMAIL || '';
     const openAlexKey = process.env.OPENALEX_API_KEY || '';
     const s2Key = process.env.SEMANTIC_SCHOLAR_API_KEY || '';
+    const itemsPerPage = 15;
+    const offset = (page - 1) * itemsPerPage;
 
     const fetchPromises = [];
 
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
     if (databases.openalex !== false) {
       fetchPromises.push((async () => {
         try {
-          let url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQueries.openAlexQuery)}&per-page=15`;
+          let url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQueries.openAlexQuery)}&per-page=${itemsPerPage}&page=${page}`;
           if (email) url += `&mailto=${encodeURIComponent(email)}`;
           if (openAlexKey) url += `&api_key=${encodeURIComponent(openAlexKey)}`;
           
@@ -96,7 +98,7 @@ export async function POST(req: Request) {
     if (databases.semanticScholar !== false) {
       fetchPromises.push((async () => {
         try {
-          const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(finalQueries.semanticScholarQuery)}&fields=title,authors,year,citationCount,venue,abstract,url&limit=15`;
+          const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(finalQueries.semanticScholarQuery)}&fields=title,authors,year,citationCount,venue,abstract,url&limit=${itemsPerPage}&offset=${offset}`;
           const headers: any = {};
           if (s2Key) headers['x-api-key'] = s2Key;
           
@@ -126,7 +128,7 @@ export async function POST(req: Request) {
     if (databases.crossref !== false) {
       fetchPromises.push((async () => {
         try {
-          let url = `https://api.crossref.org/works?query=${encodeURIComponent(finalQueries.crossrefQuery)}&select=DOI,title,author,issued,is-referenced-by-count,container-title,abstract,URL&rows=15`;
+          let url = `https://api.crossref.org/works?query=${encodeURIComponent(finalQueries.crossrefQuery)}&select=DOI,title,author,issued,is-referenced-by-count,container-title,abstract,URL&rows=${itemsPerPage}&offset=${offset}`;
           if (email) url += `&mailto=${encodeURIComponent(email)}`;
           
           const res = await fetch(url);
@@ -168,7 +170,7 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ papers: allPapers, optimizedQuery: finalQueries.openAlexQuery });
+    return NextResponse.json({ papers: allPapers, structuredQueries: finalQueries });
 
   } catch (error: any) {
     console.error('Search API Error:', error);

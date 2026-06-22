@@ -46,6 +46,11 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   // Expandable cards state
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
 
+  // Pagination State
+  const [structuredQueries, setStructuredQueries] = useState<any>(null)
+  const [page, setPage] = useState(1)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
   useEffect(() => {
     setMounted(true)
     
@@ -75,6 +80,8 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           
           if (!data.papers) throw new Error('No papers returned');
           
+          setStructuredQueries(data.structuredQueries);
+          setPage(1);
           setResults(data.papers);
           setIsSearching(false);
           
@@ -140,8 +147,83 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     } else if (!pageId) {
       setResults([])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, initialQuery])
+  }, [pageId, initialQuery, databases.openalex, databases.crossref, databases.semanticScholar])
+
+  const loadMore = async () => {
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    setPage(nextPage);
+    try {
+      const res = await fetch('/api/beeblio/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: initialQuery,
+          aiOptimize: false, // Already optimized, use cached queries
+          contextMode: false,
+          databases: databases,
+          page: nextPage,
+          structuredQueries: structuredQueries
+        })
+      });
+      const data = await res.json();
+      if (!data.papers) throw new Error('No papers returned');
+
+      setResults(prev => {
+        // Deduplicate against existing results
+        const existingIds = new Set(prev.map(p => p.id));
+        const newPapers = data.papers.filter((p: Paper) => !existingIds.has(p.id));
+        return [...prev, ...newPapers];
+      });
+      
+      const shouldReview = searchParams?.get('review') === 'true';
+      if (shouldReview && data.papers.length > 0) {
+        setIsEvaluating(true);
+        let newPapersToEval = data.papers.map((p: Paper) => ({
+          id: p.id, title: p.title, abstract: p.abstract
+        }));
+        
+        const CHUNK_SIZE = 5;
+        const chunks = [];
+        for (let i = 0; i < newPapersToEval.length; i += CHUNK_SIZE) {
+          chunks.push(newPapersToEval.slice(i, i + CHUNK_SIZE));
+        }
+
+        const evalPromises = chunks.map(async (chunk) => {
+          try {
+            const evalRes = await fetch('/api/beeblio/evaluate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ papers: chunk, originalQuery: initialQuery })
+            });
+            const evalData = await evalRes.json();
+            
+            if (evalData.evaluations && evalData.evaluations.length > 0) {
+              setResults(currentResults => {
+                const resultsCopy = [...currentResults];
+                evalData.evaluations.forEach((evaluation: any) => {
+                  const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                  if (paperIndex !== -1) {
+                    resultsCopy[paperIndex] = {
+                      ...resultsCopy[paperIndex],
+                      overallScore: evaluation.overallScore,
+                      rubrics: evaluation.rubrics
+                    };
+                  }
+                });
+                return resultsCopy;
+              });
+            }
+          } catch (e) { console.error("Chunk eval failed", e); }
+        });
+        await Promise.all(evalPromises);
+        setIsEvaluating(false);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setIsLoadingMore(false);
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
@@ -720,6 +802,24 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   </motion.div>
                 ))}
               </div>
+
+              {results.length > 0 && !isSearching && (
+                <div className="mt-8 flex justify-center pb-8">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={loadMore} 
+                    disabled={isLoadingMore || isEvaluating}
+                    className="rounded-full px-8 bg-card"
+                  >
+                    {isLoadingMore ? (
+                      <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Loading more...</>
+                    ) : (
+                      <><ChevronDown className="mr-2 h-4 w-4" /> Load More Results</>
+                    )}
+                  </Button>
+                </div>
+              )}
             </motion.section>
           )}
         </AnimatePresence>

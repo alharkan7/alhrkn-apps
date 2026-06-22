@@ -3,7 +3,7 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
 
-const evaluationSchema = {
+const evaluationSchema: any = {
   type: SchemaType.ARRAY,
   items: {
     type: SchemaType.OBJECT,
