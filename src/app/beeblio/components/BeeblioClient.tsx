@@ -35,7 +35,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const [mounted, setMounted] = useState(false)
   
   // Settings State
-  const [aiOptimize, setAiOptimize] = useState(true)
+  const [aiOptimize, setAiOptimize] = useState(false)
   const [aiReview, setAiReview] = useState(true)
   const [databases, setDatabases] = useState({
     openalex: true,
