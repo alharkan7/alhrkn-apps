@@ -1,4 +1,4 @@
-import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig } from 'lucide-react'
+import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen } from 'lucide-react'
 
 export interface AppConfig {
   name: string
@@ -13,6 +13,12 @@ export const apps: AppConfig[] = [
     icon: Waypoints,
     slug: 'papermap',
     description: 'Learn Anything with Interactive Mindmap',
+  },
+  {
+    name: 'Beeblio',
+    icon: BookOpen,
+    slug: 'beeblio',
+    description: 'AI-Powered Scientific Literature Review',
   },
   {
     name: 'Inztagram',
