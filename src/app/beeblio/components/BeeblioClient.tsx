@@ -13,6 +13,8 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { AppsHeader } from '@/components/apps-header'
+import AppsFooter from '@/components/apps-footer'
 
 import { Paper } from '../shared'
 
@@ -465,7 +467,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     <div className="min-h-screen bg-background text-foreground overflow-hidden relative font-sans flex flex-col">
       
       {/* --- Ambient Background --- */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
         {/* Animated Orbs */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
@@ -476,24 +478,17 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
       </div>
 
       {/* --- Top Navigation --- */}
-      <header className="relative z-50 w-full border-b bg-background/60 backdrop-blur-xl">
-        <div className="container mx-auto max-w-6xl flex h-16 items-center px-4 md:px-8">
-          <Link href={pageId ? "/beeblio" : "/"} className="text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2 rounded-full hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="flex items-center gap-3 ml-2">
-            {/* <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div> */}
-            <span className="font-bold text-xl tracking-tight">Beeblio</span>
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-             <Badge variant="neutral" className="bg-primary/10 text-primary border border-primary/20 rounded-full px-3">BETA</Badge>
-          </div>
-        </div>
-      </header>
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
+        <AppsHeader 
+          leftButton={pageId ? (
+            <Link href="/beeblio" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Link>
+          ) : undefined}
+        />
+      </div>
 
-      <main className={`relative z-10 flex-1 container mx-auto max-w-5xl px-4 md:px-8 ${pageId ? 'py-6 md:py-8 space-y-6' : 'py-12 md:py-16 space-y-12'}`}>
+      <main className={`relative z-10 flex-1 container mx-auto max-w-5xl px-4 md:px-8 pt-20 pb-20 ${pageId ? 'space-y-6' : 'space-y-12'}`}>
         
         {/* --- Hero Section (Only show on main landing page) --- */}
         {!pageId && (
@@ -1055,6 +1050,12 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           )}
         </AnimatePresence>
       </main>
+
+      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+        <div className="flex-none">
+          <AppsFooter />
+        </div>
+      </div>
     </div>
   )
 }

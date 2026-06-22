@@ -17,8 +17,19 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
   const [diagramTheme, setDiagramTheme] = useState<string>('default');
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden relative font-sans">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
+        {/* Animated Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+        
+        {/* Subtle Grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader
           leftButton={(
             <AlertDialog>
@@ -45,7 +56,7 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
           )}
         />
       </div>
-      <div className="flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4">
+      <div className="relative z-10 flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4 pt-16">
         <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key="mermaid-renderer"
@@ -70,8 +81,10 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
             </motion.div>
         </AnimatePresence>
       </div>
-      <div className="flex-none mb-1">
-        <AppsFooter />
+      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+        <div className="flex-none">
+          <AppsFooter />
+        </div>
       </div>
     </div>
   );

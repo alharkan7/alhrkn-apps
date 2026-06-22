@@ -95,7 +95,7 @@ function HighlightedText({ text, statements, selectionRange, onStatementClick }:
   }
 
   if (allHighlights.length === 0) {
-    return <div className="whitespace-pre-wrap font-mono text-sm">{text}</div>
+    return <div className="whitespace-pre-wrap font-sans text-base leading-normal">{text}</div>
   }
 
   // Sort by start index
@@ -165,7 +165,7 @@ function HighlightedText({ text, statements, selectionRange, onStatementClick }:
     )
   }
 
-  return <div className="whitespace-pre-wrap font-mono text-sm relative">{parts}</div>
+  return <div className="whitespace-pre-wrap font-sans text-base leading-normal relative">{parts}</div>
 }
 
 export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpdateContent, onAddManualStatement, onUpdateStatement, onDeleteStatement, onToggleFilteredResults, isFilteredForFile = false, loading, error }: TextDisplayProps) {
@@ -483,7 +483,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
                   onDoubleClick={handleTextDoubleClick}
-                  className="min-h-[280px] resize-none font-mono text-sm"
+                  className="min-h-[280px] resize-none font-sans text-base leading-normal"
                   placeholder="Edit text content..."
                 />
               ) : (

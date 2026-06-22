@@ -182,27 +182,44 @@ export default function PaperMap() {
   }, [handleFileUpload, handleTextInput, handleFileUploadStreaming, handleTextInputStreaming, handleFileUploadRealtime, handleTextInputRealtime, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-      <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground overflow-hidden relative font-sans">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Animated Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+        
+        {/* Subtle Grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader />
       </div>
-      <div className="text-center py-4">
-        <h1 className="text-5xl md:text-6xl font-black mb-2">
-          Papermap
-        </h1>
-        <div className="text-base md:text-lg text-muted-foreground">
-          <a>
+      
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 md:px-8 pt-16">
+        <div className="text-center py-8 space-y-6 max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
+            Paper
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x">map</span>
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed">
             Learn Anything with AI Mindmap
-          </a>
+          </p>
+        </div>
+        <div className="w-full relative group max-w-4xl mx-auto">
+           <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200"></div>
+           <InputForm
+             onFileUpload={handleInput}
+             loading={loading}
+             error={combinedError}
+             onExampleClick={handleExampleClick}
+           />
         </div>
       </div>
-      <InputForm
-        onFileUpload={handleInput}
-        loading={loading}
-        error={combinedError}
-        onExampleClick={handleExampleClick}
-      />
-      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background">
+
+      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
         <div className="flex-none">
           <AppsFooter />
         </div>

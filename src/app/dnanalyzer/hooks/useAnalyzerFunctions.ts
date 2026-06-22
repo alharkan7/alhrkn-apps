@@ -513,5 +513,6 @@ export function useAnalyzerFunctions() {
         handleLoadData,
         saveUserConfig,
         setShowResults,
+        setSaveStatus,
     }
 }

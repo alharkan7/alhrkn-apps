@@ -123,7 +123,7 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
             ) : (
               <>
                 <Play />
-                Analyze All ({unprocessedCount})
+                Analyze ({unprocessedCount})
               </>
             )}
           </Button>

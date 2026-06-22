@@ -74,9 +74,8 @@ export function DiagramInput({
       if (onSend) {
         onSend(value, diagramType ?? '', diagramTheme, pdfFile?.url, pdfFile?.name);
       }
-    }} className={`relative flex flex-col gap-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-200 max-w-2xl mx-auto w-full 
-        ${isFocused ? 'border-ring ring-1 ring-ring' : 'border-border shadow-sm'}
-        bg-background border rounded-lg p-2`}>
+    }} className={`relative flex flex-col bg-background/80 backdrop-blur-2xl transition-all duration-200 max-w-2xl mx-auto w-full rounded-[2rem] border shadow-xl p-4 sm:p-6 pb-4 focus:outline-none 
+        ${isFocused ? 'ring-2 ring-primary border-primary' : ''}`}>
 
       <div className="flex flex-col gap-2 w-full">
         <textarea
@@ -84,7 +83,7 @@ export function DiagramInput({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full mt-4 mb-2 bg-transparent border-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none disabled:opacity-50 p-0 resize-none min-h-[80px] max-h-[150px] overflow-y-auto px-1 pb-1 text-md break-words whitespace-pre-wrap"
+          className="w-full mt-4 mb-2 bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[80px] max-h-[150px] overflow-y-auto py-2 outline-none resize-none break-words whitespace-pre-wrap"
           onFocus={handleFocus}
           onBlur={handleBlur}
           rows={1}
@@ -121,7 +120,7 @@ export function DiagramInput({
                 <Button
                   type="button"
                   variant="default"
-                  className="w-auto max-w-[200px] md:max-w-[100px] sm:max-w-[80px] flex items-center gap-2 justify-between px-3 min-w-0"
+                  className="w-auto max-w-[200px] md:max-w-[100px] sm:max-w-[80px] flex items-center gap-2 justify-between px-3 min-w-0 rounded-full"
                   disabled={disabled || loading}
                   aria-label="Select diagram type"
                 >
@@ -185,8 +184,8 @@ export function DiagramInput({
               </PopoverContent>
             </Popover>
             <Button
-              variant="default" size="icon"
-              className="shrink-0 p-2 transition-colors disabled:opacity-50"
+              variant="outline" size="icon"
+              className="shrink-0 p-2 transition-colors disabled:opacity-50 rounded-full"
               disabled={disabled || loading || !!pdfFile}
               aria-label="Randomize Diagram"
               type="button"
@@ -197,8 +196,9 @@ export function DiagramInput({
           </div>
           <Button
             type="button"
+            variant="outline"
             onClick={handleFileButtonClick}
-            className="shrink-0 p-2 transition-colors disabled:opacity-50"
+            className="shrink-0 p-2 transition-colors disabled:opacity-50 rounded-full"
             disabled={disabled || loading || !!pdfFile}
             aria-label="Attach PDF"
           >
@@ -206,7 +206,7 @@ export function DiagramInput({
           </Button>
           <Button
             type="submit"
-            className="shrink-0 grow-0 p-2 transition-colors disabled:opacity-50 w-auto"
+            className="shrink-0 grow-0 transition-colors disabled:opacity-50 w-auto rounded-full font-semibold px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
             disabled={disabled || loading || uploading || (!value.trim() && !pdfFile)}
             aria-label="Send diagram"
           >

@@ -8,9 +8,8 @@ export function TypingIndicator() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex justify-start"
         >
-            <div className="bg-accent text-accent-foreground rounded-2xl px-4 py-2 rounded-bl-none">
+            <div className="rounded-[2rem] px-5 py-3 bg-background/80 backdrop-blur-2xl border border-border/50 text-foreground rounded-bl-sm shadow-sm">
                 <div className="flex items-center gap-1">
                     {dots.map((dot) => (
                         <motion.div

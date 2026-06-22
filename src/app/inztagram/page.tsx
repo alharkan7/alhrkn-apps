@@ -89,11 +89,22 @@ export default function InztagramPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden relative font-sans">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
+        {/* Animated Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+        
+        {/* Subtle Grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader />
       </div>
-      <div className="flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4">
+      <div className="relative z-10 flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4 pt-16">
         <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key="diagram-input"
@@ -101,21 +112,22 @@ export default function InztagramPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -40 }}
               transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className="w-full mt-[25vh]"
+              className="w-full mt-[15vh]"
             >
-              <div className="text-center pt-4 pb-8">
-                <h1 className="text-5xl font-black mb-2">
-                  <span className="text-primary whitespace-nowrap">Inztagram</span>{' '}
+              <div className="text-center pt-4 pb-8 space-y-6 max-w-3xl mx-auto">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x whitespace-nowrap">Inztagram</span>{' '}
                 </h1>
-                <div className="text-base text-muted-foreground">
-                  Create <span className="font-bold text-primary">Instant Diagram</span> in Seconds
+                <div className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed">
+                  Create <span className="font-bold text-foreground">Instant Diagram</span> in Seconds
                 </div>
               </div>
-              <div className="w-full flex justify-center">
-                <div className="w-full h-full max-w-6xl">
+              <div className="w-full relative group flex justify-center mt-4">
+                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200 max-w-2xl mx-auto"></div>
+                <div className="relative z-10 w-full h-full max-w-6xl flex flex-col items-center">
                   {/* File preview above the form */}
                   {pdfFile && (
-                    <div className="w-full flex flex-col items-center mb-2">
+                    <div className="w-full max-w-2xl flex flex-col items-center mb-2">
                       <FilePreview file={pdfFile} isUploading={uploading} onRemove={clearFile} />
                     </div>
                   )}
@@ -133,7 +145,7 @@ export default function InztagramPage() {
                     onRandomize={handleRandomize}
                   />
                   {error && (
-                    <div className="text-center text-red-500 mt-2">
+                    <div className="text-center text-red-500 mt-4 max-w-2xl">
                       {error.length > 200 ? error.slice(0, 200) + '…' : error}
                     </div>
                   )}
@@ -142,8 +154,10 @@ export default function InztagramPage() {
             </motion.div>
         </AnimatePresence>
       </div>
-      <div className="flex-none mb-1">
-        <AppsFooter />
+      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+        <div className="flex-none">
+          <AppsFooter />
+        </div>
       </div>
     </div>
   );

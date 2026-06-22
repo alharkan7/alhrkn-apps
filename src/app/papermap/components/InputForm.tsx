@@ -591,18 +591,15 @@ const InputForm: React.FC<InputFormProps> = ({
                         }}
                         tabIndex={0} // Make the form focusable
                         data-focused={isFocused}
-                        className={`relative flex flex-col backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-200 max-w-2xl mx-auto w-full ${isFocused
-                            ? 'border-[3px] border-ring shadow-[3px_3px_0px_0px_var(--ring)]'
-                            : 'border-[2px] border-border shadow-[var(--shadow)]'
-                            } bg-bw rounded-lg p-2 focus:outline-none`}
+                        className={`relative flex flex-col bg-background/80 backdrop-blur-2xl transition-all duration-200 max-w-2xl mx-auto w-full rounded-[2rem] border shadow-xl p-4 sm:p-6 pb-2 focus:outline-none ${isDragging ? 'ring-2 ring-primary border-primary' : ''}`}
                     >
                         {inputMode === 'file' && (
                             <div
-                                className={`bg-muted/50 rounded-base p-8 text-center mb-2 relative transition-all duration-200 ${file
+                                className={`bg-muted/50 rounded-3xl p-8 text-center mb-4 relative transition-all duration-200 ${file
                                     ? 'border-primary bg-primary/10'
                                     : isDragging
                                         ? 'border-2 border-primary bg-primary/5 border-dashed'
-                                        : 'border-none border-border'
+                                        : 'border border-border'
                                     }`}
                                 onDrop={isFormDisabled ? undefined : handleFileDrop}
                                 onDragOver={isFormDisabled ? undefined : handleDragOver}
@@ -665,7 +662,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                 value={url}
                                 onChange={handleUrlChange}
                                 placeholder="https://example.com/paper.pdf"
-                                className="w-full bg-transparent border-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none disabled:opacity-50 p-0 resize-none min-h-[120px] mb-2 max-h-[180px] overflow-y-auto p-1"
+                                className="w-full bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[120px] mb-4 max-h-[180px] overflow-y-auto py-4 outline-none resize-none"
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 rows={1}
@@ -680,7 +677,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                 value={text}
                                 onChange={handleTextChange}
                                 placeholder="Ask a question or brainstorm an idea.."
-                                className="w-full bg-transparent border-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none disabled:opacity-50 p-0 resize-none min-h-[120px] mb-2 max-h-[240px] overflow-y-auto p-1"
+                                className="w-full bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[120px] mb-4 max-h-[240px] overflow-y-auto py-4 outline-none resize-none"
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 rows={1}
@@ -709,10 +706,10 @@ const InputForm: React.FC<InputFormProps> = ({
                         <div className="flex justify-between items-center gap-4 w-full">
                             <div className="flex items-center gap-1">
                                 <Tabs defaultValue="text" onValueChange={isFormDisabled ? undefined : handleInputModeChange} className="w-fit">
-                                    <TabsList className="h-8 p-1 bg-muted/50 border border-muted-foreground border-2">
+                                    <TabsList className="flex p-1 space-x-1 bg-muted/50 rounded-full border backdrop-blur-md h-auto">
                                         <TabsTrigger
                                             value="file"
-                                            className="px-2 py-0.5 h-6 text-xs text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -720,7 +717,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="text"
-                                            className="px-2 py-0.5 h-6 text-xs text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -728,7 +725,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="url"
-                                            className="px-2 py-0.5 h-6 text-xs text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -759,17 +756,17 @@ const InputForm: React.FC<InputFormProps> = ({
 
                             <Button
                                 type="submit"
-                                className="shrink-0 p-2 transition-colors disabled:opacity-50 h-8 text-sm"
+                                className="rounded-full font-semibold px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
                                 disabled={isCreateButtonDisabled}
                                 aria-label="Create mindmap"
                             >
                                 {(loading || urlLoading || isUploading) ? (
                                     <span className="flex items-center gap-2">
-                                        <LoaderCircle className="size-4 animate-spin" />
-                                        <span className="text-xs font-medium">{loadingMessage}</span>
+                                        <LoaderCircle className="size-4 animate-spin text-amber-300" />
+                                        <span>{loadingMessage}</span>
                                     </span>
                                 ) : (
-                                    "Create"
+                                    <span className="flex items-center gap-2">Create</span>
                                 )}
                             </Button>
                         </div>

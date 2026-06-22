@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChatTitle } from './ChatTitle'
+import { RefreshCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
 import { useChatMessages } from '../hooks/useChatMessages'
@@ -96,19 +97,43 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
     };
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-background">
-            {!hasUserSentMessage && (
-                <div className="fixed top-0 left-0 right-0 z-50">
-                    <AppsHeader />
-                </div>
-            )}
-            <div className={`flex-1 overflow-hidden flex flex-col justify-start max-w-4xl mx-auto w-full px-1 md:px-4 ${!hasUserSentMessage ? 'mt-[20vh]' : ''}`}>
-                <div className="flex-none">
-                    <ChatTitle
-                        clearMessages={handleClearChat}
-                        hasUserSentMessage={hasUserSentMessage}
-                    />
-                </div>
+        <div className="flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden relative font-sans">
+            {/* --- Ambient Background --- */}
+            <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
+                {/* Animated Orbs */}
+                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+                
+                {/* Subtle Grid overlay */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+            </div>
+
+            {/* --- Top Navigation --- */}
+            <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
+                <AppsHeader 
+                    title={hasUserSentMessage ? <><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x font-bold">Ask</span> <span className="font-bold">Al</span></> : undefined}
+                    leftButton={hasUserSentMessage ? (
+                        <Button
+                            onClick={handleClearChat}
+                            className="p-2 rounded-lg"
+                            title="Clear chat history"
+                            variant="secondary"
+                        >
+                            <RefreshCcw size={14} />
+                        </Button>
+                    ) : undefined}
+                />
+            </div>
+            <div className={`relative z-10 flex-1 overflow-hidden flex flex-col justify-start max-w-4xl mx-auto w-full px-1 md:px-4 pt-16 ${!hasUserSentMessage ? 'pb-12' : 'pb-0'}`}>
+                {!hasUserSentMessage && (
+                    <div className="flex-none mt-[20vh] text-center py-4">
+                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-2">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x whitespace-nowrap">Ask</span>{' '}
+                            <span className="whitespace-nowrap">Al</span>
+                        </h1>
+                    </div>
+                )}
                 {hasUserSentMessage && (
                     <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-600/50 hover:scrollbar-thumb-zinc-600/70 overflow-x-hidden">
                         <MessageList
@@ -136,8 +161,10 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
 
             </div>
             {!hasUserSentMessage && (
-                <div className="flex-none mb-1">
-                    <AppsFooter />
+                <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+                    <div className="flex-none">
+                        <AppsFooter />
+                    </div>
                 </div>
             )}
         </div>

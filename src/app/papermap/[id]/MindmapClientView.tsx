@@ -37,20 +37,33 @@ const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType,
   return (
     <MindMapProvider value={mindMap}>
       <ReactFlowProvider>
-        <div className="flex flex-col h-[100dvh] relative">
-          <TopBar onFileUpload={() => { }} onNewClick={() => { }} inputType={mindmapInputType} />
+        <div className="flex flex-col h-[100dvh] relative bg-background text-foreground overflow-hidden font-sans">
+          {/* --- Ambient Background --- */}
+          <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+            {/* Animated Orbs */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+            <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+            
+            {/* Subtle Grid overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+          </div>
 
-          {viewMode === 'pdf' && <PdfViewer />}
-          {viewMode === 'archived' && archivedContent && (
-            <ArchivedContentViewer
-              isOpen={true}
-              markdownContent={archivedContent}
-              onClose={closeViewer}
-            />
-          )}
+          <div className="relative z-10 flex flex-col h-full w-full">
+            <TopBar onFileUpload={() => { }} onNewClick={() => { }} inputType={mindmapInputType} />
 
-          <div className="flex-grow h-[calc(100vh-4rem)]">
-            <MindMapFlow />
+            {viewMode === 'pdf' && <PdfViewer />}
+            {viewMode === 'archived' && archivedContent && (
+              <ArchivedContentViewer
+                isOpen={true}
+                markdownContent={archivedContent}
+                onClose={closeViewer}
+              />
+            )}
+
+            <div className="flex-grow h-[calc(100vh-4rem)]">
+              <MindMapFlow />
+            </div>
           </div>
         </div>
       </ReactFlowProvider>

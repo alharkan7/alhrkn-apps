@@ -83,16 +83,17 @@ export function ChatInput({
                         />
                     </div>
                 )}
-                <Form {...form}>
-                    <form 
-                        onSubmit={handleSubmit} 
-                        data-focused={isFocused}
-                        className={`relative flex flex-col gap-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-200 max-w-2xl mx-auto w-full ${
-                            isFocused 
-                            ? 'border-[3px] border-ring shadow-[3px_3px_0px_0px_var(--ring)]' 
-                            : 'border-[2px] border-border shadow-[var(--shadow)]'
-                        } bg-bw rounded-lg p-2`}
-                    >
+                <div className="relative group w-full max-w-2xl mx-auto">
+                    {/* Glowing aura behind the input box */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200 pointer-events-none"></div>
+                    <Form {...form}>
+                        <form 
+                            onSubmit={handleSubmit} 
+                            data-focused={isFocused}
+                            className={`relative z-10 flex flex-col gap-2 bg-background/80 backdrop-blur-2xl transition-all duration-200 rounded-[2rem] border shadow-xl w-full p-4 ${
+                                isFocused ? 'ring-2 ring-primary/20 border-primary/50' : ''
+                            }`}
+                        >
                         <textarea
                             ref={inputRef}
                             value={input}
@@ -120,28 +121,28 @@ export function ChatInput({
                             <div className="flex gap-2">
                                 <Button
                                     type="button"
-                                    variant="secondary"
+                                    variant="ghost"
                                     onClick={() => handleFileClick('file')}
-                                    className="shrink-0 p-2 transition-colors disabled:opacity-50"
+                                    className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
                                     disabled={isLoading || !!file}
                                     aria-label="Attach file"
                                 >
-                                    <Paperclip className="size-5" />
+                                    <Paperclip className="size-5 text-muted-foreground hover:text-foreground" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant="secondary"
+                                    variant="ghost"
                                     onClick={() => handleFileClick('image')}
-                                    className="shrink-0 p-2 transition-colors disabled:opacity-50"
+                                    className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
                                     disabled={isLoading || !!file}
                                     aria-label="Attach image"
                                 >
-                                    <Image className="size-5" />
+                                    <Image className="size-5 text-muted-foreground hover:text-foreground" />
                                 </Button>
                             </div>
                             <Button
                                 type="submit"
-                                className="shrink-0 p-2 transition-colors disabled:opacity-50"
+                                className="shrink-0 p-2 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(0,0,0,0.15)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none h-11 w-11"
                                 disabled={isLoading || (!input.trim() && (!file || !file.uploaded))}
                                 aria-label="Send message"
                             >
@@ -150,6 +151,7 @@ export function ChatInput({
                         </div>
                     </form>
                 </Form>
+                </div>
             </div>
         </>
     );
