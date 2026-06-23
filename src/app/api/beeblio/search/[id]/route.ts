@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { beeblioSearches, beeblioPapers, beeblioEvaluations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();

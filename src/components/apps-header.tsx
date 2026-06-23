@@ -7,9 +7,10 @@ import { AppsGrid } from '@/components/ui/apps-grid';
 interface AppsHeaderProps {
   title?: React.ReactNode;
   leftButton?: React.ReactNode;
+  rightContent?: React.ReactNode;
 }
 
-export function AppsHeader({ title, leftButton }: AppsHeaderProps) {
+export function AppsHeader({ title, leftButton, rightContent }: AppsHeaderProps) {
 
   return (
     <header className="sticky top-0 bg-transparent py-1 px-2 md:px-4">
@@ -26,7 +27,8 @@ export function AppsHeader({ title, leftButton }: AppsHeaderProps) {
                 {title}
               </div>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              {rightContent}
               <AppsGrid
                 trigger={
                   <Button
@@ -41,7 +43,8 @@ export function AppsHeader({ title, leftButton }: AppsHeaderProps) {
             </div>
           </>
         ) : (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {rightContent}
             <AppsGrid
               trigger={
                 <Button
