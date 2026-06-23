@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
-import { beeblioSearches } from '@/db/schema';
+import { beeblioSearches, beeblioFiles } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
@@ -22,9 +22,11 @@ export async function GET(request: Request) {
         id: beeblioSearches.id,
         originalQuery: beeblioSearches.originalQuery,
         contextText: beeblioSearches.contextText,
+        fileName: beeblioFiles.fileName,
         createdAt: beeblioSearches.createdAt,
       })
       .from(beeblioSearches)
+      .leftJoin(beeblioFiles, eq(beeblioSearches.id, beeblioFiles.searchId))
       .where(eq(beeblioSearches.userId, user.id))
       .orderBy(desc(beeblioSearches.createdAt))
       .limit(limit)

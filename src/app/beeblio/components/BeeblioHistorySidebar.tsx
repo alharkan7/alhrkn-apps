@@ -7,6 +7,7 @@ interface BeeblioHistoryItem {
   id: string;
   originalQuery: string | null;
   contextText: string | null;
+  fileName?: string | null;
   createdAt: string;
 }
 
@@ -18,7 +19,7 @@ export function BeeblioHistorySidebar() {
       eventName="toggleBeeblioHistorySidebar"
       emptyMessage="No search history found."
       onRenderIcon={(item) => <Search size={16} className="text-purple-500" />}
-      onRenderTitle={(item) => item.originalQuery || item.contextText?.substring(0, 50) || 'Untitled Search'}
+      onRenderTitle={(item) => item.originalQuery?.trim() || item.fileName || item.contextText?.trim().substring(0, 50) || 'Untitled Search'}
     />
   );
 }
