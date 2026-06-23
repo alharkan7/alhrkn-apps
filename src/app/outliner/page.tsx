@@ -8,6 +8,7 @@ import AppsFooter from '@/components/apps-footer'
 import { AppsHeader } from '@/components/apps-header'
 import IdeasGrid from './components/IdeasGrid'
 import { useRouter } from 'next/navigation';
+import { Menu } from 'lucide-react';
 
 type ResearchIdea = {
     title: string;
@@ -251,7 +252,13 @@ export default function OutlinerPage() {
             </div>
 
             <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
-                <AppsHeader />
+                <AppsHeader 
+                  leftButton={
+                    <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}>
+                      <Menu size={20} />
+                    </Button>
+                  }
+                />
             </div>
 
             <div className={`relative z-10 w-full max-w-5xl mx-auto flex-1 flex flex-col ${(hasResults || isLoading) ? 'pt-20' : 'pt-24'} pb-28 px-4`}>

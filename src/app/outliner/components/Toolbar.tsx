@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, FileText, FileCode, FileType, File, ArrowLeft, Quote, MessageCircle } from 'lucide-react';
+import { Download, FileText, FileCode, FileType, File, ArrowLeft, Quote, MessageCircle, Menu } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +20,16 @@ export function Toolbar({ onDownload, onOpenChat }: ToolbarProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 px-4 md:px-8 py-3 bg-background/60 backdrop-blur-xl">
       
-      {/* Left side - back button */}
+      {/* Left side - history and back button */}
       <div className="flex items-center space-x-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full sidebar-toggle hover:bg-black/5 dark:hover:bg-white/10"
+          onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}
+        >
+          <Menu size={20} />
+        </Button>
         <Button
           variant="ghost"
           size="sm"

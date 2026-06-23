@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { InztagramHistorySidebar } from './components/InztagramHistorySidebar'
 
 export const metadata: Metadata = {
   title: 'Inztagram - Instant Diagram',
@@ -12,6 +13,7 @@ export default function InztagramLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
+      <InztagramHistorySidebar />
       <main className="container !px-2">
         {children}
       </main>

@@ -30,7 +30,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid, FileText } from 'lucide-react';
+import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid, FileText, Menu } from 'lucide-react';
 import dagre from '@dagrejs/dagre';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -40,6 +40,7 @@ import ContextMenu from './ContextMenu';
 import { INITIAL_NODES, NoteNode, ContextMenuProps } from '../types';
 import { AppsGrid } from '@/components/ui/apps-grid';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const nodeTypes = Object.freeze({
@@ -863,23 +864,49 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
         {/* Top Left Panel */}
         <Panel position="top-left" className="ml-4 mt-4 flex gap-2">
-          <button
-            onClick={() => setIsAIDialogOpen(true)}
-            className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
-            title="Generate with AI"
-          >
-            <Sparkles size={20} className="transition-transform group-hover:scale-110" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('toggleHistorySidebar'))}
+                className="sidebar-toggle group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
+              >
+                <Menu size={20} className="transition-transform group-hover:scale-110" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={8}>
+              <p>Toggle History Sidebar</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsAIDialogOpen(true)}
+                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
+              >
+                <Sparkles size={20} className="transition-transform group-hover:scale-110" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={8}>
+              <p>Create with AI</p>
+            </TooltipContent>
+          </Tooltip>
 
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
-                title="Create New Document"
-              >
-                <Plus size={20} className="transition-transform group-hover:scale-110" />
-              </button>
-            </AlertDialogTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
+                  >
+                    <Plus size={20} className="transition-transform group-hover:scale-110" />
+                  </button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={8}>
+                <p>New from Blank</p>
+              </TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Create New Document?</AlertDialogTitle>
@@ -902,15 +929,21 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
             onChange={handleFileUpload} 
           />
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                disabled={isUploadingFile}
-                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center disabled:opacity-50"
-                title="Upload Document"
-              >
-                {isUploadingFile ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} className="transition-transform group-hover:scale-110" />}
-              </button>
-            </AlertDialogTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <button
+                    disabled={isUploadingFile}
+                    className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center disabled:opacity-50"
+                  >
+                    {isUploadingFile ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} className="transition-transform group-hover:scale-110" />}
+                  </button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={8}>
+                <p>Generate from Doc</p>
+              </TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Import Document?</AlertDialogTitle>

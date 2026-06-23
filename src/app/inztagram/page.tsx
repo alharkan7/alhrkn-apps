@@ -8,6 +8,8 @@ import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './components/diagram-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilePreview } from './components/PDFPreview';
 import { useRouter } from 'next/navigation';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function InztagramPage() {
   const router = useRouter();
@@ -102,7 +104,13 @@ export default function InztagramPage() {
       </div>
 
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
-        <AppsHeader />
+        <AppsHeader 
+          leftButton={
+            <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleInztagramHistorySidebar'))}>
+              <Menu size={20} />
+            </Button>
+          }
+        />
       </div>
       <div className="relative z-10 flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4 pt-16">
         <AnimatePresence mode="wait" initial={false}>

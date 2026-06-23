@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { PapermapHistorySidebar } from './components/PapermapHistorySidebar'
 
 export const metadata: Metadata = {
   title: 'Papermap',
@@ -12,6 +13,7 @@ export default function PapermapLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
+      <PapermapHistorySidebar />
       <main className="w-full">
         {children}
       </main>

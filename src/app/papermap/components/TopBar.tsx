@@ -104,30 +104,15 @@ export default function TopBar({
       <div className="flex items-center justify-between gap-4 relative">
         {/* Left side - New button */}
         <div className="absolute left-0 z-10">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="default"
-                className="flex items-center"
-                title="New Mindmap"
-              >
-                <span className=""><Plus className="h-4 w-4" /></span>
-                <span className="sm:inline hidden">New</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Create New Mindmap?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Make sure you have downloaded the mindmap or saved the URL.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleNewClick}>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="default"
+            className="flex items-center"
+            title="New Mindmap"
+            onClick={handleNewClick}
+          >
+            <span className=""><Plus className="h-4 w-4" /></span>
+            <span className="sm:inline hidden">New</span>
+          </Button>
         </div>
         
         {/* Center - Status messages */}

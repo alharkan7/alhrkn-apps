@@ -9,6 +9,8 @@ import InputForm from './components/InputForm';
 import { useMindMap } from './hooks/useMindMap';
 import { AppsHeader } from '@/components/apps-header'
 import AppsFooter from '@/components/apps-footer'
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Define file size limits (copied from Sidebar.tsx)
 const MAX_FILE_SIZE_MB = 25;
@@ -195,7 +197,13 @@ export default function PaperMap() {
       </div>
 
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
-        <AppsHeader />
+        <AppsHeader 
+          leftButton={
+            <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleHistorySidebar'))}>
+              <Menu size={20} />
+            </Button>
+          }
+        />
       </div>
       
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 md:px-8 pt-16">

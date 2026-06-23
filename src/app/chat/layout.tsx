@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ChatHistorySidebar } from './components/ChatHistorySidebar'
 
 export const metadata: Metadata = {
   title: 'Ask AI',
@@ -11,8 +12,9 @@ export default function ChatLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <main className="w-full">
+    <div className="flex min-h-screen bg-background w-full overflow-hidden">
+      <ChatHistorySidebar />
+      <main className="flex-1 w-full relative">
         {children}
       </main>
     </div>

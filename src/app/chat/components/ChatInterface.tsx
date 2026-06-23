@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { RefreshCcw } from 'lucide-react'
+import { RefreshCcw, Menu, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
@@ -113,16 +113,28 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
             <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
                 <AppsHeader 
                     title={hasUserSentMessage ? <><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x font-bold">Ask</span> <span className="font-bold">Al</span></> : undefined}
-                    leftButton={hasUserSentMessage ? (
-                        <Button
-                            onClick={handleClearChat}
-                            className="p-2 rounded-lg"
-                            title="Clear chat history"
-                            variant="secondary"
-                        >
-                            <RefreshCcw size={14} />
-                        </Button>
-                    ) : undefined}
+                    leftButton={
+                        <div className="flex items-center gap-2 pl-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => window.dispatchEvent(new CustomEvent('toggleChatHistorySidebar'))}
+                                className="sidebar-toggle"
+                            >
+                                <Menu className="h-5 w-5" />
+                            </Button>
+                            {hasUserSentMessage && (
+                                <Button
+                                    onClick={handleClearChat}
+                                    className="p-2 rounded-lg"
+                                    title="Clear chat history"
+                                    variant="secondary"
+                                >
+                                    <Plus size={14} />
+                                </Button>
+                            )}
+                        </div>
+                    }
                 />
             </div>
             <div className={`relative z-10 flex-1 overflow-hidden flex flex-col justify-start max-w-4xl mx-auto w-full px-1 md:px-4 pt-16 ${!hasUserSentMessage ? 'pb-12' : 'pb-0'}`}>

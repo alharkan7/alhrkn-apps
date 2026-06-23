@@ -52,6 +52,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       papers: mappedPapers, 
       structuredQueries: searchRecord.structuredQueries || null,
       searchId: searchRecord.id,
+      originalQuery: searchRecord.originalQuery,
+      contextText: searchRecord.contextText,
       isHistory: true
     };
 

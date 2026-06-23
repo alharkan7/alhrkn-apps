@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X } from 'lucide-react'
+import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -17,6 +17,7 @@ import { AppsHeader } from '@/components/apps-header'
 import AppsFooter from '@/components/apps-footer'
 
 import { Paper } from '../shared'
+import { BeeblioHistorySidebar } from './BeeblioHistorySidebar'
 
 const cleanText = (text: string) => {
   if (!text) return '';
@@ -57,6 +58,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     return null;
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const searchRequestedRef = useRef<string | null>(null)
   const [results, setResults] = useState<Paper[]>([])
   const [mounted, setMounted] = useState(false)
   
@@ -97,12 +99,17 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     if (optimizeParam) setAiOptimize(optimizeParam === 'true');
     if (reviewParam) setAiReview(reviewParam === 'true');
 
-    if (pageId && searchParams?.has('q')) {
+    const isUuid = pageId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId) : false;
+
+    if (pageId && (isUuid || searchParams?.has('q'))) {
+      const reqKey = `${pageId}-${initialQuery}`;
+      if (searchRequestedRef.current === reqKey) return;
+      searchRequestedRef.current = reqKey;
+
       const runSearch = async () => {
         setIsSearching(true)
         setSearchError(null)
         try {
-          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
           let data;
 
           if (isUuid) {
@@ -132,6 +139,15 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           setPage(1);
           setPagesCache({}); // Clear cache for new query
           setResults(data.papers);
+
+          // Update the search bar text if loading from history
+          if (isUuid && data.originalQuery) {
+            setQuery(data.originalQuery);
+            setActiveTab('keywords');
+          } else if (isUuid && data.contextText) {
+            setQuery(data.contextText);
+            setActiveTab('context');
+          }
 
           if (data.searchId && !isUuid) {
             const newUrl = `/beeblio/${data.searchId}?q=${encodeURIComponent(initialQuery)}&tab=${tabParam || 'keywords'}&optimize=${optimizeParam || 'false'}&review=${reviewParam || 'true'}`;
@@ -477,14 +493,23 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
+      <BeeblioHistorySidebar />
+
       {/* --- Top Navigation --- */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader 
-          leftButton={pageId ? (
-            <Link href="/beeblio" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Link>
-          ) : undefined}
+          leftButton={
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" className="sidebar-toggle hover:bg-black/5 dark:hover:bg-white/10" onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}>
+                <Menu size={20} />
+              </Button>
+              {pageId && (
+                <Link href="/beeblio" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Link>
+              )}
+            </div>
+          }
         />
       </div>
 
@@ -928,14 +953,14 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                               
                               {aiReview && (
                                 <div className="relative group/score shrink-0 cursor-default">
-                                  {paper.overallScore !== undefined ? (
+                                  {paper.overallScore != null ? (
                                     <>
-                                      <Badge className="bg-muted text-foreground border shadow-sm hover:bg-muted/80 px-4 py-1.5 rounded-full font-bold text-sm">
+                                      <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-500/60 shadow-md hover:bg-indigo-500/20 px-4 py-1.5 rounded-full font-extrabold text-sm transition-colors">
                                         {paper.overallScore.toFixed(1)}
                                       </Badge>
                                       {/* Tooltip */}
                                       {paper.rubrics && (
-                                        <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-popover text-popover-foreground shadow-2xl border opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100]">
+                                        <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-popover text-popover-foreground shadow-[0_10px_30px_rgba(99,102,241,0.2)] border-2 border-indigo-500/50 opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100] backdrop-blur-md">
                                           <div className="space-y-2">
                                             <div className="flex justify-between items-center text-xs">
                                               <span className="text-muted-foreground font-medium uppercase tracking-wider">Relevance</span>

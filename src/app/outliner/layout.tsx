@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
+import { OutlinerHistorySidebar } from './components/OutlinerHistorySidebar'
 
 export const metadata: Metadata = {
-  title: 'Outliner - Quickly Draft Research Paper',
-  description: 'From idea to fully drafted research paper in seconds.',
+  title: 'Outliner',
+  description: 'AI Research Outliner',
 }
 
 export default function OutlinerLayout({
@@ -12,7 +13,8 @@ export default function OutlinerLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <main className="container !px-2">
+      <OutlinerHistorySidebar />
+      <main className="w-full">
         {children}
       </main>
     </div>
