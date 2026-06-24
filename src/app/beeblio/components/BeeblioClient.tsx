@@ -524,8 +524,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-                Auto
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x">Scholar</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x">Beeblio</span>
               </h1>
             </motion.div>
             <motion.p 
