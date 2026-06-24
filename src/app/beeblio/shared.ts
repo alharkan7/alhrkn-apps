@@ -8,11 +8,7 @@ export type Paper = {
   source: string
   abstract: string
   overallScore?: number
-  rubrics?: {
-    relevance: number
-    methodology: number
-    novelty: number
-  }
+  rubrics?: Record<string, number>
   url?: string
 }
 

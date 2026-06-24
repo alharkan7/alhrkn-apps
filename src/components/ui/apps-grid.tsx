@@ -119,7 +119,15 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
           <Button
             variant="ghost"
             className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors"
-            onClick={() => window.location.href = 'mailto:alharkan7@gmail.com'}
+            onClick={(e) => {
+              e.preventDefault();
+              // Create a temporary anchor element to trigger the mailto link natively and synchronously
+              const link = document.createElement('a');
+              link.href = 'mailto:alharkan7@gmail.com';
+              link.click();
+              
+              setIsOpen(false);
+            }}
           >
             <Mail className='mr-1 ml-2' />
             Contact / Email

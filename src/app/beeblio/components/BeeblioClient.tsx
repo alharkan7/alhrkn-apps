@@ -19,17 +19,35 @@ import AppsFooter from '@/components/apps-footer'
 import { Paper } from '../shared'
 import { BeeblioHistorySidebar } from './BeeblioHistorySidebar'
 
+const decodeEntities = (str: string) => {
+  return str
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&#x200B;/g, '')
+    .replace(/&amp;/gi, '&'); // Do &amp; last
+};
+
 const cleanText = (text: string) => {
   if (!text) return '';
-  return text
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/<\/?[^>]+(>|$)/g, "")
-    .replace(/\s\s+/g, ' ')
-    .trim();
+  
+  let str = text;
+  // Pass 1: Decode entities (e.g. &lt;span&gt; to <span>, &amp;nbsp; to &nbsp;)
+  str = decodeEntities(str);
+  
+  // Pass 2: Strip HTML tags now that they are decoded
+  str = str.replace(/<\/?[^>]+(>|$)/g, "");
+  
+  // Pass 3: Decode again to catch anything that was double-encoded (like &nbsp;)
+  str = decodeEntities(str);
+  
+  return str.replace(/\s\s+/g, ' ').trim();
 };
 
 interface BeeblioClientProps {
@@ -181,7 +199,8 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     papers: chunk,
-                    originalQuery: initialQuery || "Attached File Analysis"
+                    originalQuery: initialQuery || "Attached File Analysis",
+                    criteria: data.structuredQueries?.evaluationCriteria
                   })
                 });
                 const evalData = await evalRes.json();
@@ -272,7 +291,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             const evalRes = await fetch('/api/beeblio/evaluate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ papers: chunk, originalQuery: initialQuery })
+              body: JSON.stringify({ papers: chunk, originalQuery: initialQuery, criteria: structuredQueries?.evaluationCriteria })
             });
             const evalData = await evalRes.json();
             
@@ -959,20 +978,14 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                                       </Badge>
                                       {/* Tooltip */}
                                       {paper.rubrics && (
-                                        <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-popover text-popover-foreground shadow-[0_10px_30px_rgba(99,102,241,0.2)] border-2 border-indigo-500/50 opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100] backdrop-blur-md">
+                                        <div className="absolute top-full right-0 mt-2 w-56 p-3 rounded-xl bg-popover text-popover-foreground shadow-[0_10px_30px_rgba(99,102,241,0.2)] border-2 border-indigo-500/50 opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100] backdrop-blur-md">
                                           <div className="space-y-2">
-                                            <div className="flex justify-between items-center text-xs">
-                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Relevance</span>
-                                              <span className="font-bold text-foreground">{paper.rubrics.relevance.toFixed(1)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Methodology</span>
-                                              <span className="font-bold text-foreground">{paper.rubrics.methodology.toFixed(1)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                              <span className="text-muted-foreground font-medium uppercase tracking-wider">Novelty</span>
-                                              <span className="font-bold text-foreground">{paper.rubrics.novelty.toFixed(1)}</span>
-                                            </div>
+                                            {Object.entries(paper.rubrics).map(([key, value]) => (
+                                              <div key={key} className="flex justify-between items-center text-xs">
+                                                <span className="text-muted-foreground font-medium uppercase tracking-wider truncate max-w-[140px]" title={key}>{key}</span>
+                                                <span className="font-bold text-foreground shrink-0 pl-2">{typeof value === 'number' ? value.toFixed(1) : value}</span>
+                                              </div>
+                                            ))}
                                           </div>
                                         </div>
                                       )}

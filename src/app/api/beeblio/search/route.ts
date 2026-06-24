@@ -114,6 +114,24 @@ export async function POST(req: Request) {
     const itemsPerPage = 15;
     const offset = (page - 1) * itemsPerPage;
 
+    let criteriaPromise: Promise<string[]> = Promise.resolve(["Relevance", "Methodology", "Novelty"]);
+    if (!structuredQueries?.evaluationCriteria && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
+      const criteriaModel = genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: SchemaType.ARRAY,
+            description: "Exactly 3 short evaluation criteria names",
+            items: { type: SchemaType.STRING }
+          }
+        }
+      });
+      criteriaPromise = criteriaModel.generateContent(`Analyze this query: "${query.substring(0, 500)}". What are the 3 most appropriate criteria to evaluate scientific papers for this query? Always include "Relevance". Return ONLY an array of 3 short strings (max 2 words each).`).then(res => JSON.parse(res.response.text())).catch(() => ["Relevance", "Methodology", "Novelty"]);
+    } else if (structuredQueries?.evaluationCriteria) {
+      criteriaPromise = Promise.resolve(structuredQueries.evaluationCriteria);
+    }
+
     const fetchPromises = [];
 
     // 1. OpenAlex
@@ -209,6 +227,8 @@ export async function POST(req: Request) {
     }
 
     const resultsArray = await Promise.all(fetchPromises);
+    const generatedCriteria = await criteriaPromise;
+    finalQueries.evaluationCriteria = generatedCriteria;
     
     // Merge and deduplicate by title
     let allPapers: Paper[] = [];
