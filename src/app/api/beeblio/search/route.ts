@@ -52,8 +52,10 @@ export async function POST(req: Request) {
       semanticScholarQuery: query
     };
 
-    // AI Query Optimization
-    if (!structuredQueries && (aiOptimize || contextMode) && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
+    // AI Query Optimization + Dynamic Criteria Generation
+    // Always run for new searches to generate dynamic evaluation criteria.
+    // The aiOptimize toggle controls whether queries are rewritten or passed through verbatim.
+    if (!structuredQueries && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
       try {
         const model = genAI.getGenerativeModel({ 
           model: 'gemini-2.5-flash',
@@ -96,15 +98,30 @@ export async function POST(req: Request) {
           }
         }
 
-        const promptText = contextMode 
-          ? `You are an expert academic librarian. Your job is to:\n1. Extract the 3-5 most critical keywords from the text below and the attached document (if any), and generate three tailored search queries:\n   - openAlexQuery: A precise boolean query (using AND/OR).\n   - crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n   - semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nText: ${query.substring(0, 3000)}${additionalTextContext}`
-          : `You are an expert academic librarian. Your job is to:\n1. Rewrite the user search into tailored queries for three databases:\n   - openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n   - crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n   - semanticScholarQuery: Keywords or short phrases.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nInput: ${query.substring(0, 500)}`;
+        let promptText: string;
+        if (contextMode) {
+          promptText = `You are an expert academic librarian. Your job is to:\n1. Extract the 3-5 most critical keywords from the text below and the attached document (if any), and generate three tailored search queries:\n   - openAlexQuery: A precise boolean query (using AND/OR).\n   - crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n   - semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nText: ${query.substring(0, 3000)}${additionalTextContext}`;
+        } else if (aiOptimize) {
+          promptText = `You are an expert academic librarian. Your job is to:\n1. Rewrite the user search into tailored queries for three databases:\n   - openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n   - crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n   - semanticScholarQuery: Keywords or short phrases.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nInput: ${query.substring(0, 500)}`;
+        } else {
+          // Keywords mode, no optimization: pass query through verbatim, but still generate dynamic criteria
+          promptText = `You are an expert academic librarian. A user searched for: "${query.substring(0, 500)}"\n\nYour job is to:\n1. Use the user's exact search terms as-is for all three database queries:\n   - openAlexQuery: Use the exact input.\n   - crossrefQuery: Use the exact input.\n   - semanticScholarQuery: Use the exact input.\n2. Determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion. Choose the other 2 based on the user's likely intent from the keywords.`;
+        }
         
         const promptParts: any[] = [promptText];
         if (inlineDataPart) promptParts.push(inlineDataPart);
 
         const result = await model.generateContent(promptParts);
-        finalQueries = JSON.parse(result.response.text());
+        const parsed = JSON.parse(result.response.text());
+
+        if (aiOptimize || contextMode) {
+          // Use LLM-rewritten queries
+          finalQueries = parsed;
+        } else {
+          // Keep original query, only take criteria from LLM
+          finalQueries.evaluationCriteria = parsed.evaluationCriteria;
+        }
+
         // Ensure evaluationCriteria is always present in finalQueries
         if (!finalQueries.evaluationCriteria || !Array.isArray(finalQueries.evaluationCriteria) || finalQueries.evaluationCriteria.length !== 3) {
           finalQueries.evaluationCriteria = ["Relevance", "Methodology", "Novelty"];
