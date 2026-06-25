@@ -170,6 +170,10 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           if (data.searchId && !isUuid) {
             const newUrl = `/beeblio/${data.searchId}?q=${encodeURIComponent(initialQuery)}&tab=${tabParam || 'keywords'}&optimize=${optimizeParam || 'false'}&review=${reviewParam || 'true'}`;
             window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+            
+            // Clear the attachment after successful search so the badge disappears
+            setAttachment(null);
+            sessionStorage.removeItem('beeblio_attachment');
           }
           setIsSearching(false);
           
@@ -195,23 +199,43 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   criteria: data.structuredQueries?.evaluationCriteria
                 })
               });
-              const evalData = await evalRes.json();
               
-              if (evalData.evaluations && evalData.evaluations.length > 0) {
-                setResults(currentResults => {
-                  const resultsCopy = [...currentResults];
-                  evalData.evaluations.forEach((evaluation: any) => {
-                    const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
-                    if (paperIndex !== -1) {
-                      resultsCopy[paperIndex] = {
-                        ...resultsCopy[paperIndex],
-                        overallScore: evaluation.overallScore,
-                        rubrics: evaluation.rubrics
-                      };
+              const reader = evalRes.body?.getReader();
+              if (reader) {
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  buffer += decoder.decode(value, { stream: true });
+                  const lines = buffer.split('\n');
+                  buffer = lines.pop() || '';
+                  for (const line of lines) {
+                    if (line.trim()) {
+                      try {
+                        const evalData = JSON.parse(line);
+                        if (evalData.evaluations && evalData.evaluations.length > 0) {
+                          setResults(currentResults => {
+                            const resultsCopy = [...currentResults];
+                            evalData.evaluations.forEach((evaluation: any) => {
+                              const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                              if (paperIndex !== -1) {
+                                resultsCopy[paperIndex] = {
+                                  ...resultsCopy[paperIndex],
+                                  overallScore: evaluation.overallScore,
+                                  rubrics: evaluation.rubrics
+                                };
+                              }
+                            });
+                            return resultsCopy;
+                          });
+                        }
+                      } catch (e) {
+                        console.error('Failed to parse NDJSON line', e);
+                      }
                     }
-                  });
-                  return resultsCopy;
-                });
+                  }
+                }
               }
             } catch (e) {
               console.error("Evaluation failed", e);
@@ -275,23 +299,43 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ papers: papersToEval, originalQuery: initialQuery, criteria: structuredQueries?.evaluationCriteria })
           });
-          const evalData = await evalRes.json();
           
-          if (evalData.evaluations && evalData.evaluations.length > 0) {
-            setResults(currentResults => {
-              const resultsCopy = [...currentResults];
-              evalData.evaluations.forEach((evaluation: any) => {
-                const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
-                if (paperIndex !== -1) {
-                  resultsCopy[paperIndex] = {
-                    ...resultsCopy[paperIndex],
-                    overallScore: evaluation.overallScore,
-                    rubrics: evaluation.rubrics
-                  };
+          const reader = evalRes.body?.getReader();
+          if (reader) {
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+              for (const line of lines) {
+                if (line.trim()) {
+                  try {
+                    const evalData = JSON.parse(line);
+                    if (evalData.evaluations && evalData.evaluations.length > 0) {
+                      setResults(currentResults => {
+                        const resultsCopy = [...currentResults];
+                        evalData.evaluations.forEach((evaluation: any) => {
+                          const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                          if (paperIndex !== -1) {
+                            resultsCopy[paperIndex] = {
+                              ...resultsCopy[paperIndex],
+                              overallScore: evaluation.overallScore,
+                              rubrics: evaluation.rubrics
+                            };
+                          }
+                        });
+                        return resultsCopy;
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse NDJSON line', e);
+                  }
                 }
-              });
-              return resultsCopy;
-            });
+              }
+            }
           }
         } catch (e) {
           console.error("Evaluation failed", e);

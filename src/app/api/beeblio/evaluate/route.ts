@@ -29,35 +29,38 @@ export async function POST(req: Request) {
 
     const evaluationCriteria = (criteria && criteria.length === 3) ? criteria : ["Relevance", "Methodology", "Novelty"];
 
-    const evaluationSchema: any = {
-      type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          id: { type: SchemaType.STRING },
-          overallScore: { type: SchemaType.NUMBER },
-          rubrics: {
-            type: SchemaType.OBJECT,
-            properties: evaluationCriteria.reduce((acc: any, c: string) => {
-              acc[c] = { type: SchemaType.NUMBER };
-              return acc;
-            }, {}),
-            required: evaluationCriteria
-          }
-        },
-        required: ["id", "overallScore", "rubrics"]
-      }
-    };
+    const evaluateBatch = async (batchPapers: any[]) => {
+      if (!batchPapers || batchPapers.length === 0) return [];
+      
+      const evaluationSchema: any = {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id: { type: SchemaType.STRING },
+            overallScore: { type: SchemaType.NUMBER },
+            rubrics: {
+              type: SchemaType.OBJECT,
+              properties: evaluationCriteria.reduce((acc: any, c: string) => {
+                acc[c] = { type: SchemaType.NUMBER };
+                return acc;
+              }, {}),
+              required: evaluationCriteria
+            }
+          },
+          required: ["id", "overallScore", "rubrics"]
+        }
+      };
 
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: evaluationSchema,
-      }
-    });
-    
-    const prompt = `You are a strict, expert academic reviewer for a curated intelligence platform. 
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: evaluationSchema,
+        }
+      });
+      
+      const prompt = `You are a strict, expert academic reviewer for a curated intelligence platform. 
 Your job is to read the following scientific papers and score them out of 10 based on how well they match the original query: "${originalQuery}"
 
 CRITICAL INSTRUCTIONS:
@@ -66,70 +69,102 @@ CRITICAL INSTRUCTIONS:
 3. Calculate an overallScore (average of the three criteria, weighted slightly towards the relevance criterion).
 
 Here are the papers:
-${papers.map((p: any, i: number) => `[Paper ${i+1}]\nID: ${p.id}\nTitle: ${p.title}\nAbstract: ${p.abstract?.substring(0, 800) || "No abstract available"}`).join('\n\n')}
+${batchPapers.map((p: any, i: number) => `[Paper ${i+1}]\nID: ${p.id}\nTitle: ${p.title}\nAbstract: ${p.abstract?.substring(0, 800) || "No abstract available"}`).join('\n\n')}
 `;
 
-    let evaluations;
-    try {
-      const result = await model.generateContent(prompt);
-      const generatedData = JSON.parse(result.response.text());
-      
-      evaluations = generatedData.map((e: any) => {
-        const rubricsRecord: Record<string, number> = {};
-        if (e.rubrics) {
-          Object.entries(e.rubrics).forEach(([key, value]) => {
-            if (typeof value === 'number') {
-              const capKey = key.charAt(0).toUpperCase() + key.slice(1);
-              rubricsRecord[capKey] = value;
+      let evaluations;
+      try {
+        const result = await model.generateContent(prompt);
+        const generatedData = JSON.parse(result.response.text());
+        
+        evaluations = generatedData.map((e: any) => {
+          const rubricsRecord: Record<string, number> = {};
+          if (e.rubrics) {
+            Object.entries(e.rubrics).forEach(([key, value]) => {
+              if (typeof value === 'number') {
+                const capKey = key.charAt(0).toUpperCase() + key.slice(1);
+                rubricsRecord[capKey] = value;
+              }
+            });
+          }
+          return {
+            id: e.id,
+            overallScore: e.overallScore,
+            rubrics: Object.keys(rubricsRecord).length > 0 ? rubricsRecord : { Relevance: e.overallScore }
+          };
+        });
+      } catch (apiError: any) {
+        console.warn("Gemini API Failed, falling back to mock scores:", apiError.message);
+        
+        evaluations = batchPapers.map((p: any) => {
+          const noAbstract = !p.abstract || p.abstract.includes('No abstract available');
+          return {
+            id: p.id,
+            overallScore: noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)),
+            rubrics: {
+              "Relevance": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)),
+              "Rigor": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)),
+              "Impact": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1))
+            }
+          };
+        });
+      }
+
+      if (evaluations && evaluations.length > 0) {
+        try {
+          await db.insert(beeblioEvaluations).values(
+            evaluations.map((e: any) => {
+              const paperDbId = batchPapers.find((p: any) => p.id === e.id)?.dbId;
+              return {
+                userId: user.id,
+                paperId: paperDbId,
+                originalQuery,
+                overallScore: e.overallScore,
+                rubrics: e.rubrics
+              };
+            }).filter((e: any) => e.paperId)
+          );
+        } catch (dbErr) {
+          console.error("Failed to insert evaluations into DB:", dbErr);
+        }
+      }
+
+      return evaluations;
+    };
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const batch1 = papers.slice(0, 3);
+          const batch2 = papers.slice(3);
+          
+          const p1 = evaluateBatch(batch1).then(evals => {
+            if (evals && evals.length > 0) {
+              controller.enqueue(new TextEncoder().encode(JSON.stringify({ evaluations: evals }) + '\n'));
             }
           });
+          
+          const p2 = evaluateBatch(batch2).then(evals => {
+            if (evals && evals.length > 0) {
+              controller.enqueue(new TextEncoder().encode(JSON.stringify({ evaluations: evals }) + '\n'));
+            }
+          });
+          
+          await Promise.all([p1, p2]);
+        } catch (err: any) {
+          controller.enqueue(new TextEncoder().encode(JSON.stringify({ error: err.message }) + '\n'));
+        } finally {
+          controller.close();
         }
-        return {
-          id: e.id,
-          overallScore: e.overallScore,
-          rubrics: Object.keys(rubricsRecord).length > 0 ? rubricsRecord : { Relevance: e.overallScore }
-        };
-      });
-    } catch (apiError: any) {
-      console.warn("Gemini API Failed, falling back to mock scores:", apiError.message);
-      
-      // Developer Mock Fallback for Quota limit testing
-      evaluations = papers.map((p: any) => {
-        const noAbstract = !p.abstract || p.abstract.includes('No abstract available');
-        const penalty = noAbstract ? 3.0 : 0;
-        
-        return {
-          id: p.id,
-          overallScore: noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)), // 6.0 to 10.0
-          rubrics: {
-            "Relevance": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)),
-            "Rigor": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1)),
-            "Impact": noAbstract ? 2.5 : Number((Math.random() * 4 + 6).toFixed(1))
-          }
-        };
-      });
-    }
-
-    if (evaluations && evaluations.length > 0) {
-      try {
-        await db.insert(beeblioEvaluations).values(
-          evaluations.map((e: any) => {
-            const paperDbId = papers.find((p: any) => p.id === e.id)?.dbId;
-            return {
-              userId: user.id,
-              paperId: paperDbId, // From search route dbId
-              originalQuery,
-              overallScore: e.overallScore,
-              rubrics: e.rubrics
-            };
-          }).filter((e: any) => e.paperId) // Only insert if we have a valid paper UUID
-        );
-      } catch (dbErr) {
-        console.error("Failed to insert evaluations into DB:", dbErr);
       }
-    }
+    });
 
-    return NextResponse.json({ evaluations });
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'application/x-ndjson',
+        'Cache-Control': 'no-cache, no-transform',
+      }
+    });
 
   } catch (error: any) {
     console.error('Evaluate API Error:', error);
