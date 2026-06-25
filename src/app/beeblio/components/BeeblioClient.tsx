@@ -178,55 +178,44 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
           const shouldReview = reviewParam === 'true';
           if (shouldReview && data.papers.length > 0) {
             setIsEvaluating(true);
-            let currentPapersToEval = data.papers.map((p: Paper) => ({
-              id: p.id,
-              dbId: p.dbId,
-              title: p.title,
-              abstract: p.abstract
-            }));
-            
-            // Parallel Chunking (Batches of 5)
-            const CHUNK_SIZE = 5;
-            const chunks = [];
-            for (let i = 0; i < currentPapersToEval.length; i += CHUNK_SIZE) {
-              chunks.push(currentPapersToEval.slice(i, i + CHUNK_SIZE));
-            }
-
-            const evalPromises = chunks.map(async (chunk) => {
-              try {
-                const evalRes = await fetch('/api/beeblio/evaluate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    papers: chunk,
-                    originalQuery: initialQuery || "Attached File Analysis",
-                    criteria: data.structuredQueries?.evaluationCriteria
-                  })
-                });
-                const evalData = await evalRes.json();
-                
-                if (evalData.evaluations && evalData.evaluations.length > 0) {
-                  setResults(currentResults => {
-                    const resultsCopy = [...currentResults];
-                    evalData.evaluations.forEach((evaluation: any) => {
-                      const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
-                      if (paperIndex !== -1) {
-                        resultsCopy[paperIndex] = {
-                          ...resultsCopy[paperIndex],
-                          overallScore: evaluation.overallScore,
-                          rubrics: evaluation.rubrics
-                        };
-                      }
-                    });
-                    return resultsCopy;
+            try {
+              const papersToEval = data.papers.map((p: Paper) => ({
+                id: p.id,
+                dbId: p.dbId,
+                title: p.title,
+                abstract: p.abstract
+              }));
+              
+              const evalRes = await fetch('/api/beeblio/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  papers: papersToEval,
+                  originalQuery: initialQuery || "Attached File Analysis",
+                  criteria: data.structuredQueries?.evaluationCriteria
+                })
+              });
+              const evalData = await evalRes.json();
+              
+              if (evalData.evaluations && evalData.evaluations.length > 0) {
+                setResults(currentResults => {
+                  const resultsCopy = [...currentResults];
+                  evalData.evaluations.forEach((evaluation: any) => {
+                    const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                    if (paperIndex !== -1) {
+                      resultsCopy[paperIndex] = {
+                        ...resultsCopy[paperIndex],
+                        overallScore: evaluation.overallScore,
+                        rubrics: evaluation.rubrics
+                      };
+                    }
                   });
-                }
-              } catch (e) {
-                console.error("Chunk evaluation failed", e);
+                  return resultsCopy;
+                });
               }
-            });
-
-            await Promise.all(evalPromises);
+            } catch (e) {
+              console.error("Evaluation failed", e);
+            }
             setIsEvaluating(false);
           }
         } catch (error: any) {
@@ -276,44 +265,37 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
       const shouldReview = searchParams?.get('review') === 'true';
       if (shouldReview && data.papers.length > 0) {
         setIsEvaluating(true);
-        let newPapersToEval = data.papers.map((p: Paper) => ({
-          id: p.id, dbId: p.dbId, title: p.title, abstract: p.abstract
-        }));
-        
-        const CHUNK_SIZE = 5;
-        const chunks = [];
-        for (let i = 0; i < newPapersToEval.length; i += CHUNK_SIZE) {
-          chunks.push(newPapersToEval.slice(i, i + CHUNK_SIZE));
-        }
-
-        const evalPromises = chunks.map(async (chunk) => {
-          try {
-            const evalRes = await fetch('/api/beeblio/evaluate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ papers: chunk, originalQuery: initialQuery, criteria: structuredQueries?.evaluationCriteria })
-            });
-            const evalData = await evalRes.json();
-            
-            if (evalData.evaluations && evalData.evaluations.length > 0) {
-              setResults(currentResults => {
-                const resultsCopy = [...currentResults];
-                evalData.evaluations.forEach((evaluation: any) => {
-                  const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
-                  if (paperIndex !== -1) {
-                    resultsCopy[paperIndex] = {
-                      ...resultsCopy[paperIndex],
-                      overallScore: evaluation.overallScore,
-                      rubrics: evaluation.rubrics
-                    };
-                  }
-                });
-                return resultsCopy;
+        try {
+          const papersToEval = data.papers.map((p: Paper) => ({
+            id: p.id, dbId: p.dbId, title: p.title, abstract: p.abstract
+          }));
+          
+          const evalRes = await fetch('/api/beeblio/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ papers: papersToEval, originalQuery: initialQuery, criteria: structuredQueries?.evaluationCriteria })
+          });
+          const evalData = await evalRes.json();
+          
+          if (evalData.evaluations && evalData.evaluations.length > 0) {
+            setResults(currentResults => {
+              const resultsCopy = [...currentResults];
+              evalData.evaluations.forEach((evaluation: any) => {
+                const paperIndex = resultsCopy.findIndex(p => p.id === evaluation.id);
+                if (paperIndex !== -1) {
+                  resultsCopy[paperIndex] = {
+                    ...resultsCopy[paperIndex],
+                    overallScore: evaluation.overallScore,
+                    rubrics: evaluation.rubrics
+                  };
+                }
               });
-            }
-          } catch (e) { console.error("Chunk eval failed", e); }
-        });
-        await Promise.all(evalPromises);
+              return resultsCopy;
+            });
+          }
+        } catch (e) {
+          console.error("Evaluation failed", e);
+        }
         setIsEvaluating(false);
       }
     } catch (e) {

@@ -25,9 +25,14 @@ const querySchema: any = {
   properties: {
     openAlexQuery: { type: SchemaType.STRING, description: "Boolean search query tailored for OpenAlex" },
     crossrefQuery: { type: SchemaType.STRING, description: "Flat keyword search string tailored for Crossref" },
-    semanticScholarQuery: { type: SchemaType.STRING, description: "Keyword search string tailored for Semantic Scholar" }
+    semanticScholarQuery: { type: SchemaType.STRING, description: "Keyword search string tailored for Semantic Scholar" },
+    evaluationCriteria: {
+      type: SchemaType.ARRAY,
+      description: "Exactly 3 short evaluation criteria names (max 2 words each) to score papers for this query. Always include 'Relevance' as one. Choose the other 2 based on intent, e.g. 'Historical Impact' for historical queries, 'Methodological Rigor' for methods queries, 'Novelty' for cutting-edge queries.",
+      items: { type: SchemaType.STRING }
+    }
   },
-  required: ["openAlexQuery", "crossrefQuery", "semanticScholarQuery"]
+  required: ["openAlexQuery", "crossrefQuery", "semanticScholarQuery", "evaluationCriteria"]
 };
 
 export async function POST(req: Request) {
@@ -92,14 +97,18 @@ export async function POST(req: Request) {
         }
 
         const promptText = contextMode 
-          ? `You are an expert academic librarian. Your ONLY job is to extract the 3-5 most critical keywords from the text below and the attached document (if any), and generate three tailored search queries:\n1. openAlexQuery: A precise boolean query (using AND/OR).\n2. crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n3. semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n\nText: ${query.substring(0, 3000)}${additionalTextContext}`
-          : `You are an expert academic librarian. Rewrite the user search into tailored queries for three databases:\n1. openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n2. crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n3. semanticScholarQuery: Keywords or short phrases.\n\nInput: ${query.substring(0, 500)}`;
+          ? `You are an expert academic librarian. Your job is to:\n1. Extract the 3-5 most critical keywords from the text below and the attached document (if any), and generate three tailored search queries:\n   - openAlexQuery: A precise boolean query (using AND/OR).\n   - crossrefQuery: A flat string of keywords (no boolean operators) best for Crossref.\n   - semanticScholarQuery: A short phrase or keywords for Semantic Scholar.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nText: ${query.substring(0, 3000)}${additionalTextContext}`
+          : `You are an expert academic librarian. Your job is to:\n1. Rewrite the user search into tailored queries for three databases:\n   - openAlexQuery: Strict, highly optimized boolean search (AND/OR).\n   - crossrefQuery: Flat keywords (no boolean operators) as Crossref fails with complex booleans.\n   - semanticScholarQuery: Keywords or short phrases.\n2. Also determine the 3 most appropriate evaluation criteria (max 2 words each) for scoring papers returned by this search. Always include "Relevance" as one criterion.\n\nInput: ${query.substring(0, 500)}`;
         
         const promptParts: any[] = [promptText];
         if (inlineDataPart) promptParts.push(inlineDataPart);
 
         const result = await model.generateContent(promptParts);
         finalQueries = JSON.parse(result.response.text());
+        // Ensure evaluationCriteria is always present in finalQueries
+        if (!finalQueries.evaluationCriteria || !Array.isArray(finalQueries.evaluationCriteria) || finalQueries.evaluationCriteria.length !== 3) {
+          finalQueries.evaluationCriteria = ["Relevance", "Methodology", "Novelty"];
+        }
       } catch (err: any) {
         console.warn('Query optimization failed, falling back to original query.', err.message);
         if (!query.trim() && contextMode) {
@@ -114,22 +123,9 @@ export async function POST(req: Request) {
     const itemsPerPage = 15;
     const offset = (page - 1) * itemsPerPage;
 
-    let criteriaPromise: Promise<string[]> = Promise.resolve(["Relevance", "Methodology", "Novelty"]);
-    if (!structuredQueries?.evaluationCriteria && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
-      const criteriaModel = genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash',
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: SchemaType.ARRAY,
-            description: "Exactly 3 short evaluation criteria names",
-            items: { type: SchemaType.STRING }
-          }
-        }
-      });
-      criteriaPromise = criteriaModel.generateContent(`Analyze this query: "${query.substring(0, 500)}". What are the 3 most appropriate criteria to evaluate scientific papers for this query? Always include "Relevance". Return ONLY an array of 3 short strings (max 2 words each).`).then(res => JSON.parse(res.response.text())).catch(() => ["Relevance", "Methodology", "Novelty"]);
-    } else if (structuredQueries?.evaluationCriteria) {
-      criteriaPromise = Promise.resolve(structuredQueries.evaluationCriteria);
+    // Ensure evaluationCriteria is set (either from AI optimization above, or from cached structuredQueries on pagination)
+    if (!finalQueries.evaluationCriteria) {
+      finalQueries.evaluationCriteria = ["Relevance", "Methodology", "Novelty"];
     }
 
     const fetchPromises = [];
@@ -227,8 +223,6 @@ export async function POST(req: Request) {
     }
 
     const resultsArray = await Promise.all(fetchPromises);
-    const generatedCriteria = await criteriaPromise;
-    finalQueries.evaluationCriteria = generatedCriteria;
     
     // Merge and deduplicate by title
     let allPapers: Paper[] = [];
