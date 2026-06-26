@@ -76,73 +76,76 @@ export default function DNAnalyzerPage() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader 
             title={<><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x font-bold">Discourse</span> <span className="font-bold">Analyzer</span></>}
-            rightContent={
-                <div className="flex items-center gap-1">
-                    <Button
-                        onClick={handleSaveToDatabase}
-                        disabled={saving || !hasConfig}
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full shadow-sm"
-                    >
-                        <Save className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-2">
-                        {saving ? 'Saving...' : 'Save'}
-                        </span>
-                    </Button>
-                    <Button
-                        onClick={handleLoadData}
-                        disabled={loadingData || !hasConfig}
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full shadow-sm"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-2">
-                        {loadingData ? 'Loading...' : 'Load'}
-                        </span>
-                    </Button>
-                    <Button
-                        onClick={() => textFileListRef.current?.triggerAddFile()}
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full shadow-sm"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline ml-2">Add</span>
-                    </Button>
-                    <Button
-                        onClick={() => setShowResults(!showResults)}
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full shadow-sm"
-                    >
-                        {showResults ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        <span className="hidden sm:inline ml-2">
-                        {showResults ? 'Hide' : 'Data'}
-                        </span>
-                    </Button>
-                    <SettingsDialog
-                        isOpen={isConfigDialogOpen}
-                        onOpenChange={setIsConfigDialogOpen}
-                        mysqlConfig={mysqlConfig}
-                        setMysqlConfig={setMysqlConfig}
-                        googleApiKey={googleApiKey}
-                        setGoogleApiKey={setGoogleApiKey}
-                        showMySQLPassword={showMySQLPassword}
-                        setShowMySQLPassword={setShowMySQLPassword}
-                        showApiKey={showApiKey}
-                        setShowApiKey={setShowApiKey}
-                        savingConfig={savingConfig}
-                        onSaveConfig={saveUserConfig}
-                    />
-                </div>
-            }
         />
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto scrollbar-thin overflow-x-hidden pt-20 pb-12">
-        <div className="container mx-auto px-4 max-w-7xl">
+      <div className="relative z-10 flex-1 overflow-y-auto scrollbar-thin overflow-x-hidden pt-20 pb-12 px-2 md:px-4">
+        <div className="w-full max-w-6xl mx-auto">
+          
+          {/* Action Toolbar */}
+          <div className="flex items-center gap-2 mb-6 p-2 bg-muted/20 rounded-[1.25rem] border border-border shadow-sm backdrop-blur-sm overflow-x-auto scrollbar-none w-full">
+              <Button
+                  onClick={handleSaveToDatabase}
+                  disabled={saving || !hasConfig}
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full shadow-sm flex-shrink-0"
+              >
+                  <Save className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">
+                  {saving ? 'Saving...' : 'Save'}
+                  </span>
+              </Button>
+              <Button
+                  onClick={handleLoadData}
+                  disabled={loadingData || !hasConfig}
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full shadow-sm flex-shrink-0"
+              >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">
+                  {loadingData ? 'Loading...' : 'Load'}
+                  </span>
+              </Button>
+              <Button
+                  onClick={() => textFileListRef.current?.triggerAddFile()}
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full shadow-sm flex-shrink-0"
+              >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-2">Add</span>
+              </Button>
+              <Button
+                  onClick={() => setShowResults(!showResults)}
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full shadow-sm flex-shrink-0"
+              >
+                  {showResults ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <span className="hidden sm:inline ml-2">
+                  {showResults ? 'Hide' : 'Data'}
+                  </span>
+              </Button>
+              <div className="ml-auto flex-shrink-0">
+                <SettingsDialog
+                    isOpen={isConfigDialogOpen}
+                    onOpenChange={setIsConfigDialogOpen}
+                    mysqlConfig={mysqlConfig}
+                    setMysqlConfig={setMysqlConfig}
+                    googleApiKey={googleApiKey}
+                    setGoogleApiKey={setGoogleApiKey}
+                    showMySQLPassword={showMySQLPassword}
+                    setShowMySQLPassword={setShowMySQLPassword}
+                    showApiKey={showApiKey}
+                    setShowApiKey={setShowApiKey}
+                    savingConfig={savingConfig}
+                    onSaveConfig={saveUserConfig}
+                />
+              </div>
+          </div>
+
           {/* Save/Load Status Message */}
           {saveStatus !== 'idle' && saveMessage && (
             <div className={`mb-6 p-4 rounded-[1rem] flex items-center justify-between shadow-sm backdrop-blur-sm border ${saveStatus === 'success' ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'}`}>

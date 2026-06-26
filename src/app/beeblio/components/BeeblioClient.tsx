@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AppsHeader } from '@/components/apps-header'
 import AppsFooter from '@/components/apps-footer'
 
@@ -416,13 +417,28 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const handleExportBibtex = () => {
-    const currentResults = [...results].filter(r => filterSource === 'all' || r.source === filterSource).sort((a, b) => {
+  const getCurrentExportResults = () => {
+    return [...results].filter(r => filterSource === 'all' || r.source === filterSource).sort((a, b) => {
       if (sortBy === 'score') return (b.overallScore || 0) - (a.overallScore || 0)
       if (sortBy === 'year') return b.year - a.year
       if (sortBy === 'citations') return b.citations - a.citations
       return 0
     });
+  };
+
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportBibtex = () => {
+    const currentResults = getCurrentExportResults();
 
     const bibtex = currentResults.map(paper => {
       const firstAuthor = paper.authors[0] ? paper.authors[0].split(' ').pop() : 'Unknown';
@@ -438,14 +454,65 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
     }).join('\n\n');
 
     const blob = new Blob([bibtex], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'beeblio_export.bib';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadFile(blob, 'beeblio_export.bib');
+  };
+
+  const handleExportJSON = () => {
+    const currentResults = getCurrentExportResults();
+    const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
+    downloadFile(blob, 'beeblio_export.json');
+  };
+
+  const handleExportCSV = async () => {
+    const currentResults = getCurrentExportResults();
+    const Papa = (await import('papaparse')).default;
+    const csv = Papa.unparse(currentResults.map(p => ({
+      Title: p.title,
+      Authors: p.authors.join(', '),
+      Year: p.year,
+      Journal: p.source,
+      Citations: p.citations,
+      Abstract: p.abstract,
+      URL: p.url,
+      Score: p.overallScore || ''
+    })));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    downloadFile(blob, 'beeblio_export.csv');
+  };
+
+  const handleExportExcel = async () => {
+    const currentResults = getCurrentExportResults();
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Papers');
+    
+    sheet.columns = [
+      { header: 'Title', key: 'title', width: 40 },
+      { header: 'Authors', key: 'authors', width: 30 },
+      { header: 'Year', key: 'year', width: 10 },
+      { header: 'Journal', key: 'journal', width: 20 },
+      { header: 'Citations', key: 'citations', width: 10 },
+      { header: 'Abstract', key: 'abstract', width: 50 },
+      { header: 'URL', key: 'url', width: 30 },
+      { header: 'Score', key: 'score', width: 10 },
+    ];
+    
+    currentResults.forEach(p => {
+      sheet.addRow({
+        title: p.title,
+        authors: p.authors.join(', '),
+        year: p.year,
+        journal: p.source,
+        citations: p.citations,
+        abstract: p.abstract,
+        url: p.url,
+        score: p.overallScore
+      });
+    });
+    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    downloadFile(blob, 'beeblio_export.xlsx');
   };
 
   const handleSearch = async () => {
@@ -923,10 +990,29 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                 </div>
                 
                 <div className="flex items-center gap-2 md:gap-3 self-end md:self-auto">
-                  <Button variant="outline" size="sm" onClick={handleExportBibtex} className="h-8 rounded-full px-3 md:px-4 text-xs font-medium border-muted-foreground/30 hover:bg-muted/50 bg-muted/30 text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                    <Download className="h-3.5 w-3.5 md:mr-1.5" /> 
-                    <span className="hidden md:inline">BibTeX</span>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 rounded-full px-3 md:px-4 text-xs font-medium border-muted-foreground/30 hover:bg-muted/50 bg-muted/30 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                        <Download className="h-3.5 w-3.5 md:mr-1.5" /> 
+                        <span className="hidden md:inline">Export</span>
+                        <ChevronDown className="h-3 w-3 ml-1 md:ml-1.5 hidden md:block opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-15 rounded-xl">
+                      <DropdownMenuItem onClick={handleExportBibtex} className="cursor-pointer font-medium">
+                        BibTeX
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer font-medium">
+                        JSON
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer font-medium">
+                        CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer font-medium">
+                        Excel
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <div className="relative">
                     <select 
                       value={sortBy}

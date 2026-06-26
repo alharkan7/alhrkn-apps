@@ -447,6 +447,7 @@ export function useAnalyzerFunctions() {
 
                 setSaveStatus('success')
                 setSaveMessage(`Successfully loaded ${loadedStatements.length} statements from ${loadedFiles.length} documents`)
+                setTimeout(() => setSaveStatus('idle'), 4000)
             } else {
                 throw new Error(data.error || 'Unknown error occurred')
             }

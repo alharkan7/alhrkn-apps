@@ -703,13 +703,13 @@ const InputForm: React.FC<InputFormProps> = ({
                             </div>
                         )}
 
-                        <div className="flex justify-between items-center gap-4 w-full">
-                            <div className="flex items-center gap-1">
+                        <div className="flex justify-between items-center gap-2 md:gap-4 w-full">
+                            <div className="flex items-center gap-0 md:gap-1 shrink-0">
                                 <Tabs defaultValue="text" onValueChange={isFormDisabled ? undefined : handleInputModeChange} className="w-fit">
-                                    <TabsList className="flex p-1 space-x-1 bg-muted/50 rounded-full border backdrop-blur-md h-auto">
+                                    <TabsList className="flex p-1 -space-x-2 md:space-x-1 bg-muted/50 rounded-full border backdrop-blur-md h-auto">
                                         <TabsTrigger
                                             value="file"
-                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
+                                            className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -717,7 +717,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="text"
-                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
+                                            className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -725,7 +725,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="url"
-                                            className="px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground"
+                                            className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
@@ -738,14 +738,14 @@ const InputForm: React.FC<InputFormProps> = ({
                                     <TooltipTrigger asChild>
                                         <Badge
                                             variant={isHovered ? "default" : "neutral"}
-                                            className={`cursor-pointer h-8 text-muted-foreground hover:text-primary${isActive ? " mb-1 mr-2" : ""}`}
+                                            className={`cursor-pointer h-8 text-muted-foreground hover:text-primary ml-2 md:ml-0${isActive ? " mb-1 mr-1 md:mr-2" : ""}`}
                                             onClick={isFormDisabled ? undefined : (() => { handleExampleClick(); setIsActive(true); })}
                                             onMouseEnter={isFormDisabled ? undefined : (() => { setIsHovered(true); setIsActive(true); })}
                                             onMouseLeave={isFormDisabled ? undefined : (() => { setIsHovered(false); setIsActive(false); })}
                                             aria-disabled={isFormDisabled}
                                             tabIndex={isFormDisabled ? -1 : 0}
                                         >
-                                            <Lightbulb className="h-5 w-5" />
+                                            <Lightbulb className="h-4 w-4 md:h-5 md:w-5" />
                                         </Badge>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" align="center">
@@ -756,17 +756,20 @@ const InputForm: React.FC<InputFormProps> = ({
 
                             <Button
                                 type="submit"
-                                className="rounded-full font-semibold px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                                className="rounded-full font-semibold aspect-square p-0 shrink-0 md:aspect-auto md:px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
                                 disabled={isCreateButtonDisabled}
                                 aria-label="Create mindmap"
                             >
                                 {(loading || urlLoading || isUploading) ? (
                                     <span className="flex items-center gap-2">
                                         <LoaderCircle className="size-4 animate-spin text-amber-300" />
-                                        <span>{loadingMessage}</span>
+                                        <span className="hidden md:inline">{loadingMessage}</span>
                                     </span>
                                 ) : (
-                                    <span className="flex items-center gap-2">Create</span>
+                                    <span className="flex items-center gap-2">
+                                        <Waypoints className="h-4 w-4 md:hidden" />
+                                        <span className="hidden md:inline">Create</span>
+                                    </span>
                                 )}
                             </Button>
                         </div>
