@@ -394,7 +394,7 @@ const IndonesiaHistoryPage: React.FC = () => {
         <div className="sticky top-0 z-30 flex">
           {/* Sidebar Header - Animated with sidebar */}
           <div
-            className="absolute left-0 bg-slate-900 border-b border-slate-700 flex items-center justify-between transition-all duration-300 overflow-hidden z-40"
+            className="absolute left-0 bg-white border-b border-r border-slate-200 flex items-center justify-between transition-all duration-300 overflow-hidden z-40"
             style={{
               width: isSidebarOpen ? (viewport.width < 640 ? '320px' : '384px') : '0',
               height: '64px', // Match main header height
@@ -403,10 +403,10 @@ const IndonesiaHistoryPage: React.FC = () => {
               opacity: isSidebarOpen ? 1 : 0,
             }}
           >
-            <h2 className="text-sm sm:text-base font-semibold text-slate-100 whitespace-nowrap">Timeline Data</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-slate-900 whitespace-nowrap">Timeline Data</h2>
             <div className="flex items-center gap-2">
-              <div className="flex items-center space-x-1 text-[11px] bg-slate-900/50 p-1 rounded-md border border-slate-700">
-                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}>
+              <div className="flex items-center space-x-1 text-[11px] bg-slate-100/50 p-1 rounded-md border border-slate-200">
+                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}>
                   <input 
                     type="radio" 
                     name="viewMode" 
@@ -420,7 +420,7 @@ const IndonesiaHistoryPage: React.FC = () => {
                   />
                   Table
                 </label>
-                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'json' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}>
+                <label className={`flex items-center cursor-pointer px-2 py-0.5 rounded-sm transition-colors ${viewMode === 'json' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}>
                   <input 
                     type="radio" 
                     name="viewMode" 
@@ -438,10 +438,9 @@ const IndonesiaHistoryPage: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setViewMode('json'); // Automatically switch to JSON view when editing
                     setIsEditing(true);
                   }}
-                  className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white shrink-0"
+                  className="flex items-center gap-1.5 h-7 px-2 bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shrink-0"
                 >
                   <Edit size={14} />
                 </Button>
@@ -451,7 +450,7 @@ const IndonesiaHistoryPage: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(false)}
-                    className="flex items-center gap-1.5 h-7 px-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
+                    className="flex items-center gap-1.5 h-7 px-2 bg-white hover:bg-slate-100 border-slate-200 text-slate-700"
                   >
                     <X size={14} />
                   </Button>
@@ -558,7 +557,7 @@ const IndonesiaHistoryPage: React.FC = () => {
         <main className={`flex-1 relative overflow-hidden transition-all duration-300 ${isSidebarOpen ? 'ml-80 sm:ml-96' : 'ml-0'}`}>
           {/* Presentation mode: animated colored top border */}
           {isPresentationMode && (
-            <div className="absolute top-0 left-0 right-0 h-0.5 z-30 bg-slate-800 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-0.5 z-30 bg-slate-200 overflow-hidden">
               <div
                 className="h-full bg-indigo-500 transition-all duration-500 ease-out"
                 style={{ width: `${presentationProgress}%` }}
@@ -600,13 +599,13 @@ const IndonesiaHistoryPage: React.FC = () => {
           {isPresentationMode && (
             <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1.5 select-none">
               {/* Control pill */}
-              <div className="flex items-center gap-1 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl px-2 py-1.5 shadow-2xl">
+              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl px-2 py-1.5 shadow-xl">
 
                 {/* ← Next (older/earlier event, moves left on the timeline) */}
                 <button
                   onClick={presentationNext}
                   disabled={isAtPresentationEnd}
-                  className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   title="Next older event (← arrow)"
                 >
                   <ChevronLeft size={18} />
@@ -614,35 +613,35 @@ const IndonesiaHistoryPage: React.FC = () => {
 
                 {/* Info */}
                 <div className="text-center px-2 min-w-[160px] sm:min-w-[220px]">
-                  <div
-                    className="text-[10px] sm:text-xs font-bold truncate"
-                    style={{ color: PERIODS[presentingPeriodIdx].color }}
-                  >
-                    {PERIODS[presentingPeriodIdx].period_title}
-                  </div>
-                  <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono mt-0.5">
-                    Use Arrow Keys
-                    <span className="mx-1 opacity-50">·</span>
-                  </div>
+                    <div
+                      className="text-[10px] sm:text-xs font-bold truncate"
+                      style={{ color: PERIODS[presentingPeriodIdx].color }}
+                    >
+                      {PERIODS[presentingPeriodIdx].period_title}
+                    </div>
+                    <div className="text-[9px] sm:text-[10px] text-slate-500 font-mono mt-0.5">
+                      Use Arrow Keys
+                      <span className="mx-1 opacity-50">·</span>
+                    </div>
                 </div>
 
                 {/* → Back (newer/later event, moves right on the timeline) */}
                 <button
                   onClick={presentationPrev}
                   disabled={isAtPresentationStart}
-                  className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   title="Go back to newer event (→ arrow)"
                 >
                   <ChevronRight size={18} />
                 </button>
 
                 {/* Divider */}
-                <div className="w-px h-5 bg-slate-700 mx-0.5" />
+                <div className="w-px h-5 bg-slate-200 mx-0.5" />
 
                 {/* Exit */}
                 <button
                   onClick={exitPresentationMode}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                  className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
                   title="Exit Presentation (Esc)"
                 >
                   <X size={14} />
@@ -654,7 +653,7 @@ const IndonesiaHistoryPage: React.FC = () => {
         </main>
 
         {/* Bottom Navigator */}
-        <footer className={`shrink-0 z-30 bg-slate-900`} style={{ height: footerHeight }}>
+        <footer className={`shrink-0 z-30 bg-white`} style={{ height: footerHeight }}>
           <Navigator
             events={allEvents}
             onSelect={handleJumpToEvent}

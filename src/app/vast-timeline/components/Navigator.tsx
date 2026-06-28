@@ -12,7 +12,7 @@ interface NavigatorProps {
 const Navigator: React.FC<NavigatorProps> = ({ events, onSelect, onBackgroundClick, selectedYear }) => {
   return (
     <div
-        className="h-full w-full bg-slate-900 border-t border-slate-700 flex flex-col"
+        className="h-full w-full bg-white border-t border-slate-200 flex flex-col"
         onClick={onBackgroundClick}
     >
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar">
@@ -29,7 +29,7 @@ const Navigator: React.FC<NavigatorProps> = ({ events, onSelect, onBackgroundCli
                           h-[60px] sm:h-[70px] md:h-3/4
                           min-w-[70px] sm:min-w-[80px] max-w-[120px] sm:max-w-[140px]
                           px-1.5 sm:px-2 rounded transition-all duration-200 touch-manipulation
-                          ${isSelected ? 'bg-slate-700 ring-1 ring-white/20' : 'hover:bg-slate-800 active:bg-slate-700'}
+                          ${isSelected ? 'bg-slate-100 ring-1 ring-slate-900/10 shadow-sm' : 'hover:bg-slate-50 active:bg-slate-100'}
                         `}
                       >
                           {/* Color Marker */}
@@ -38,10 +38,10 @@ const Navigator: React.FC<NavigatorProps> = ({ events, onSelect, onBackgroundCli
                               style={{ backgroundColor: event.periodColor || '#ccc' }}
                           />
 
-                          <span className={`text-[10px] sm:text-xs font-medium truncate w-full text-center leading-tight ${isSelected ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
+                          <span className={`text-[10px] sm:text-xs font-medium truncate w-full text-center leading-tight ${isSelected ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-900'}`}>
                               {event.title}
                           </span>
-                          <span className={`text-[8px] sm:text-[10px] font-mono truncate w-full text-center leading-tight ${isSelected ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                          <span className={`text-[8px] sm:text-[10px] font-mono truncate w-full text-center leading-tight ${isSelected ? 'text-slate-700' : 'text-slate-400 group-hover:text-slate-600'}`}>
                               {event.date_display}
                           </span>
                       </button>
