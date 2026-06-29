@@ -4,7 +4,7 @@ import { metadata } from './layout'
 // Route segment config
 
 // Image metadata
-export const alt = 'Vast Timeline'
+export const alt = 'Nusantara Timeline'
 export const size = {
   width: 1200,
   height: 630,

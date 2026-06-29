@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Providers } from "@/components/providers"
 
 export const metadata: Metadata = {
-  title: 'Vast Timeline',
+  title: 'Nusantara Timeline',
   description: 'Visualize Vast Timeline in an Interactive Way',
 }
 

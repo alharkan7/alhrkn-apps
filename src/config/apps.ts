@@ -39,7 +39,7 @@ export const apps: AppConfig[] = [
     description: 'A Node-based Document Authoring System',
   },
   {
-    name: 'Vast Timeline',
+    name: 'Nusantara Timeline',
     icon: Clock,
     slug: 'vast-timeline',
     description: 'Visualize Vast Timeline in an Interactive Way',
