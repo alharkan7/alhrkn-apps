@@ -45,34 +45,6 @@ export const apps: AppConfig[] = [
     type: 'academic'
   },
   {
-    name: 'Nusantara Timeline',
-    icon: Clock,
-    slug: 'vast-timeline',
-    description: 'Visualize Vast Timeline in an Interactive Way',
-    type: 'visualization'
-  },
-  {
-    name: 'Good News Garden',
-    icon: Flower,
-    slug: 'goodnews-garden',
-    description: 'Explore Good News as a Blooming Garden',
-    type: 'visualization'
-  },
-  {
-    name: 'Wiki Reels',
-    icon: LibraryBig,
-    slug: 'https://goodreels.vercel.app',
-    description: 'Wikipedia Pages with TikTok UX + Games',
-    type: 'general'
-  },
-  {
-    name: 'Hoax Network',
-    icon: Snowflake,
-    slug: 'hoax-network',
-    description: 'Explore Hoaxes Data in Interactive Viz',
-    type: 'visualization'
-  },
-  {
     name: 'Disposable Chat',
     icon: Sparkles,
     slug: 'chat',
@@ -85,6 +57,34 @@ export const apps: AppConfig[] = [
     slug: 'dnanalyzer',
     description: 'Automatic Discourse Extractor for DNAnalyzer',
     type: 'academic'
+  },
+  {
+    name: 'Nusantara Timeline',
+    icon: Clock,
+    slug: 'vast-timeline',
+    description: 'Visualize Vast Timeline in an Interactive Way',
+    type: 'visualization'
+  },
+  {
+    name: 'Wiki Reels',
+    icon: LibraryBig,
+    slug: 'https://goodreels.vercel.app',
+    description: 'Wikipedia Pages with TikTok UX + Games',
+    type: 'general'
+  },
+  {
+    name: 'Good News Garden',
+    icon: Flower,
+    slug: 'goodnews-garden',
+    description: 'Explore Good News as a Blooming Garden',
+    type: 'visualization'
+  },
+  {
+    name: 'Hoax Network',
+    icon: Snowflake,
+    slug: 'hoax-network',
+    description: 'Explore Hoaxes Data in Interactive Viz',
+    type: 'visualization'
   },
   {
     name: 'More Apps',
