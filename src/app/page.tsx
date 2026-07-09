@@ -1,14 +1,62 @@
 'use client'
 
-import { apps } from '@/config/apps'
+import { apps, type AppConfig } from '@/config/apps'
 import Link from 'next/link'
 import { ArrowRight, Github, Twitter, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { useTheme } from 'next-themes'
 
+function AppCard({ app }: { app: AppConfig }) {
+  const IconComponent = app.icon
+  const isExternal = app.slug.startsWith('http')
+  const href = isExternal ? app.slug : app.slug ? `/${app.slug}` : '/'
+
+  return (
+    <Link
+      href={href}
+      target={isExternal ? '_blank' : undefined}
+      rel={isExternal ? 'noopener noreferrer' : undefined}
+      className="group relative block h-[8.25rem] sm:h-auto"
+    >
+      <SpotlightCard className="h-full overflow-hidden p-3 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:border-blue-500/50 hover:-translate-y-1">
+        {/* Mobile: left text + right icon, fixed height. Desktop: stacked layout. */}
+        <div className="flex flex-row-reverse sm:flex-col items-start gap-2 sm:gap-0 h-full">
+          <div className="flex items-center justify-between w-auto sm:w-full shrink-0 mb-0 sm:mb-4">
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-500 group-hover:text-white">
+              <IconComponent className="h-4 w-4 sm:h-6 sm:w-6" />
+            </div>
+            <ArrowRight className="hidden sm:block h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+          </div>
+          <div className="min-w-0 flex-1 flex flex-col overflow-hidden h-full sm:h-auto">
+            <h3 className="text-base sm:text-xl font-bold tracking-tight mb-1 sm:mb-2 leading-snug line-clamp-2 sm:line-clamp-none shrink-0 group-hover:text-primary transition-colors">
+              {app.name}
+            </h3>
+            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed overflow-y-auto sm:overflow-visible max-h-[4.875em] sm:max-h-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {app.description}
+            </p>
+          </div>
+        </div>
+      </SpotlightCard>
+    </Link>
+  )
+}
+
+function AppsGrid({ items }: { items: AppConfig[] }) {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+      {items.map((app) => (
+        <AppCard key={app.slug} app={app} />
+      ))}
+    </div>
+  )
+}
+
 export default function HomePage() {
   const { theme, setTheme } = useTheme()
+  const academicApps = apps.filter((app) => app.type === 'academic')
+  const otherApps = apps.filter((app) => app.type !== 'academic')
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
       {/* --- Ambient Background --- */}
@@ -128,39 +176,22 @@ export default function HomePage() {
       </section>
 
       {/* Apps Grid */}
-      <section id="apps" className="container mx-auto px-4 py-12 md:py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {apps.map((app) => {
-            const IconComponent = app.icon
-            const isExternal = app.slug.startsWith('http')
-            const href = isExternal ? app.slug : app.slug ? `/${app.slug}` : '/'
+      <section id="apps" className="mx-auto w-full max-w-5xl px-6 md:px-8 py-12 md:py-16 relative z-10 space-y-12">
+        <AppsGrid items={academicApps} />
 
-            return (
-              <Link
-                key={app.slug}
-                href={href}
-                target={isExternal ? '_blank' : undefined}
-                rel={isExternal ? 'noopener noreferrer' : undefined}
-                className="group relative block h-full"
-              >
-                <SpotlightCard className="h-full p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:border-blue-500/50 hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-500 group-hover:text-white">
-                      <IconComponent className="h-6 w-6" />
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
-                  </div>
-                  <h3 className="text-xl font-bold tracking-tight mb-2 group-hover:text-primary transition-colors">
-                    {app.name}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {app.description}
-                  </p>
-                </SpotlightCard>
-              </Link>
-            )
-          })}
-        </div>
+        {otherApps.length > 0 && (
+          <>
+            <div className="flex items-center gap-4" role="separator" aria-label="More apps">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                More apps
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <AppsGrid items={otherApps} />
+          </>
+        )}
       </section>
 
       {/* Footer */}
