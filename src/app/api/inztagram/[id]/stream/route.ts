@@ -124,12 +124,25 @@ If the message includes a "Selected SVG element context" section, prioritize edi
       }),
       onFinish: async ({ object }) => {
         try {
-          const svg = sanitizeSvg(object?.svg || '<svg></svg>');
+          let rawSvg = object?.svg || '<svg></svg>';
+          if (rawSvg.toLowerCase().includes('<svg') && !rawSvg.toLowerCase().includes('</svg>')) {
+            rawSvg += '</svg>';
+          }
+          
+          let svg = '';
+          try {
+            svg = sanitizeSvg(rawSvg, false);
+          } catch (sanitizeErr) {
+            console.error("Failed to strictly sanitize SVG on server, saving raw:", sanitizeErr);
+            svg = rawSvg; // Fallback to raw if sanitize fails, client will still sanitize on render
+          }
+
           const summary = object?.summary || (isInitial ? 'Generated diagram' : 'Updated diagram');
           
           let nextMessages = [...priorMessages];
           if (isInitial) {
-             nextMessages.push({ role: 'assistant', content: freeformAssistantSeedMessage(object?.title || diagram.description || 'Diagram'), createdAt: new Date().toISOString() });
+             const titleNode = object?.title || diagram.description || 'Diagram';
+             nextMessages.push({ role: 'assistant', content: freeformAssistantSeedMessage(titleNode), createdAt: new Date().toISOString() });
           } else {
              if (message) {
                 nextMessages.push({ role: 'user', content: message, createdAt: new Date().toISOString() });

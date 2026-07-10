@@ -53,10 +53,20 @@ export function SvgArtifact({
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRootRef = useRef<SVGSVGElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   /** Live DOM nodes keyed by selectionKey for multi-select bounding boxes */
   const selectedElsRef = useRef<Map<string, SVGElement>>(new Map());
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
+  const onAttachmentsChangeRef = useRef(onAttachmentsChange);
+  onAttachmentsChangeRef.current = onAttachmentsChange;
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [svgMounted, setSvgMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const panzoomRef = useRef<ReturnType<typeof panzoom> | null>(null);
   const initialTransformRef = useRef<{ x: number; y: number; scale: number } | null>(null);
@@ -122,8 +132,8 @@ export function SvgArtifact({
   }, [svg, isStreaming]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !safeSvg) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !safeSvg) return;
 
     let root: Element | null = null;
     if (isStreaming) {
@@ -144,9 +154,7 @@ export function SvgArtifact({
     }
 
     if (!root || root.tagName.toLowerCase() !== 'svg') {
-      if (!isStreaming) {
-        setRenderError('Rendered SVG root not found');
-      }
+      if (!isStreaming) setRenderError('Rendered SVG root not found');
       return;
     }
 
@@ -154,141 +162,149 @@ export function SvgArtifact({
 
     try {
       const svgElem = document.importNode(root, true) as unknown as SVGSVGElement;
-
-      // Now that we have a valid new SVG, it's safe to clear the old one
-      // @ts-ignore
-      if (container.__panzoomInstance) {
-        // @ts-ignore
-        container.__panzoomInstance.dispose();
-        // @ts-ignore
-        container.__panzoomInstance = null;
-      }
-      container.innerHTML = '';
-
       svgElem.style.maxWidth = '100%';
       svgElem.style.height = 'auto';
       svgElem.style.display = 'block';
       svgElem.style.cursor = 'crosshair';
-      container.appendChild(svgElem);
-      prepareSvgForSelection(svgElem);
-      svgRootRef.current = svgElem;
-      setRenderError(null);
-
-      const instance = panzoom(svgElem as unknown as HTMLElement, {
-        zoomDoubleClickSpeed: 1,
-        maxZoom: 10,
-        minZoom: 0.1,
-        bounds: false,
-      });
-      // @ts-ignore
-      container.__panzoomInstance = instance;
-      panzoomRef.current = instance;
-      const transform = instance.getTransform();
-      initialTransformRef.current = { x: transform.x, y: transform.y, scale: transform.scale };
-
-      const onTransform = () => {
-        refreshBoxes();
-        setHoverBox(null);
-      };
-      instance.on('transform', onTransform);
-
-      const onPointerDown = () => {
-        pointerDownTransformRef.current = JSON.stringify(instance.getTransform());
-      };
-
-      const onPointerMove = (e: PointerEvent) => {
-        if (loadingRef.current) return;
-        if (e.buttons === 1) {
-          setHoverBox(null);
-          return;
-        }
-        const hit = findSelectableElementAtPoint(e.clientX, e.clientY, svgElem);
-        if (!hit) {
-          setHoverBox(null);
-          return;
-        }
-        const key = selectionKey(describeElement(hit));
-        if (selectedElsRef.current.has(key)) {
-          setHoverBox(null);
-          return;
-        }
-        setHoverBox(getRelativeBox(hit, container));
-      };
-
-      const onPointerLeave = () => {
-        setHoverBox(null);
-      };
-
-      const onPointerUp = (e: PointerEvent) => {
-        if (loadingRef.current || !onAttachmentsChange) return;
-        if (e.pointerType === 'mouse' && e.button !== 0) return; // Only left click for mouse
-
-        const before = pointerDownTransformRef.current;
-        const after = JSON.stringify(instance.getTransform());
-        if (before && before !== after) return;
-
-        const hit = findSelectableElementAtPoint(e.clientX, e.clientY, svgElem);
-        if (!hit) {
-          // Empty canvas: clear all attachments
-          selectedElsRef.current.clear();
-          setSelectedBoxes([]);
-          setHoverBox(null);
-          onAttachmentsChange([]);
-          return;
-        }
-
-        e.stopPropagation();
-        const desc = describeElement(hit);
-        const key = selectionKey(desc);
-        const current = attachmentsRef.current;
-        const exists = current.some((a) => selectionKey(a) === key);
-
-        if (exists) {
-          selectedElsRef.current.delete(key);
-          onAttachmentsChange(current.filter((a) => selectionKey(a) !== key));
-        } else {
-          selectedElsRef.current.set(key, hit);
-          onAttachmentsChange([...current, desc]);
-        }
-        setHoverBox(null);
-        requestAnimationFrame(() => refreshBoxes());
-      };
-
-      svgElem.addEventListener('pointerdown', onPointerDown);
-      container.addEventListener('pointermove', onPointerMove);
-      container.addEventListener('pointerleave', onPointerLeave);
-      svgElem.addEventListener('pointerup', onPointerUp);
-
-      return () => {
-        try {
-          // @ts-ignore
-          if (typeof instance.off === 'function') instance.off('transform', onTransform);
-        } catch {
-          // ignore
-        }
-        svgElem.removeEventListener('pointerdown', onPointerDown);
-        container.removeEventListener('pointermove', onPointerMove);
-        container.removeEventListener('pointerleave', onPointerLeave);
-        svgElem.removeEventListener('pointerup', onPointerUp);
-        instance.dispose();
-        panzoomRef.current = null;
-        initialTransformRef.current = null;
-        svgRootRef.current = null;
-        selectedElsRef.current.clear();
-        // @ts-ignore
-        if (container.__panzoomInstance) {
-          // @ts-ignore
-          container.__panzoomInstance = null;
-        }
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
-      };
+      
+      const existingRoot = svgRootRef.current;
+      if (existingRoot && wrapper.contains(existingRoot)) {
+        // Fast path: update existing SVG to preserve DOM state
+        Array.from(svgElem.attributes).forEach(attr => {
+          if (attr.name !== 'style' && attr.name !== 'transform' && existingRoot.getAttribute(attr.name) !== attr.value) {
+             existingRoot.setAttribute(attr.name, attr.value);
+          }
+        });
+        existingRoot.innerHTML = svgElem.innerHTML;
+        prepareSvgForSelection(existingRoot);
+        setRenderError(null);
+      } else {
+        // First time or recovery
+        wrapper.innerHTML = '';
+        wrapper.appendChild(svgElem);
+        prepareSvgForSelection(svgElem);
+        svgRootRef.current = svgElem;
+        setRenderError(null);
+        setSvgMounted(true);
+      }
     } catch (e: any) {
       setRenderError(e?.message || 'Failed to mount SVG');
       svgRootRef.current = null;
     }
-  }, [safeSvg, refreshBoxes, onAttachmentsChange]);
+  }, [safeSvg, isStreaming]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const svgElem = svgRootRef.current;
+    if (!container || !svgElem || !svgMounted) return;
+
+    const instance = panzoom(svgElem as unknown as HTMLElement, {
+      zoomDoubleClickSpeed: 1,
+      maxZoom: 10,
+      minZoom: 0.1,
+      bounds: false,
+    });
+    // @ts-ignore
+    container.__panzoomInstance = instance;
+    panzoomRef.current = instance;
+    const transform = instance.getTransform();
+    initialTransformRef.current = { x: transform.x, y: transform.y, scale: transform.scale };
+
+    const onTransform = () => {
+      refreshBoxes();
+      setHoverBox(null);
+    };
+    instance.on('transform', onTransform);
+
+    const onPointerDown = () => {
+      pointerDownTransformRef.current = JSON.stringify(instance.getTransform());
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (loadingRef.current) return;
+      if (e.buttons === 1) {
+        setHoverBox(null);
+        return;
+      }
+      const hit = findSelectableElementAtPoint(e.clientX, e.clientY, svgElem);
+      if (!hit) {
+        setHoverBox(null);
+        return;
+      }
+      const key = selectionKey(describeElement(hit));
+      if (selectedElsRef.current.has(key)) {
+        setHoverBox(null);
+        return;
+      }
+      setHoverBox(getRelativeBox(hit, container));
+    };
+
+    const onPointerLeave = () => {
+      setHoverBox(null);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      const onAttachmentsChange = onAttachmentsChangeRef.current;
+      if (loadingRef.current || !onAttachmentsChange) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return; // Only left click for mouse
+
+      const before = pointerDownTransformRef.current;
+      const after = JSON.stringify(instance.getTransform());
+      if (before && before !== after) return;
+
+      const hit = findSelectableElementAtPoint(e.clientX, e.clientY, svgElem);
+      if (!hit) {
+        selectedElsRef.current.clear();
+        setSelectedBoxes([]);
+        setHoverBox(null);
+        onAttachmentsChange([]);
+        return;
+      }
+
+      e.stopPropagation();
+      const desc = describeElement(hit);
+      const key = selectionKey(desc);
+      const current = attachmentsRef.current;
+      const exists = current.some((a) => selectionKey(a) === key);
+
+      if (exists) {
+        selectedElsRef.current.delete(key);
+        onAttachmentsChange(current.filter((a) => selectionKey(a) !== key));
+      } else {
+        selectedElsRef.current.set(key, hit);
+        onAttachmentsChange([...current, desc]);
+      }
+      setHoverBox(null);
+      requestAnimationFrame(() => refreshBoxes());
+    };
+
+    svgElem.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerleave', onPointerLeave);
+    svgElem.addEventListener('pointerup', onPointerUp);
+
+    return () => {
+      try {
+        // @ts-ignore
+        if (typeof instance.off === 'function') instance.off('transform', onTransform);
+      } catch {
+      }
+      svgElem.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerleave', onPointerLeave);
+      svgElem.removeEventListener('pointerup', onPointerUp);
+      instance.dispose();
+      panzoomRef.current = null;
+      initialTransformRef.current = null;
+      svgRootRef.current = null;
+      selectedElsRef.current.clear();
+      // @ts-ignore
+      if (container.__panzoomInstance) {
+        // @ts-ignore
+        container.__panzoomInstance = null;
+      }
+    };
+  }, [refreshBoxes, svgMounted]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -511,7 +527,9 @@ export function SvgArtifact({
               ref={containerRef}
               className="relative w-full flex-1 flex justify-center items-center overflow-hidden p-4 min-h-[200px]"
               style={{ position: 'relative' }}
+              suppressHydrationWarning
             >
+              {isMounted && <div ref={wrapperRef} className="w-full h-full flex items-center justify-center origin-top-left outline-none"></div>}
               {hoverBox && (
                 <div
                   className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-sky-400/80 bg-sky-400/10"

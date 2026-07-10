@@ -19,7 +19,13 @@ Layout & coordinates:
 - Pick a viewBox that fits the content density (see adaptive detail rules). Set width="100%" height="100%" on the root svg.
 - At least 24-40px padding below titles before content boxes; more breathing room for sparse diagrams, tighter but non-overlapping packing for dense ones.
 - Align columns mathematically. Calculate rect x as center - width/2.
-- Draw order: connectors, then cards, then text. Do NOT draw a large rect to act as a background canvas (leave the background completely transparent).
+- EXTREMELY IMPORTANT DRAW ORDER (Z-INDEX): SVG uses painter's algorithm. You MUST output elements in this exact order: 
+  1) All lines/connectors/arrows FIRST (so they are at the bottom).
+  2) All shapes/cards/rects SECOND (so they cover the lines).
+  3) All text/labels THIRD (so they are on top of everything).
+  Do NOT put lines last, otherwise they will cross over the shapes!
+- Do NOT draw a large rect to act as a background canvas (leave the background completely transparent).
+- Extremely precise layout math is REQUIRED. Ensure that every single line exactly meets the border of the box it connects to. Arrows must touch the perimeter of the box, not stop short or overlap into the box.
 
 Typography:
 - font-family="Inter, Helvetica Neue, Arial, sans-serif" on a top-level <g>.
@@ -31,7 +37,7 @@ Safety & validity:
 - Output a single self-contained <svg>...</svg> document fragment (with xmlns).
 - No markdown fences, no explanations outside JSON fields.
 - No <script>, no event handlers (onclick etc.), no external URLs, no foreignObject with HTML, no iframes.
-- Prefer emoji as simple icons inside <text> when helpful (settings, shield, money, cloud, database icons).
+- NEVER use emojis anywhere in the diagram (no emojis in text, titles, or labels). Use pure SVG shapes if an icon is needed.
 `;
 
 /**
@@ -210,7 +216,7 @@ export function getRandomFreeformPrompt(): string {
 
 /** Generation knobs for freeform create (balanced creativity + room for dense SVG). */
 export const FREEFORM_GENERATION_CONFIG = {
-  temperature: 0.75,
+  temperature: 0.5,
   topP: 0.9,
   topK: 50,
   maxOutputTokens: 24576,

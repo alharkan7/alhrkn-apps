@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { Button } from '@/components/ui/button';
@@ -87,11 +87,20 @@ export function FreeformDiagramViewer({
   });
 
   const isStreaming = isLoading;
-  const displayedSvg = (isStreaming && object?.svg) ? object.svg : svg;
+  const displayedSvg = object?.svg || svg;
+
+  // Sync final object state into svg when stream finishes (in case onFinish was skipped or delayed)
+  useEffect(() => {
+    if (!isStreaming && object?.svg) {
+      setSvg(object.svg);
+    }
+  }, [isStreaming, object]);
 
   // Trigger initial generation if initialSvg is empty
+  const hasTriggeredInitial = useRef(false);
   useEffect(() => {
-    if (!initialSvg && !isLoading && (!object || !object.svg)) {
+    if (!initialSvg && !isLoading && (!object || !object.svg) && !hasTriggeredInitial.current) {
+       hasTriggeredInitial.current = true;
        submit({ message: '', isInitial: true });
     }
   }, [initialSvg, isLoading, submit, object]);
