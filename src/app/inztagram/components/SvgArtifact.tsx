@@ -14,6 +14,8 @@ import {
   MousePointer2,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Save,
 } from 'lucide-react';
 import panzoom from 'panzoom';
 import { toPng } from 'html-to-image';
@@ -44,6 +46,9 @@ interface SvgArtifactProps {
   hasNext?: boolean;
   onPreviousVersion?: () => void;
   onNextVersion?: () => void;
+  showAutoImprove?: boolean;
+  onAutoImprove?: (dataUrl: string) => void;
+  onLocalSave?: (newSvg: string) => Promise<void>;
 }
 
 export function SvgArtifact({
@@ -59,6 +64,9 @@ export function SvgArtifact({
   hasNext,
   onPreviousVersion,
   onNextVersion,
+  showAutoImprove,
+  onAutoImprove,
+  onLocalSave,
 }: SvgArtifactProps) {
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +101,10 @@ export function SvgArtifact({
 
   const [hoverBox, setHoverBox] = useState<BoxRect | null>(null);
   const [selectedBoxes, setSelectedBoxes] = useState<BoxRect[]>([]);
+
+  const [editingText, setEditingText] = useState<{ element: SVGElement; left: number; top: number; width: number; height: number; value: string } | null>(null);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const [isSavingLocal, setIsSavingLocal] = useState(false);
 
   const refreshBoxes = useCallback(() => {
     const container = containerRef.current;
@@ -213,6 +225,39 @@ export function SvgArtifact({
       maxZoom: 10,
       minZoom: 0.1,
       bounds: false,
+      onDoubleClick: (e: Event) => {
+        if (loadingRef.current) return false;
+        const mouseEvent = e as MouseEvent;
+        let hit = findSelectableElementAtPoint(mouseEvent.clientX, mouseEvent.clientY, svgElem);
+        
+        if (hit && hit.tagName.toLowerCase() === 'tspan' && hit.parentElement?.tagName.toLowerCase() === 'text') {
+          hit = hit.parentElement as unknown as SVGElement;
+        }
+
+        if (hit && (hit.tagName.toLowerCase() === 'text' || hit.tagName.toLowerCase() === 'tspan')) {
+          const box = getRelativeBox(hit, container);
+          if (box) {
+            let extractedValue = '';
+            const tspans = Array.from(hit.querySelectorAll('tspan'));
+            if (tspans.length > 0) {
+              extractedValue = tspans.map(t => t.textContent || '').join('\n');
+            } else {
+              extractedValue = hit.textContent || '';
+            }
+
+            setEditingText({
+              element: hit,
+              left: box.left,
+              top: box.top,
+              width: Math.max(150, box.width + 20),
+              height: Math.max(40, box.height + 10),
+              value: extractedValue,
+            });
+          }
+          return true; // prevent zoom and let us edit
+        }
+        return false;
+      }
     });
     // @ts-ignore
     container.__panzoomInstance = instance;
@@ -411,6 +456,76 @@ export function SvgArtifact({
     trackDownload('svg');
   };
 
+  const handleAutoImprove = () => {
+    handleResetZoom();
+    setTimeout(() => {
+      if (!containerRef.current) return;
+      const svgElem = containerRef.current.querySelector('svg');
+      if (!svgElem) return;
+      toPng(svgElem as unknown as HTMLElement, { backgroundColor: '#ffffff' }).then((dataUrl) => {
+        onAutoImprove?.(dataUrl);
+      });
+    }, 50);
+  };
+
+  const handleTextEditComplete = (newValue: string) => {
+    if (!editingText) return;
+    const textEl = editingText.element;
+    
+    let currentValue = '';
+    const tspans = Array.from(textEl.querySelectorAll('tspan'));
+    if (tspans.length > 0) {
+      currentValue = tspans.map(t => t.textContent || '').join('\n');
+    } else {
+      currentValue = textEl.textContent || '';
+    }
+
+    if (currentValue !== newValue) {
+      const lines = newValue.split('\n');
+      if (lines.length === 1 && tspans.length === 0) {
+        textEl.textContent = lines[0];
+      } else {
+        let baseX = textEl.getAttribute('x') || '0';
+        if (tspans.length > 0 && tspans[0].hasAttribute('x')) {
+          baseX = tspans[0].getAttribute('x')!;
+        }
+        
+        const firstDy = tspans.length > 0 ? tspans[0].getAttribute('dy') : null;
+        const firstY = tspans.length > 0 ? tspans[0].getAttribute('y') : null;
+
+        textEl.innerHTML = '';
+        lines.forEach((line, i) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.textContent = line;
+          tspan.setAttribute('x', baseX);
+          if (i === 0) {
+            if (firstDy) tspan.setAttribute('dy', firstDy);
+            if (firstY) tspan.setAttribute('y', firstY);
+          } else {
+            tspan.setAttribute('dy', '1.2em');
+          }
+          textEl.appendChild(tspan);
+        });
+      }
+      setHasLocalChanges(true);
+    }
+    setEditingText(null);
+  };
+
+  const handleLocalSaveSubmit = async () => {
+    if (!svgRootRef.current || !onLocalSave) return;
+    setIsSavingLocal(true);
+    try {
+      const newSvgStr = svgRootRef.current.outerHTML;
+      await onLocalSave(newSvgStr);
+      setHasLocalChanges(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingLocal(false);
+    }
+  };
+
   return (
     <div
       ref={fullscreenRef}
@@ -428,6 +543,18 @@ export function SvgArtifact({
             )}
           </div>
           <div className="flex items-center gap-1 ml-auto">
+            {(hasLocalChanges || showAutoImprove) && (
+              hasLocalChanges ? (
+                <Button variant="default" size="sm" onClick={handleLocalSaveSubmit} disabled={isSavingLocal} className="mr-2 h-8 gap-1.5 px-3">
+                  {isSavingLocal ? <LoaderCircle className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                  <span className="hidden sm:inline">Save</span>
+                </Button>
+              ) : (
+                <Button variant="default" size="sm" onClick={handleAutoImprove} disabled={loading} className="mr-2 h-8 gap-1.5 px-3">
+                  <Sparkles className="size-3.5" /> <span className="hidden sm:inline">Auto Improve</span>
+                </Button>
+              )
+            )}
             {hasPrevious !== undefined && (
               <>
                 <Button variant="secondary" size="icon" aria-label="Previous version" onClick={onPreviousVersion} disabled={!hasPrevious}>
@@ -574,6 +701,31 @@ export function SvgArtifact({
                   }}
                 />
               ))}
+              {editingText && (
+                <div
+                  className="absolute z-50 flex"
+                  style={{
+                    left: editingText.left - 10,
+                    top: editingText.top - 10,
+                  }}
+                >
+                  <textarea
+                    autoFocus
+                    defaultValue={editingText.value}
+                    onBlur={(e) => handleTextEditComplete(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleTextEditComplete(e.currentTarget.value);
+                      }
+                      if (e.key === 'Escape') setEditingText(null);
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="border border-primary shadow-lg bg-background text-foreground text-sm px-2 py-1 outline-none min-w-[150px] min-h-[40px] rounded resize-both"
+                    style={{ width: Math.max(150, editingText.width), height: Math.max(40, editingText.height) }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </CardContent>

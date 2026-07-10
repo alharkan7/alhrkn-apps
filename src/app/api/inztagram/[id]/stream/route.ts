@@ -34,7 +34,21 @@ export async function POST(
     }
 
     const body = await req.json();
-    const message = typeof body.message === 'string' ? body.message.trim() : '';
+    let message = typeof body.message === 'string' ? body.message.trim() : '';
+
+    let isAutoImprove = false;
+    let autoImproveImage = '';
+    
+    if (message.startsWith('{') && message.includes('"action":"auto_improve"')) {
+      try {
+        const payload = JSON.parse(message);
+        if (payload.action === 'auto_improve') {
+          isAutoImprove = true;
+          autoImproveImage = payload.image;
+          message = 'Please analyze the attached image of the current diagram and the SVG code, and improve the diagram aesthetically and structurally (fix overlaps, improve contrast, optimize layout). Return the updated SVG.';
+        }
+      } catch (e) {}
+    }
 
     const [diagram] = await db
       .select()
@@ -111,18 +125,19 @@ Return the full updated SVG and a one-sentence summary of the change.
 If the message includes a "Selected SVG element context" section, prioritize editing those elements. Preserve unrelated parts of the diagram unless the request requires a broader change.`;
     }
 
-    const result = await streamObject({
+    const streamConfig: any = {
       model: google('gemini-2.5-flash'),
       system: systemInstruction,
-      prompt: promptText,
       schema: z.object({
         svg: z.string().describe('The raw SVG code. Must be complete and well-formed.'),
         title: z.string().optional().describe('Short title for the diagram'),
         summary: z.string().optional().describe('A one-sentence summary of what you generated or changed.'),
       }),
-      onFinish: async ({ object }) => {
-        try {
-          let rawSvg = object?.svg || '<svg></svg>';
+      onFinish: ({ object }: any) => {
+        // Run DB updates asynchronously without blocking the stream closure
+        (async () => {
+          try {
+            let rawSvg = object?.svg || '<svg></svg>';
           if (rawSvg.toLowerCase().includes('<svg') && !rawSvg.toLowerCase().includes('</svg>')) {
             rawSvg += '</svg>';
           }
@@ -162,8 +177,25 @@ If the message includes a "Selected SVG element context" section, prioritize edi
         } catch (e) {
           console.error("Failed to save stream result to DB", e);
         }
+        })();
       }
-    });
+    };
+
+    if (isAutoImprove && autoImproveImage) {
+      streamConfig.messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: promptText },
+            { type: 'image', image: new URL(autoImproveImage) }
+          ]
+        }
+      ];
+    } else {
+      streamConfig.prompt = promptText;
+    }
+
+    const result = await streamObject(streamConfig);
 
     return result.toTextStreamResponse();
   } catch (error: any) {

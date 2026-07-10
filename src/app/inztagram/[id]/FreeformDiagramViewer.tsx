@@ -64,6 +64,7 @@ export function FreeformDiagramViewer({
       : (initialSvg ? [{ svgCode: initialSvg, createdAt: new Date() }] : [])
   );
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
+  const [hasAutoImproved, setHasAutoImproved] = useState(false);
 
   // Setup streaming
   const { object, submit, isLoading } = useObject({
@@ -127,11 +128,18 @@ export function FreeformDiagramViewer({
     if (!message.trim() || isStreaming) return;
     setError(null);
 
+    let isAutoImprove = false;
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed.action === 'auto_improve') isAutoImprove = true;
+    } catch(e){}
+
     const atts = attachmentOverride ?? attachments;
     const apiMessage =
-      atts.length > 0 ? buildMultiTargetedEditMessage(message, atts) : message;
-    const displayMessage =
-      atts.length > 0 ? buildAttachmentsDisplayMessage(message, atts) : message;
+      (atts.length > 0 && !isAutoImprove) ? buildMultiTargetedEditMessage(message, atts) : message;
+    const displayMessage = isAutoImprove
+      ? "Auto Improve Diagram"
+      : (atts.length > 0 ? buildAttachmentsDisplayMessage(message, atts) : message);
 
     const optimisticUser: InztagramMessage = {
       role: 'user',
@@ -150,6 +158,14 @@ export function FreeformDiagramViewer({
     setChatMinimized(false);
     void handleSend(SVG_AUTO_FIX_MESSAGE, []);
   };
+
+  const handleAutoImprove = useCallback((dataUrl: string) => {
+    if (isStreaming) return;
+    setHasAutoImproved(true);
+    setChatMinimized(false);
+    const payload = JSON.stringify({ action: 'auto_improve', image: dataUrl });
+    void handleSend(payload);
+  }, [isStreaming, handleSend]);
 
   const handleAttachmentsChange = useCallback((next: SvgElementSelection[]) => {
     setAttachments(next);
@@ -224,6 +240,27 @@ export function FreeformDiagramViewer({
               hasNext={currentVersionIndex > 0}
               onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
               onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
+              showAutoImprove={versions.length <= 1 && !hasAutoImproved && !isStreaming && !!displayedSvg}
+              onAutoImprove={handleAutoImprove}
+              onLocalSave={async (newSvg) => {
+                try {
+                  const res = await fetch(`/api/inztagram/${id}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ svg: newSvg }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.svg) {
+                      setSvg(data.svg);
+                      setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
+                      setCurrentVersionIndex(0);
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error saving local edits:', e);
+                }
+              }}
             />
           </div>
 
