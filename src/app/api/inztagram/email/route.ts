@@ -20,16 +20,25 @@ export async function POST(req: Request) {
       hour12: false
     }).replace(',', '');
 
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const sheetId = process.env.GOOGLE_SHEETS_ID_PAPERMAP_EMAIL;
+
+    // Download tracking is optional; never fail the download UX if Sheets is not configured
+    if (!privateKey || !clientEmail || !sheetId) {
+      console.warn('Skipping email download log: missing Google Sheets credentials');
+      return NextResponse.json({ message: 'Skipped' }, { status: 200 });
+    }
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        private_key: (process.env.GOOGLE_PRIVATE_KEY as string).replace(/\\n/g, '\n'),
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: privateKey.replace(/\\n/g, '\n'),
+        client_email: clientEmail,
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-    const sheetId = process.env.GOOGLE_SHEETS_ID_PAPERMAP_EMAIL;
     const range = 'Email Downloads!A:D';
 
     // Use fileName if present, otherwise use description (user's query), fallback to 'Unknown'

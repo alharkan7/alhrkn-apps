@@ -159,11 +159,18 @@ export const dnanalyzerDataBoolean = pgTable('dnanalyzer_data_boolean', {
 export const inztagramDiagrams = pgTable('inztagram_diagrams', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
+  mode: text('mode').notNull().default('mermaid').$type<'mermaid' | 'freeform'>(),
   description: text('description'),
   diagramType: text('diagram_type'),
   pdfUrl: text('pdf_url'),
   pdfName: text('pdf_name'),
-  mermaidCode: text('mermaid_code').notNull(),
+  mermaidCode: text('mermaid_code'),
+  svgCode: text('svg_code'),
+  messages: jsonb('messages').$type<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    createdAt?: string;
+  }>>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });

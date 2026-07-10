@@ -5,6 +5,16 @@ import { jsonrepair } from 'jsonrepair';
 import { db } from '@/db';
 import { inztagramDiagrams } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {
+  FREEFORM_SYSTEM_PROMPT,
+  FREEFORM_GENERATION_CONFIG,
+  buildFreeformUserPrompt,
+  freeformAssistantSeedMessage,
+  sanitizeDiagramTitle,
+} from '../../inztagram/lib/svg-diagram-prompt';
+import { getFreeformLayout } from '../../inztagram/components/freeform-layouts';
+import { sanitizeSvg } from '../../inztagram/lib/sanitize-svg';
+import type { InztagramMessage, InztagramMode } from '../../inztagram/lib/types';
 
 if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
   throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
@@ -33,7 +43,7 @@ const STYLING_GUIDELINES = `Styling requirements:
 - Never use script/style tags, inline event handlers, iframes, or external resources.
 - Keep output fully valid Mermaid syntax for the selected diagram type.`;
 
-const responseSchema = {
+const mermaidResponseSchema = {
   type: SchemaType.OBJECT,
   properties: {
     diagramType: { type: SchemaType.STRING },
@@ -41,6 +51,170 @@ const responseSchema = {
   },
   required: ["diagramType", "code"]
 };
+
+const freeformResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    svg: { type: SchemaType.STRING },
+    title: { type: SchemaType.STRING },
+    detailLevel: { type: SchemaType.STRING },
+  },
+  required: ["svg"]
+};
+
+function parseModelJson(responseText: string): any {
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    const match = responseText.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        return JSON.parse(jsonrepair(match[0]));
+      }
+    }
+    return JSON.parse(jsonrepair(responseText));
+  }
+}
+
+async function buildPdfPart(pdfUrl: string) {
+  const pdfResponse = await fetch(pdfUrl);
+  if (!pdfResponse.ok) {
+    throw new Error(`Failed to download PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
+  }
+  const pdfBuffer = await pdfResponse.arrayBuffer();
+  const base64Data = Buffer.from(pdfBuffer).toString('base64');
+  return { inlineData: { mimeType: 'application/pdf', data: base64Data } };
+}
+
+async function generateMermaid(params: {
+  description?: string;
+  diagramType?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+}) {
+  const { description, diagramType, pdfUrl, pdfName } = params;
+
+  let examplesSection = '';
+  if (diagramType) {
+    const found = DIAGRAM_TYPES.find(t => t.value === diagramType);
+    if (found) {
+      examplesSection = `Example (${found.label}):\n${found.example.trim()}`;
+    }
+  } else {
+    examplesSection = DIAGRAM_TYPES.map(t => `Example (${t.label}):\n${t.example.trim()}`).join('\n\n');
+  }
+
+  let verifymethodNote = '';
+  if (!diagramType || diagramType === 'requirementDiagram') {
+    verifymethodNote = `\n\n${REQUIREMENT_VERIF_METHODS_NOTE}`;
+  }
+
+  const SYSTEM_PROMPT = `You are an expert in Mermaid.js diagrams. Given a natural language description, output a JSON object with two fields: { "diagramType": string, "code": string }. The diagramType must be one of the following: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (e.g., 'graph TD', 'timeline', etc.), as in the examples below. Do not include code fences or any extra text. Output ONLY the JSON object.\n\n${REQUIREMENT_VERIF_METHODS_NOTE}\n\n${STYLING_GUIDELINES}\n\n${examplesSection}`;
+
+  let prompt: string;
+  if (diagramType) {
+    prompt = `Diagram type: ${diagramType}\nDescription: ${description || pdfName || 'PDF'}\n\nOutput ONLY a JSON object: {\n  "diagramType": "${diagramType}",\n  "code": "..."\n}\nThe code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see example). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
+  } else {
+    prompt = `Description: ${description || pdfName || 'PDF'}\n\nChoose the best diagram type from this list: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. Output ONLY a JSON object: {\n  "diagramType": "...",\n  "code": "..."\n}\nThe diagramType must be one of the allowed types. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see examples). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
+  }
+
+  const contentParts: any[] = [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }];
+  if (pdfUrl) {
+    contentParts.push(await buildPdfPart(pdfUrl));
+  }
+
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: contentParts }],
+    generationConfig: {
+      temperature: 0.7,
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 8192,
+      responseMimeType: "application/json",
+      responseSchema: mermaidResponseSchema as any
+    }
+  });
+
+  const responseText = result.response.text().trim();
+  let parsed: any;
+  try {
+    parsed = parseModelJson(responseText);
+  } catch {
+    return { error: 'Failed to parse model response as JSON', raw: responseText, status: 500 as const };
+  }
+
+  const allowedTypes = DIAGRAM_TYPES.map(t => t.value);
+  if (!parsed.diagramType || !allowedTypes.includes(parsed.diagramType)) {
+    return { error: 'Invalid or missing diagramType in model response', raw: responseText, status: 500 as const };
+  }
+
+  let code = String(parsed.code || '').trim();
+  if (code.startsWith("```mermaid")) code = code.slice(9).trim();
+  if (code.startsWith("```")) code = code.slice(3).trim();
+  if (code.endsWith("```")) code = code.slice(0, -3).trim();
+
+  return { code, diagramType: parsed.diagramType as string };
+}
+
+async function generateFreeform(params: {
+  description?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  layout?: string;
+}) {
+  const { description, pdfUrl, pdfName, layout } = params;
+  const userBrief = description || pdfName || 'Create a clear diagram from the attached PDF.';
+  const layoutPreset = getFreeformLayout(layout);
+  const prompt = buildFreeformUserPrompt(userBrief, {
+    fromPdf: Boolean(pdfUrl),
+    layoutInstructions: layoutPreset?.instructions,
+    layoutLabel: layoutPreset?.label,
+  });
+
+  const contentParts: any[] = [{ text: `${FREEFORM_SYSTEM_PROMPT}\n\n${prompt}` }];
+  if (pdfUrl) {
+    contentParts.push(await buildPdfPart(pdfUrl));
+  }
+
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: contentParts }],
+    generationConfig: {
+      ...FREEFORM_GENERATION_CONFIG,
+      responseMimeType: "application/json",
+      responseSchema: freeformResponseSchema as any
+    }
+  });
+
+  const responseText = result.response.text().trim();
+  let parsed: any;
+  try {
+    parsed = parseModelJson(responseText);
+  } catch {
+    return { error: 'Failed to parse freeform model response as JSON', raw: responseText, status: 500 as const };
+  }
+
+  if (!parsed.svg || typeof parsed.svg !== 'string') {
+    return { error: 'Missing svg in model response', raw: responseText, status: 500 as const };
+  }
+
+  let svg: string;
+  try {
+    svg = sanitizeSvg(parsed.svg);
+  } catch (e: any) {
+    return { error: e?.message || 'Invalid SVG from model', raw: responseText, status: 500 as const };
+  }
+
+  return {
+    svg,
+    title: sanitizeDiagramTitle(parsed.title),
+    detailLevel:
+      typeof parsed.detailLevel === 'string' && /^(simple|standard|rich)$/i.test(parsed.detailLevel.trim())
+        ? parsed.detailLevel.trim().toLowerCase()
+        : undefined,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +229,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { description, diagramType, pdfUrl, pdfName } = body;
+    const { description, diagramType, pdfUrl, pdfName, layout } = body;
+    const mode: InztagramMode = body.mode === 'mermaid' ? 'mermaid' : 'freeform';
+
     if (!description && !pdfUrl) {
       return new Response(JSON.stringify({ error: 'Missing description or pdfUrl' }), {
         status: 400,
@@ -63,116 +239,98 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Build examples for the prompt
-    let examplesSection = '';
-    if (diagramType) {
-      // Only the example for the selected type
-      const found = DIAGRAM_TYPES.find(t => t.value === diagramType);
-      if (found) {
-        examplesSection = `Example (${found.label}):\n${found.example.trim()}`;
+    if (mode === 'freeform') {
+      const freeform = await generateFreeform({
+        description,
+        pdfUrl,
+        pdfName,
+        layout: typeof layout === 'string' ? layout : undefined,
+      });
+      if ('error' in freeform) {
+        return new Response(JSON.stringify({ error: freeform.error, raw: freeform.raw }), {
+          status: freeform.status,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
-    } else {
-      // All examples
-      examplesSection = DIAGRAM_TYPES.map(t => `Example (${t.label}):\n${t.example.trim()}`).join('\n\n');
-    }
 
-    // Add verifymethod note if type is requirementDiagram or not specified (auto)
-    let verifymethodNote = '';
-    if (!diagramType || diagramType === 'requirementDiagram') {
-      verifymethodNote = `\n\n${REQUIREMENT_VERIF_METHODS_NOTE}`;
-    }
+      const now = new Date().toISOString();
+      const shortTitle = freeform.title;
+      const seedMessages: InztagramMessage[] = [
+        {
+          role: 'user',
+          content: description || (pdfName ? `Create diagram from ${pdfName}` : 'Create diagram from PDF'),
+          createdAt: now,
+        },
+        {
+          role: 'assistant',
+          content: freeformAssistantSeedMessage(shortTitle),
+          createdAt: now,
+        },
+      ];
 
-    const SYSTEM_PROMPT = `You are an expert in Mermaid.js diagrams. Given a natural language description, output a JSON object with two fields: { "diagramType": string, "code": string }. The diagramType must be one of the following: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (e.g., 'graph TD', 'timeline', etc.), as in the examples below. Do not include code fences or any extra text. Output ONLY the JSON object.\n\n${REQUIREMENT_VERIF_METHODS_NOTE}\n\n${STYLING_GUIDELINES}\n\n${examplesSection}`;
-
-    let prompt;
-    if (diagramType) {
-      prompt = `Diagram type: ${diagramType}\nDescription: ${description || pdfName || 'PDF'}\n\nOutput ONLY a JSON object: {\n  "diagramType": "${diagramType}",\n  "code": "..."\n}\nThe code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see example). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
-    } else {
-      prompt = `Description: ${description || pdfName || 'PDF'}\n\nChoose the best diagram type from this list: [${DIAGRAM_TYPES.map(t => t.value).join(', ')}]. Output ONLY a JSON object: {\n  "diagramType": "...",\n  "code": "..."\n}\nThe diagramType must be one of the allowed types. The code must be a valid Mermaid.js diagram, starting with the diagram type declaration (see examples). Do not include code fences or any explanations.\n\nApply these style constraints:\n${STYLING_GUIDELINES}\n\n${examplesSection}${verifymethodNote}`;
-    }
-
-    const contentParts: any[] = [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }];
-    if (pdfUrl) {
-      const pdfResponse = await fetch(pdfUrl);
-      if (!pdfResponse.ok) {
-        throw new Error(`Failed to download PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
+      let insertedId: string | null = null;
+      try {
+        const [newRecord] = await db.insert(inztagramDiagrams).values({
+          userId: user.id,
+          mode: 'freeform',
+          // Prefer user prompt for history title; never store model essay as description
+          description: description || shortTitle || null,
+          diagramType: null,
+          pdfUrl: pdfUrl || null,
+          pdfName: pdfName || null,
+          mermaidCode: null,
+          svgCode: freeform.svg,
+          messages: seedMessages,
+        }).returning({ id: inztagramDiagrams.id });
+        insertedId = newRecord.id;
+      } catch (dbError) {
+        console.error('Failed to record freeform diagram to DB:', dbError);
       }
-      const pdfBuffer = await pdfResponse.arrayBuffer();
-      const base64Data = Buffer.from(pdfBuffer).toString('base64');
-      contentParts.push({ inlineData: { mimeType: 'application/pdf', data: base64Data } });
-    }
 
-    const result = await model.generateContent({
-      contents: [
-        { role: 'user', parts: contentParts },
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema as any
-      }
-    });
-
-    let responseText = result.response.text().trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(responseText);
-    } catch {
-      // Try to extract JSON from text
-      const match = responseText.match(/\{[\s\S]*\}/);
-      if (match) {
-        try {
-          parsed = JSON.parse(match[0]);
-        } catch {
-          parsed = JSON.parse(jsonrepair(match[0]));
-        }
-      } else {
-        // Fallback: try jsonrepair on the whole string directly
-        try {
-          parsed = JSON.parse(jsonrepair(responseText));
-        } catch {
-          return new Response(JSON.stringify({ error: 'Failed to parse model response as JSON', raw: responseText }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-      }
-    }
-    // Validate diagramType
-    const allowedTypes = DIAGRAM_TYPES.map(t => t.value);
-    if (!parsed.diagramType || !allowedTypes.includes(parsed.diagramType)) {
-      return new Response(JSON.stringify({ error: 'Invalid or missing diagramType in model response', raw: responseText }), {
-        status: 500,
+      return new Response(JSON.stringify({
+        id: insertedId,
+        mode: 'freeform',
+        svg: freeform.svg,
+        title: shortTitle,
+      }), {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    // Remove code cleaning logic that strips the diagram type declaration
-    let code = parsed.code.trim();
-    if (code.startsWith("```mermaid")) code = code.slice(9).trim();
-    if (code.startsWith("```")) code = code.slice(3).trim();
-    if (code.endsWith("```")) code = code.slice(0, -3).trim();
-    // Do NOT strip the diagram type declaration anymore
 
-    // Record to database
-    let insertedId = null;
+    // Mermaid path
+    const mermaid = await generateMermaid({ description, diagramType, pdfUrl, pdfName });
+    if ('error' in mermaid) {
+      return new Response(JSON.stringify({ error: mermaid.error, raw: mermaid.raw }), {
+        status: mermaid.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let insertedId: string | null = null;
     try {
       const [newRecord] = await db.insert(inztagramDiagrams).values({
         userId: user.id,
+        mode: 'mermaid',
         description: description || null,
-        diagramType: parsed.diagramType,
+        diagramType: mermaid.diagramType,
         pdfUrl: pdfUrl || null,
         pdfName: pdfName || null,
-        mermaidCode: code,
+        mermaidCode: mermaid.code,
+        svgCode: null,
+        messages: [],
       }).returning({ id: inztagramDiagrams.id });
       insertedId = newRecord.id;
     } catch (dbError) {
-      console.error('Failed to record diagram to DB:', dbError);
+      console.error('Failed to record mermaid diagram to DB:', dbError);
     }
 
-    return new Response(JSON.stringify({ id: insertedId, code, diagramType: parsed.diagramType }), {
+    return new Response(JSON.stringify({
+      id: insertedId,
+      mode: 'mermaid',
+      code: mermaid.code,
+      diagramType: mermaid.diagramType,
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -183,4 +341,4 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-} 
+}

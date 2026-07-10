@@ -27,6 +27,7 @@ export async function GET(request: Request) {
         description: true,
         pdfName: true,
         diagramType: true,
+        mode: true,
         createdAt: true,
       }
     });

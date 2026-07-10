@@ -6,7 +6,7 @@ import { RotateCcw, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './diagram-types';
 import panzoom from 'panzoom';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetTrigger, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toPng, toJpeg } from 'html-to-image';
 
 interface MermaidRendererProps {
@@ -306,6 +306,9 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                             <SheetContent side="right" className="w-[90vw] max-w-xl">
                                 <SheetHeader>
                                     <SheetTitle>Edit Diagram Text</SheetTitle>
+                                    <SheetDescription>
+                                        Edit the Mermaid source. Changes update the preview live.
+                                    </SheetDescription>
                                 </SheetHeader>
                                 <textarea
                                     value={editableCode}

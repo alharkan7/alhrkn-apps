@@ -1,7 +1,7 @@
 'use client';
 
 import { HistorySidebar } from '@/components/history-sidebar';
-import { Network, Activity, GitBranch, Share2, Workflow, Database, Layers, LayoutTemplate, Box, Map, Clock } from 'lucide-react';
+import { Network, Activity, GitBranch, Share2, Workflow, Database, Layers, LayoutTemplate, Box, Map, Clock, PenTool } from 'lucide-react';
 
 export function InztagramHistorySidebar() {
   return (
@@ -12,6 +12,9 @@ export function InztagramHistorySidebar() {
       emptyMessage="No previous diagrams found."
       onRenderTitle={(item) => item.pdfName || item.description || 'Untitled Diagram'}
       onRenderIcon={(item) => {
+        if (item.mode === 'freeform') {
+          return <PenTool size={16} className="text-indigo-500" />;
+        }
         switch (item.diagramType) {
           case 'flowchart': return <Workflow size={16} className="text-blue-500" />;
           case 'sequence': return <Share2 size={16} className="text-purple-500" />;

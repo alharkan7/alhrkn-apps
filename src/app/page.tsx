@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Github, Twitter, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 
 function AppCard({ app }: { app: AppConfig }) {
   const IconComponent = app.icon

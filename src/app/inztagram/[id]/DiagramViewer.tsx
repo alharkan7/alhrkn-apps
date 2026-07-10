@@ -5,7 +5,7 @@ import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { MermaidRenderer } from "../components/MermaidRenderer";
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -32,27 +32,32 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
         <AppsHeader
           leftButton={(
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary" aria-label="Create new diagram">
-                  <Plus className="size-5" /> New
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Create New Diagram?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Make sure you have saved your current diagram. It will be erased.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {
-                    router.push('/inztagram');
-                  }}>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleInztagramHistorySidebar'))}>
+                <Menu size={20} />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="secondary" aria-label="Create new diagram">
+                    <Plus className="size-5" /> New
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Create New Diagram?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Make sure you have saved your current diagram. It will be erased.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => {
+                      router.push('/inztagram');
+                    }}>Continue</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
         />
       </div>
