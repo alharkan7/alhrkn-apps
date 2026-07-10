@@ -112,9 +112,7 @@ If the message includes a "Selected SVG element context" section, prioritize edi
     }
 
     const result = await streamObject({
-      model: google('gemini-2.5-flash', {
-        useSearchGrounding: false
-      }),
+      model: google('gemini-2.5-flash'),
       system: systemInstruction,
       prompt: promptText,
       schema: z.object({
