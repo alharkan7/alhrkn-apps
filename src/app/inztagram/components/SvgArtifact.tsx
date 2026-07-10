@@ -207,8 +207,10 @@ export function SvgArtifact({
         setHoverBox(null);
       };
 
-      const onClick = (e: MouseEvent) => {
+      const onPointerUp = (e: PointerEvent) => {
         if (loadingRef.current || !onAttachmentsChange) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return; // Only left click for mouse
+
         const before = pointerDownTransformRef.current;
         const after = JSON.stringify(instance.getTransform());
         if (before && before !== after) return;
@@ -243,7 +245,7 @@ export function SvgArtifact({
       svgElem.addEventListener('pointerdown', onPointerDown);
       container.addEventListener('pointermove', onPointerMove);
       container.addEventListener('pointerleave', onPointerLeave);
-      svgElem.addEventListener('click', onClick);
+      svgElem.addEventListener('pointerup', onPointerUp);
 
       return () => {
         try {
@@ -255,7 +257,7 @@ export function SvgArtifact({
         svgElem.removeEventListener('pointerdown', onPointerDown);
         container.removeEventListener('pointermove', onPointerMove);
         container.removeEventListener('pointerleave', onPointerLeave);
-        svgElem.removeEventListener('click', onClick);
+        svgElem.removeEventListener('pointerup', onPointerUp);
         instance.dispose();
         panzoomRef.current = null;
         initialTransformRef.current = null;
