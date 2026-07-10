@@ -41,6 +41,7 @@ interface FreeformDiagramViewerProps {
   initialMessages: InztagramMessage[];
   initialDescription?: string | null;
   fileName?: string | null;
+  initialVersions?: { svgCode: string | null, createdAt: Date }[];
 }
 
 export function FreeformDiagramViewer({
@@ -49,6 +50,7 @@ export function FreeformDiagramViewer({
   initialMessages,
   initialDescription,
   fileName,
+  initialVersions,
 }: FreeformDiagramViewerProps) {
   const router = useRouter();
   const [svg, setSvg] = useState(initialSvg || '');
@@ -56,6 +58,12 @@ export function FreeformDiagramViewer({
   const [error, setError] = useState<string | null>(null);
   const [chatMinimized, setChatMinimized] = useState(false);
   const [attachments, setAttachments] = useState<SvgElementSelection[]>([]);
+  const [versions, setVersions] = useState<{svgCode: string | null, createdAt: Date}[]>(
+    initialVersions && initialVersions.length > 0
+      ? initialVersions
+      : (initialSvg ? [{ svgCode: initialSvg, createdAt: new Date() }] : [])
+  );
+  const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
 
   // Setup streaming
   const { object, submit, isLoading } = useObject({
@@ -68,6 +76,8 @@ export function FreeformDiagramViewer({
     onFinish: (result) => {
       if (result.object?.svg) {
         setSvg(result.object.svg);
+        setVersions(prev => [{ svgCode: result.object!.svg, createdAt: new Date() }, ...prev]);
+        setCurrentVersionIndex(0);
       }
       
       const isInitial = !initialSvg && messages.length === 1;
@@ -87,7 +97,7 @@ export function FreeformDiagramViewer({
   });
 
   const isStreaming = isLoading;
-  const displayedSvg = object?.svg || svg;
+  const displayedSvg = (isStreaming && object?.svg) ? object.svg : (versions[currentVersionIndex]?.svgCode || svg);
 
   // Sync final object state into svg when stream finishes (in case onFinish was skipped or delayed)
   useEffect(() => {
@@ -210,6 +220,10 @@ export function FreeformDiagramViewer({
               onAutoFix={handleAutoFixSvg}
               attachments={attachments}
               onAttachmentsChange={handleAttachmentsChange}
+              hasPrevious={currentVersionIndex < versions.length - 1}
+              hasNext={currentVersionIndex > 0}
+              onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
+              onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
             />
           </div>
 

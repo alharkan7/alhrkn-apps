@@ -1,6 +1,6 @@
 import { db } from "@/db"; // Force rebuild
-import { inztagramDiagrams } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { inztagramDiagrams, inztagramDiagramVersions } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { DiagramViewer } from "./DiagramViewer";
 import { FreeformDiagramViewer } from "./FreeformDiagramViewer";
 import { notFound } from "next/navigation";
@@ -25,6 +25,12 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
 
   if (diagram.mode === 'freeform') {
     // allow empty svgCode for streaming
+    
+    const versions = await db
+      .select({ svgCode: inztagramDiagramVersions.svgCode, createdAt: inztagramDiagramVersions.createdAt })
+      .from(inztagramDiagramVersions)
+      .where(eq(inztagramDiagramVersions.diagramId, id))
+      .orderBy(desc(inztagramDiagramVersions.createdAt));
 
     return (
       <FreeformDiagramViewer
@@ -33,6 +39,7 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
         initialMessages={(diagram.messages || []) as InztagramMessage[]}
         initialDescription={diagram.description}
         fileName={diagram.pdfName}
+        initialVersions={versions as { svgCode: string, createdAt: Date }[]}
       />
     );
   }

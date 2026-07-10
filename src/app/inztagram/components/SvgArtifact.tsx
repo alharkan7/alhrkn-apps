@@ -12,6 +12,8 @@ import {
   LoaderCircle,
   Wrench,
   MousePointer2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import panzoom from 'panzoom';
 import { toPng } from 'html-to-image';
@@ -38,6 +40,10 @@ interface SvgArtifactProps {
   /** Shortcut to ask AI to repair broken SVG markup. */
   onAutoFix?: () => void;
   isStreaming?: boolean;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
+  onPreviousVersion?: () => void;
+  onNextVersion?: () => void;
 }
 
 export function SvgArtifact({
@@ -49,6 +55,10 @@ export function SvgArtifact({
   onAttachmentsChange,
   onAutoFix,
   isStreaming = false,
+  hasPrevious,
+  hasNext,
+  onPreviousVersion,
+  onNextVersion,
 }: SvgArtifactProps) {
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +72,7 @@ export function SvgArtifact({
   onAttachmentsChangeRef.current = onAttachmentsChange;
 
   const [isMounted, setIsMounted] = useState(false);
-  const [svgMounted, setSvgMounted] = useState(false);
+  const [svgMountCount, setSvgMountCount] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -185,7 +195,7 @@ export function SvgArtifact({
         prepareSvgForSelection(svgElem);
         svgRootRef.current = svgElem;
         setRenderError(null);
-        setSvgMounted(true);
+        setSvgMountCount(c => c + 1);
       }
     } catch (e: any) {
       setRenderError(e?.message || 'Failed to mount SVG');
@@ -196,7 +206,7 @@ export function SvgArtifact({
   useEffect(() => {
     const container = containerRef.current;
     const svgElem = svgRootRef.current;
-    if (!container || !svgElem || !svgMounted) return;
+    if (!container || !svgElem || svgMountCount === 0) return;
 
     const instance = panzoom(svgElem as unknown as HTMLElement, {
       zoomDoubleClickSpeed: 1,
@@ -304,7 +314,7 @@ export function SvgArtifact({
         container.__panzoomInstance = null;
       }
     };
-  }, [refreshBoxes, svgMounted]);
+  }, [refreshBoxes, svgMountCount]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -418,6 +428,17 @@ export function SvgArtifact({
             )}
           </div>
           <div className="flex items-center gap-1 ml-auto">
+            {hasPrevious !== undefined && (
+              <>
+                <Button variant="secondary" size="icon" aria-label="Previous version" onClick={onPreviousVersion} disabled={!hasPrevious}>
+                  <ChevronLeft className="size-5" />
+                </Button>
+                <Button variant="secondary" size="icon" aria-label="Next version" onClick={onNextVersion} disabled={!hasNext}>
+                  <ChevronRight className="size-5" />
+                </Button>
+                <div className="w-px h-5 bg-border mx-1" />
+              </>
+            )}
             <Sheet open={codeOpen} onOpenChange={setCodeOpen}>
               <SheetTrigger asChild>
                 <Button variant="secondary" size="icon" aria-label="View SVG code">

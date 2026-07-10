@@ -178,6 +178,18 @@ export const inztagramDiagrams = pgTable('inztagram_diagrams', {
 export type InztagramDiagram = typeof inztagramDiagrams.$inferSelect;
 export type NewInztagramDiagram = typeof inztagramDiagrams.$inferInsert;
 
+export const inztagramDiagramVersions = pgTable('inztagram_diagram_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  diagramId: uuid('diagram_id').notNull().references(() => inztagramDiagrams.id, { onDelete: 'cascade' }),
+  svgCode: text('svg_code'),
+  mermaidCode: text('mermaid_code'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export type InztagramDiagramVersion = typeof inztagramDiagramVersions.$inferSelect;
+export type NewInztagramDiagramVersion = typeof inztagramDiagramVersions.$inferInsert;
+
+
 // --- Outliner Tables ---
 
 export const outlinerEvents = pgTable('outliner_events', {

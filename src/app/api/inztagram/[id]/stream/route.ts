@@ -3,7 +3,7 @@ import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
 import { db } from '@/db';
-import { inztagramDiagrams } from '@/db/schema';
+import { inztagramDiagrams, inztagramDiagramVersions } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
@@ -155,6 +155,12 @@ If the message includes a "Selected SVG element context" section, prioritize edi
             messages: nextMessages,
             updatedAt: new Date(),
           }).where(and(eq(inztagramDiagrams.id, id), eq(inztagramDiagrams.userId, user.id)));
+
+          await db.insert(inztagramDiagramVersions).values({
+            diagramId: id,
+            svgCode: svg,
+            mermaidCode: null,
+          });
         } catch (e) {
           console.error("Failed to save stream result to DB", e);
         }
