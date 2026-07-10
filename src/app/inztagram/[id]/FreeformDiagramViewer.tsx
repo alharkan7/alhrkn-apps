@@ -28,13 +28,16 @@ import {
 } from '../lib/svg-selection';
 import { cn } from '@/lib/utils';
 
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { z } from 'zod';
+
 /** Chat shortcut when SVG preview fails to parse/render. */
 export const SVG_AUTO_FIX_MESSAGE =
   'The SVG failed to render in the browser (invalid or malformed markup). Please repair the current SVG so it is valid, well-formed XML that displays correctly. Preserve the intended diagram content, layout, and visual style as much as possible. Fix unclosed tags, bad attributes, broken paths, and any parse errors. Return a complete valid SVG.';
 
 interface FreeformDiagramViewerProps {
   id: string;
-  initialSvg: string;
+  initialSvg: string | null;
   initialMessages: InztagramMessage[];
   initialDescription?: string | null;
   fileName?: string | null;
@@ -48,12 +51,50 @@ export function FreeformDiagramViewer({
   fileName,
 }: FreeformDiagramViewerProps) {
   const router = useRouter();
-  const [svg, setSvg] = useState(initialSvg);
+  const [svg, setSvg] = useState(initialSvg || '');
   const [messages, setMessages] = useState<InztagramMessage[]>(initialMessages || []);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatMinimized, setChatMinimized] = useState(false);
   const [attachments, setAttachments] = useState<SvgElementSelection[]>([]);
+
+  // Setup streaming
+  const { object, submit, isLoading } = useObject({
+    api: `/api/inztagram/${id}/stream`,
+    schema: z.object({
+      svg: z.string(),
+      title: z.string().optional(),
+      summary: z.string().optional()
+    }),
+    onFinish: (result) => {
+      if (result.object?.svg) {
+        setSvg(result.object.svg);
+      }
+      
+      const isInitial = !initialSvg && messages.length === 1;
+      let summary = result.object?.summary || 'Updated diagram';
+      
+      if (isInitial && result.object?.title) {
+         summary = `I have generated the diagram: ${result.object.title}`;
+      } else if (isInitial) {
+         summary = 'Generated diagram';
+      }
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: summary, createdAt: new Date().toISOString() }]);
+    },
+    onError: (e) => {
+      setError(e.message || 'Failed to generate diagram');
+    }
+  });
+
+  const isStreaming = isLoading;
+  const displayedSvg = (isStreaming && object?.svg) ? object.svg : svg;
+
+  // Trigger initial generation if initialSvg is empty
+  useEffect(() => {
+    if (!initialSvg && !isLoading && (!object || !object.svg)) {
+       submit({ message: '', isInitial: true });
+    }
+  }, [initialSvg, isLoading, submit, object]);
 
   // New diagram content → drop stale element attachments
   useEffect(() => {
@@ -64,8 +105,7 @@ export function FreeformDiagramViewer({
     message: string,
     attachmentOverride?: SvgElementSelection[]
   ) => {
-    if (!message.trim() || loading) return;
-    setLoading(true);
+    if (!message.trim() || isStreaming) return;
     setError(null);
 
     const atts = attachmentOverride ?? attachments;
@@ -79,33 +119,15 @@ export function FreeformDiagramViewer({
       content: displayMessage,
       createdAt: new Date().toISOString(),
     };
+    
     setMessages((prev) => [...prev, optimisticUser]);
     setAttachments([]);
-
-    try {
-      const res = await fetch(`/api/inztagram/${id}/edit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: apiMessage }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMessages((prev) => prev.filter((m) => m !== optimisticUser));
-        setError(data.error || 'Failed to update diagram');
-        return;
-      }
-      setSvg(data.svg);
-      setMessages(data.messages || []);
-    } catch (e: any) {
-      setMessages((prev) => prev.filter((m) => m !== optimisticUser));
-      setError(e?.message || 'Failed to update diagram');
-    } finally {
-      setLoading(false);
-    }
+    
+    submit({ message: apiMessage, isInitial: false });
   };
 
   const handleAutoFixSvg = () => {
-    if (loading) return;
+    if (isStreaming) return;
     setChatMinimized(false);
     void handleSend(SVG_AUTO_FIX_MESSAGE, []);
   };
@@ -171,8 +193,9 @@ export function FreeformDiagramViewer({
         >
           <div className="flex-1 min-h-[200px] min-w-0 overflow-hidden lg:h-full lg:min-h-0">
             <SvgArtifact
-              svg={svg}
-              loading={loading}
+              svg={displayedSvg}
+              loading={isStreaming}
+              isStreaming={isStreaming}
               fileName={fileName || undefined}
               description={initialDescription || undefined}
               onAutoFix={handleAutoFixSvg}
@@ -191,7 +214,7 @@ export function FreeformDiagramViewer({
           >
             <FreeformChatPanel
               messages={messages}
-              loading={loading}
+              loading={isStreaming}
               onSend={handleSend}
               error={error}
               minimized={chatMinimized}

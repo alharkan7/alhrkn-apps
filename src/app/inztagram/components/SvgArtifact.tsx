@@ -37,6 +37,7 @@ interface SvgArtifactProps {
   onAttachmentsChange?: (next: SvgElementSelection[]) => void;
   /** Shortcut to ask AI to repair broken SVG markup. */
   onAutoFix?: () => void;
+  isStreaming?: boolean;
 }
 
 export function SvgArtifact({
@@ -47,6 +48,7 @@ export function SvgArtifact({
   attachments = [],
   onAttachmentsChange,
   onAutoFix,
+  isStreaming = false,
 }: SvgArtifactProps) {
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,49 +105,48 @@ export function SvgArtifact({
 
   useEffect(() => {
     try {
-      setSafeSvg(sanitizeSvg(svg));
+      setSafeSvg(sanitizeSvg(svg, isStreaming));
       setRenderError(null);
-      selectedElsRef.current.clear();
-      setSelectedBoxes([]);
-      setHoverBox(null);
+      if (!isStreaming) {
+        selectedElsRef.current.clear();
+        setSelectedBoxes([]);
+        setHoverBox(null);
+      }
       // Parent should also clear attachments when svg string changes
     } catch (e: any) {
       setSafeSvg('');
-      setRenderError(e?.message || 'Failed to sanitize SVG');
+      setRenderError(isStreaming ? null : (e?.message || 'Failed to sanitize SVG'));
       selectedElsRef.current.clear();
       setSelectedBoxes([]);
     }
-  }, [svg]);
+  }, [svg, isStreaming]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !safeSvg) return;
 
-    // @ts-ignore
-    if (container.__panzoomInstance) {
-      // @ts-ignore
-      container.__panzoomInstance.dispose();
-      // @ts-ignore
-      container.__panzoomInstance = null;
-    }
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(safeSvg, 'image/svg+xml');
-    const parseError = doc.querySelector('parsererror');
-    if (parseError) {
-      const detail = parseError.textContent?.trim().slice(0, 160);
-      setRenderError(detail ? `Invalid SVG markup: ${detail}` : 'Invalid SVG markup');
-      svgRootRef.current = null;
-      return;
+    let root: Element | null = null;
+    if (isStreaming) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(safeSvg, 'text/html');
+      root = doc.querySelector('svg');
+    } else {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(safeSvg, 'image/svg+xml');
+      const parseError = doc.querySelector('parsererror');
+      if (parseError) {
+        const detail = parseError.textContent?.trim().slice(0, 160);
+        setRenderError(detail ? `Invalid SVG markup: ${detail}` : 'Invalid SVG markup');
+        svgRootRef.current = null;
+        return;
+      }
+      root = doc.documentElement;
     }
 
-    const root = doc.documentElement;
     if (!root || root.tagName.toLowerCase() !== 'svg') {
-      setRenderError('Rendered SVG root not found');
-      svgRootRef.current = null;
+      if (!isStreaming) {
+        setRenderError('Rendered SVG root not found');
+      }
       return;
     }
 
@@ -153,6 +154,17 @@ export function SvgArtifact({
 
     try {
       const svgElem = document.importNode(root, true) as unknown as SVGSVGElement;
+
+      // Now that we have a valid new SVG, it's safe to clear the old one
+      // @ts-ignore
+      if (container.__panzoomInstance) {
+        // @ts-ignore
+        container.__panzoomInstance.dispose();
+        // @ts-ignore
+        container.__panzoomInstance = null;
+      }
+      container.innerHTML = '';
+
       svgElem.style.maxWidth = '100%';
       svgElem.style.height = 'auto';
       svgElem.style.display = 'block';
@@ -381,11 +393,11 @@ export function SvgArtifact({
       <Card className={isFullscreen ? 'w-full h-full shadow-lg flex flex-col max-w-none' : 'w-full h-full shadow-lg flex flex-col min-h-0'}>
         <div className="flex items-center justify-between p-2 border-b shrink-0">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-2">
-            <span>Freeform SVG</span>
+            <span>Freeform Diagram</span>
             {!renderError && (
               <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground/80">
                 <MousePointer2 className="size-3" />
-                Click to attach elements
+                Click to Select Elements
               </span>
             )}
           </div>
@@ -457,9 +469,9 @@ export function SvgArtifact({
         </div>
         <CardContent className="p-0 flex-1 relative min-h-[280px] md:min-h-0 flex flex-col">
           {loading && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm gap-2">
-              <LoaderCircle className="size-8 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Updating diagram…</span>
+            <div className="absolute top-4 right-4 z-20 flex items-center bg-background/90 backdrop-blur-sm border rounded-full px-3 py-1.5 shadow-sm gap-2">
+              <LoaderCircle className="size-4 animate-spin text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">{isStreaming ? 'Drawing...' : 'Updating diagram...'}</span>
             </div>
           )}
           {renderError ? (

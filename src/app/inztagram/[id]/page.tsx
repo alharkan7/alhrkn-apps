@@ -24,9 +24,8 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
   }
 
   if (diagram.mode === 'freeform') {
-    if (!diagram.svgCode) {
-      notFound();
-    }
+    // allow empty svgCode for streaming
+
     return (
       <FreeformDiagramViewer
         id={diagram.id}

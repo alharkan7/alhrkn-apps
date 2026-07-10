@@ -20,13 +20,19 @@ const ALLOWED_TAGS = new Set([
 const EVENT_ATTR = /^on/i;
 const URL_ATTRS = new Set(['href', 'xlink:href', 'src']);
 
-export function extractSvg(raw: string): string | null {
+export function extractSvg(raw: string, allowPartial = false): string | null {
   if (!raw) return null;
   let text = raw.trim();
   // Strip markdown fences if present
   if (text.startsWith('```')) {
     text = text.replace(/^```(?:svg|xml|html)?\s*/i, '').replace(/```\s*$/i, '').trim();
   }
+  
+  if (allowPartial) {
+    const match = text.match(/<svg\b[\s\S]*/i);
+    return match ? match[0] : null;
+  }
+
   const match = text.match(/<svg\b[\s\S]*<\/svg>/i);
   return match ? match[0] : null;
 }
@@ -44,8 +50,8 @@ function isSafeUrl(value: string): boolean {
 /**
  * Lightweight SVG sanitizer without full DOM (works on server and client).
  */
-export function sanitizeSvg(input: string): string {
-  const extracted = extractSvg(input);
+export function sanitizeSvg(input: string, allowPartial = false): string {
+  const extracted = extractSvg(input, allowPartial);
   if (!extracted) {
     throw new Error('No valid <svg> element found in model output');
   }

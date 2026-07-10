@@ -19,12 +19,13 @@ Layout & coordinates:
 - Pick a viewBox that fits the content density (see adaptive detail rules). Set width="100%" height="100%" on the root svg.
 - At least 24-40px padding below titles before content boxes; more breathing room for sparse diagrams, tighter but non-overlapping packing for dense ones.
 - Align columns mathematically. Calculate rect x as center - width/2.
-- Draw order: background canvas rect, then connectors, then cards, then text.
+- Draw order: connectors, then cards, then text. Do NOT draw a large rect to act as a background canvas (leave the background completely transparent).
 
 Typography:
 - font-family="Inter, Helvetica Neue, Arial, sans-serif" on a top-level <g>.
 - Manually wrap text with multiple <text> / <tspan> lines (SVG has no auto wrap). ~13-14px body, ~18-22px titles, ~11-12px captions.
 - ~18-24px line height between wrapped lines. Prefer short labels; use a second line for subtitles rather than truncating meaning.
+- Any text label placed over lines/connectors MUST have a white background so it is readable. Achieve this by either placing a small <rect fill="#ffffff" rx="4"> exactly behind the text, or by applying a white outline halo directly to the <text> element using paint-order="stroke fill" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round".
 
 Safety & validity:
 - Output a single self-contained <svg>...</svg> document fragment (with xmlns).

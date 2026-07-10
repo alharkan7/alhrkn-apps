@@ -240,30 +240,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'freeform') {
-      const freeform = await generateFreeform({
-        description,
-        pdfUrl,
-        pdfName,
-        layout: typeof layout === 'string' ? layout : undefined,
-      });
-      if ('error' in freeform) {
-        return new Response(JSON.stringify({ error: freeform.error, raw: freeform.raw }), {
-          status: freeform.status,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
       const now = new Date().toISOString();
-      const shortTitle = freeform.title;
+      const shortTitle = description?.slice(0, 40) || pdfName || 'New Diagram';
+      
+      // Store the config as JSON in the first message so the stream endpoint can read it
       const seedMessages: InztagramMessage[] = [
         {
           role: 'user',
-          content: description || (pdfName ? `Create diagram from ${pdfName}` : 'Create diagram from PDF'),
-          createdAt: now,
-        },
-        {
-          role: 'assistant',
-          content: freeformAssistantSeedMessage(shortTitle),
+          content: JSON.stringify({ description, pdfUrl, pdfName, layout }),
           createdAt: now,
         },
       ];
@@ -273,24 +257,24 @@ export async function POST(req: NextRequest) {
         const [newRecord] = await db.insert(inztagramDiagrams).values({
           userId: user.id,
           mode: 'freeform',
-          // Prefer user prompt for history title; never store model essay as description
           description: description || shortTitle || null,
           diagramType: null,
           pdfUrl: pdfUrl || null,
           pdfName: pdfName || null,
           mermaidCode: null,
-          svgCode: freeform.svg,
+          svgCode: null, // Indicates it needs generation
           messages: seedMessages,
         }).returning({ id: inztagramDiagrams.id });
         insertedId = newRecord.id;
       } catch (dbError) {
         console.error('Failed to record freeform diagram to DB:', dbError);
+        return new Response(JSON.stringify({ error: 'Database error' }), { status: 500 });
       }
 
       return new Response(JSON.stringify({
         id: insertedId,
         mode: 'freeform',
-        svg: freeform.svg,
+        svg: null,
         title: shortTitle,
       }), {
         status: 200,
