@@ -16,9 +16,13 @@ import {
   ChevronRight,
   Sparkles,
   Save,
+  Copy,
+  Check,
 } from 'lucide-react';
 import panzoom from 'panzoom';
 import { toPng } from 'html-to-image';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { sanitizeSvg } from '../lib/sanitize-svg';
 import {
@@ -30,6 +34,30 @@ import {
   prepareSvgForSelection,
   selectionKey,
 } from '../lib/svg-selection';
+
+const formatXml = (xml: string) => {
+  const PADDING = '  ';
+  const reg = /(>)\s*(<)(\/*)/g;
+  let pad = 0;
+  let formatted = '';
+  xml = xml.replace(reg, '$1\r\n$2$3');
+  
+  xml.split('\r\n').forEach((node) => {
+    let indent = 0;
+    if (node.match(/.+<\/\w[^>]*>$/)) {
+      indent = 0;
+    } else if (node.match(/^<\/\w/) && pad > 0) {
+      pad -= 1;
+    } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+      indent = 1;
+    } else {
+      indent = 0;
+    }
+    formatted += PADDING.repeat(pad) + node + '\n';
+    pad += indent;
+  });
+  return formatted.trim();
+};
 
 interface SvgArtifactProps {
   svg: string;
@@ -101,10 +129,37 @@ export function SvgArtifact({
 
   const [hoverBox, setHoverBox] = useState<BoxRect | null>(null);
   const [selectedBoxes, setSelectedBoxes] = useState<BoxRect[]>([]);
-
   const [editingText, setEditingText] = useState<{ element: SVGElement; left: number; top: number; width: number; height: number; value: string } | null>(null);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const [isSavingLocal, setIsSavingLocal] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [editableCode, setEditableCode] = useState('');
+
+  useEffect(() => {
+    if (codeOpen && safeSvg && !hasLocalChanges) {
+      setEditableCode(formatXml(safeSvg));
+    }
+  }, [codeOpen]);
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCodeEdit = (newCode: string) => {
+    setEditableCode(newCode);
+    setHasLocalChanges(true);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      try {
+        setSafeSvg(sanitizeSvg(newCode, false));
+        setRenderError(null);
+      } catch (e: any) {
+        setRenderError(e?.message || 'Invalid SVG in code editor');
+      }
+    }, 400);
+  };
 
   const refreshBoxes = useCallback(() => {
     const container = containerRef.current;
@@ -513,12 +568,19 @@ export function SvgArtifact({
   };
 
   const handleLocalSaveSubmit = async () => {
-    if (!svgRootRef.current || !onLocalSave) return;
+    if (!onLocalSave) return;
     setIsSavingLocal(true);
     try {
-      const newSvgStr = svgRootRef.current.outerHTML;
-      await onLocalSave(newSvgStr);
-      setHasLocalChanges(false);
+      let newSvgStr = '';
+      if (codeOpen && editableCode) {
+        newSvgStr = editableCode;
+      } else if (svgRootRef.current) {
+        newSvgStr = svgRootRef.current.outerHTML;
+      }
+      if (newSvgStr) {
+        await onLocalSave(newSvgStr);
+        setHasLocalChanges(false);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -551,7 +613,7 @@ export function SvgArtifact({
                 </Button>
               ) : (
                 <Button variant="default" size="sm" onClick={handleAutoImprove} disabled={loading} className="mr-2 h-8 gap-1.5 px-3">
-                  <Sparkles className="size-3.5" /> <span className="hidden sm:inline">Auto Improve</span>
+                  <Sparkles className="size-3.5" /> <span className="hidden sm:inline">Improve</span>
                 </Button>
               )
             )}
@@ -573,17 +635,102 @@ export function SvgArtifact({
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[90vw] max-w-xl">
-                <SheetHeader>
-                  <SheetTitle>SVG Source</SheetTitle>
-                  <SheetDescription>
-                    Read-only SVG markup for this freeform diagram.
-                  </SheetDescription>
+                <SheetHeader className="text-left">
+                  <div className="flex items-start justify-between gap-4 pr-8">
+                    <div className="text-left">
+                      <SheetTitle className="text-left">SVG Source</SheetTitle>
+                      <SheetDescription className="text-left">
+                        Raw SVG markup for this freeform diagram.
+                      </SheetDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleLocalSaveSubmit}
+                        disabled={isSavingLocal || !hasLocalChanges}
+                        className="shrink-0 gap-1.5"
+                      >
+                        {isSavingLocal ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+                        <span>Save</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(editableCode);
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 2000);
+                        }}
+                        className="shrink-0 gap-1.5"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="size-4 text-green-500" />
+                            <span className="text-green-500">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </SheetHeader>
-                <textarea
-                  readOnly
-                  value={safeSvg}
-                  className="w-full h-[70vh] mt-4 p-2 border rounded bg-background text-foreground font-mono text-xs resize-vertical"
-                />
+                <div className="w-full h-[70vh] mt-4 relative rounded border bg-[#282c34]">
+                  <SyntaxHighlighter
+                    language="xml"
+                    style={oneDark}
+                    customStyle={{ 
+                      margin: 0, 
+                      padding: '1rem', 
+                      background: 'transparent', 
+                      pointerEvents: 'none', 
+                      width: '100%', 
+                      height: '100%', 
+                      overflow: 'hidden', 
+                      fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace', 
+                      fontSize: '13px',
+                      lineHeight: '1.5', 
+                      tabSize: 2,
+                      boxSizing: 'border-box'
+                    }}
+                    codeTagProps={{
+                      style: {
+                        fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace', 
+                        fontSize: '13px',
+                        lineHeight: '1.5',
+                      }
+                    }}
+                    wrapLines={false}
+                  >
+                    {editableCode}
+                  </SyntaxHighlighter>
+                  <textarea
+                    value={editableCode}
+                    onChange={(e) => handleCodeEdit(e.target.value)}
+                    onScroll={(e) => {
+                      const pre = e.currentTarget.previousElementSibling as HTMLElement;
+                      if (pre) {
+                        pre.scrollTop = e.currentTarget.scrollTop;
+                        pre.scrollLeft = e.currentTarget.scrollLeft;
+                      }
+                    }}
+                    spellCheck={false}
+                    className="absolute inset-0 w-full h-full p-[1rem] m-0 bg-transparent text-transparent caret-white resize-none outline-none overflow-auto whitespace-pre border-0 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+                    style={{ 
+                      fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace', 
+                      fontSize: '13px',
+                      lineHeight: '1.5', 
+                      tabSize: 2, 
+                      color: 'transparent',
+                      boxSizing: 'border-box',
+                      transform: 'translateY(1.5px)'
+                    }}
+                  />
+                </div>
               </SheetContent>
             </Sheet>
             <Button variant="secondary" size="icon" aria-label="Reset zoom" onClick={handleResetZoom}>
@@ -661,7 +808,7 @@ export function SvgArtifact({
                   ) : (
                     <>
                       <Wrench className="size-4" />
-                      Auto-fix with AI
+                      Auto-fix
                     </>
                   )}
                 </Button>

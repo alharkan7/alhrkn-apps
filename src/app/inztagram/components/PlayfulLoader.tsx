@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 const MESSAGES = [
-  "Analyzing your prompt...",
+  "Analyzing your input...",
   "Structuring the layout...",
   "Routing connectors neatly...",
   "Applying soft pastel styles...",
@@ -17,7 +17,7 @@ export function PlayfulLoader() {
   useEffect(() => {
     const interval = setInterval(() => {
       setMessageIndex((i) => Math.min(i + 1, MESSAGES.length - 1));
-    }, 6000);
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 
