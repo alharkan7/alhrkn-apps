@@ -211,7 +211,12 @@ export function describeElement(el: SVGElement): SvgElementSelection {
   while (cur && depth < 6) {
     const t = tagOf(cur);
     if (t !== 'svg') {
-      pathParts.unshift(cur.id ? `${t}#${cur.id}` : t);
+      let indexPart = '';
+      if (!cur.id && cur.parentElement) {
+        const idx = Array.from(cur.parentElement.children).indexOf(cur);
+        indexPart = `:nth-child(${idx + 1})`;
+      }
+      pathParts.unshift(cur.id ? `${t}#${cur.id}` : `${t}${indexPart}`);
     }
     cur = cur.parentElement;
     depth += 1;

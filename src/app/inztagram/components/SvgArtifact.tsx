@@ -534,11 +534,11 @@ export function SvgArtifact({
       <Card className={isFullscreen ? 'w-full h-full shadow-lg flex flex-col max-w-none' : 'w-full h-full shadow-lg flex flex-col min-h-0'}>
         <div className="flex items-center justify-between p-2 border-b shrink-0">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-2">
-            <span>Freeform Diagram</span>
+            <span>Diagram</span>
             {!renderError && (
               <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground/80">
                 <MousePointer2 className="size-3" />
-                Click to Select Elements
+                Click to Select
               </span>
             )}
           </div>

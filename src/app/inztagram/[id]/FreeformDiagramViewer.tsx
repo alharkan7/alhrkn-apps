@@ -19,6 +19,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { SvgArtifact } from '../components/SvgArtifact';
 import { FreeformChatPanel } from '../components/FreeformChatPanel';
+import { PlayfulLoader } from '../components/PlayfulLoader';
 import type { InztagramMessage } from '../lib/types';
 import type { SvgElementSelection } from '../lib/svg-selection';
 import {
@@ -65,6 +66,7 @@ export function FreeformDiagramViewer({
   );
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [hasAutoImproved, setHasAutoImproved] = useState(false);
+  const [isGeneratingSync, setIsGeneratingSync] = useState(false);
 
   // Setup streaming
   const { object, submit, isLoading } = useObject({
@@ -110,11 +112,30 @@ export function FreeformDiagramViewer({
   // Trigger initial generation if initialSvg is empty
   const hasTriggeredInitial = useRef(false);
   useEffect(() => {
-    if (!initialSvg && !isLoading && (!object || !object.svg) && !hasTriggeredInitial.current) {
+    if (!initialSvg && !isLoading && !isGeneratingSync && (!object || !object.svg) && !hasTriggeredInitial.current && !svg) {
        hasTriggeredInitial.current = true;
-       submit({ message: '', isInitial: true });
+       const useStream = process.env.NEXT_PUBLIC_DISABLE_FREEFORM_STREAM !== 'true';
+       if (useStream) {
+         submit({ message: '', isInitial: true });
+       } else {
+         setIsGeneratingSync(true);
+         fetch(`/api/inztagram/${id}/generate`, { method: 'POST' })
+           .then(res => res.json())
+           .then(data => {
+              if (data.svg) {
+                setSvg(data.svg);
+                setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
+                setCurrentVersionIndex(0);
+                setMessages(prev => [...prev, { role: 'assistant', content: 'Generated diagram', createdAt: new Date().toISOString() }]);
+              } else if (data.error) {
+                setError(data.error);
+              }
+           })
+           .catch(e => setError(e.message || 'Failed to generate diagram'))
+           .finally(() => setIsGeneratingSync(false));
+       }
     }
-  }, [initialSvg, isLoading, submit, object]);
+  }, [initialSvg, isLoading, isGeneratingSync, submit, object, id, svg]);
 
   // New diagram content → drop stale element attachments
   useEffect(() => {
@@ -227,41 +248,47 @@ export function FreeformDiagramViewer({
           )}
         >
           <div className="flex-1 min-h-[200px] min-w-0 overflow-hidden lg:h-full lg:min-h-0">
-            <SvgArtifact
-              svg={displayedSvg}
-              loading={isStreaming}
-              isStreaming={isStreaming}
-              fileName={fileName || undefined}
-              description={initialDescription || undefined}
-              onAutoFix={handleAutoFixSvg}
-              attachments={attachments}
-              onAttachmentsChange={handleAttachmentsChange}
-              hasPrevious={currentVersionIndex < versions.length - 1}
-              hasNext={currentVersionIndex > 0}
-              onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
-              onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
-              showAutoImprove={versions.length <= 1 && !hasAutoImproved && !isStreaming && !!displayedSvg}
-              onAutoImprove={handleAutoImprove}
-              onLocalSave={async (newSvg) => {
-                try {
-                  const res = await fetch(`/api/inztagram/${id}/save`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ svg: newSvg }),
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    if (data.svg) {
-                      setSvg(data.svg);
-                      setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
-                      setCurrentVersionIndex(0);
+            {isGeneratingSync ? (
+              <div className="w-full h-full border rounded-xl shadow-lg bg-card overflow-hidden">
+                <PlayfulLoader />
+              </div>
+            ) : (
+              <SvgArtifact
+                svg={displayedSvg}
+                loading={isStreaming}
+                isStreaming={isStreaming}
+                fileName={fileName || undefined}
+                description={initialDescription || undefined}
+                onAutoFix={handleAutoFixSvg}
+                attachments={attachments}
+                onAttachmentsChange={handleAttachmentsChange}
+                hasPrevious={currentVersionIndex < versions.length - 1}
+                hasNext={currentVersionIndex > 0}
+                onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
+                onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
+                showAutoImprove={versions.length <= 1 && !hasAutoImproved && !isStreaming && !!displayedSvg}
+                onAutoImprove={handleAutoImprove}
+                onLocalSave={async (newSvg) => {
+                  try {
+                    const res = await fetch(`/api/inztagram/${id}/save`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ svg: newSvg }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      if (data.svg) {
+                        setSvg(data.svg);
+                        setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
+                        setCurrentVersionIndex(0);
+                      }
                     }
+                  } catch (e) {
+                    console.error('Error saving local edits:', e);
                   }
-                } catch (e) {
-                  console.error('Error saving local edits:', e);
-                }
-              }}
-            />
+                }}
+              />
+            )}
           </div>
 
           <div

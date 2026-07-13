@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { DIAGRAM_TYPES } from '../../inztagram/components/diagram-types';
 import { jsonrepair } from 'jsonrepair';
 import { db } from '@/db';
-import { inztagramDiagrams } from '@/db/schema';
+import { inztagramDiagrams, inztagramDiagramVersions } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   FREEFORM_SYSTEM_PROMPT,
@@ -50,16 +50,6 @@ const mermaidResponseSchema = {
     code: { type: SchemaType.STRING }
   },
   required: ["diagramType", "code"]
-};
-
-const freeformResponseSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    svg: { type: SchemaType.STRING },
-    title: { type: SchemaType.STRING },
-    detailLevel: { type: SchemaType.STRING },
-  },
-  required: ["svg"]
 };
 
 function parseModelJson(responseText: string): any {
@@ -158,63 +148,7 @@ async function generateMermaid(params: {
   return { code, diagramType: parsed.diagramType as string };
 }
 
-async function generateFreeform(params: {
-  description?: string;
-  pdfUrl?: string;
-  pdfName?: string;
-  layout?: string;
-}) {
-  const { description, pdfUrl, pdfName, layout } = params;
-  const userBrief = description || pdfName || 'Create a clear diagram from the attached PDF.';
-  const layoutPreset = getFreeformLayout(layout);
-  const prompt = buildFreeformUserPrompt(userBrief, {
-    fromPdf: Boolean(pdfUrl),
-    layoutInstructions: layoutPreset?.instructions,
-    layoutLabel: layoutPreset?.label,
-  });
 
-  const contentParts: any[] = [{ text: `${FREEFORM_SYSTEM_PROMPT}\n\n${prompt}` }];
-  if (pdfUrl) {
-    contentParts.push(await buildPdfPart(pdfUrl));
-  }
-
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: contentParts }],
-    generationConfig: {
-      ...FREEFORM_GENERATION_CONFIG,
-      responseMimeType: "application/json",
-      responseSchema: freeformResponseSchema as any
-    }
-  });
-
-  const responseText = result.response.text().trim();
-  let parsed: any;
-  try {
-    parsed = parseModelJson(responseText);
-  } catch {
-    return { error: 'Failed to parse freeform model response as JSON', raw: responseText, status: 500 as const };
-  }
-
-  if (!parsed.svg || typeof parsed.svg !== 'string') {
-    return { error: 'Missing svg in model response', raw: responseText, status: 500 as const };
-  }
-
-  let svg: string;
-  try {
-    svg = sanitizeSvg(parsed.svg);
-  } catch (e: any) {
-    return { error: e?.message || 'Invalid SVG from model', raw: responseText, status: 500 as const };
-  }
-
-  return {
-    svg,
-    title: sanitizeDiagramTitle(parsed.title),
-    detailLevel:
-      typeof parsed.detailLevel === 'string' && /^(simple|standard|rich)$/i.test(parsed.detailLevel.trim())
-        ? parsed.detailLevel.trim().toLowerCase()
-        : undefined,
-  };
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -243,7 +177,6 @@ export async function POST(req: NextRequest) {
       const now = new Date().toISOString();
       const shortTitle = description?.slice(0, 40) || pdfName || 'New Diagram';
       
-      // Store the config as JSON in the first message so the stream endpoint can read it
       const seedMessages: InztagramMessage[] = [
         {
           role: 'user',

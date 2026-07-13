@@ -19,11 +19,12 @@ Layout & coordinates:
 - Pick a viewBox that fits the content density (see adaptive detail rules). Set width="100%" height="100%" on the root svg.
 - At least 24-40px padding below titles before content boxes; more breathing room for sparse diagrams, tighter but non-overlapping packing for dense ones.
 - Align columns mathematically. Calculate rect x as center - width/2.
-- EXTREMELY IMPORTANT DRAW ORDER (Z-INDEX): SVG uses painter's algorithm. You MUST output elements in this exact order: 
-  1) All lines/connectors/arrows FIRST (so they are at the bottom).
-  2) All shapes/cards/rects SECOND (so they cover the lines).
-  3) All text/labels THIRD (so they are on top of everything).
-  Do NOT put lines last, otherwise they will cross over the shapes!
+- EXTREMELY IMPORTANT DRAW ORDER (Z-INDEX): SVG uses the painter's algorithm. To ensure correct visibility across all diagram types, maintain this depth order (either globally or within your <g> layers):
+  1) Backgrounds (swimlanes, section wrappers, container shapes).
+  2) Lines/connectors/arrows (so they cross over backgrounds).
+  3) Foreground shapes/cards/nodes (so they cleanly hide the line endpoints).
+  4) Text/labels (always on absolute top so they are never obscured).
+- ROUTING & VISIBILITY: Ensure lines are routed clearly between nodes without passing underneath unrelated foreground shapes. Lines should be fully visible except for their exact endpoints where they neatly tuck under the target shape's border.
 - Do NOT draw a large rect to act as a background canvas (leave the background completely transparent).
 - Extremely precise layout math is REQUIRED. Ensure that every single line exactly meets the border of the box it connects to. Arrows must touch the perimeter of the box, not stop short or overlap into the box.
 

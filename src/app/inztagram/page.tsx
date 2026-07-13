@@ -31,6 +31,7 @@ export default function InztagramPage() {
   ) => {
     setLoading(true);
     setError(null);
+    const useStream = process.env.NEXT_PUBLIC_DISABLE_FREEFORM_STREAM !== 'true';
     try {
       const body: Record<string, unknown> = {
         mode,
@@ -40,11 +41,13 @@ export default function InztagramPage() {
               pdfName,
               diagramType: mode === 'mermaid' ? (type || undefined) : undefined,
               layout: mode === 'freeform' ? (freeformLayout || undefined) : undefined,
+              stream: mode === 'freeform' ? useStream : undefined,
             }
           : {
               description: value,
               diagramType: mode === 'mermaid' ? (type || undefined) : undefined,
               layout: mode === 'freeform' ? (freeformLayout || undefined) : undefined,
+              stream: mode === 'freeform' ? useStream : undefined,
             }),
       };
       const res = await fetch("/api/inztagram", {
@@ -57,9 +60,6 @@ export default function InztagramPage() {
         if (mode === 'mermaid' && (!data.code || !data.diagramType)) {
           setError("Diagram generated but response was incomplete.");
           return;
-        }
-        if (mode === 'freeform' && !data.svg) {
-          // id present is enough to navigate; svg may still be stored
         }
         router.push(`/inztagram/${data.id}`);
       } else if (res.ok && !data.id) {
