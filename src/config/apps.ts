@@ -59,13 +59,6 @@ export const apps: AppConfig[] = [
     type: 'academic'
   },
   {
-    name: 'Nusantara Timeline',
-    icon: Clock,
-    slug: 'vast-timeline',
-    description: 'Visualize Vast Timeline in an Interactive Way',
-    type: 'visualization'
-  },
-  {
     name: 'Wiki Reels',
     icon: LibraryBig,
     slug: 'https://goodreels.vercel.app',
