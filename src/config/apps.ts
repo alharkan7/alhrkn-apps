@@ -66,13 +66,6 @@ export const apps: AppConfig[] = [
     type: 'general'
   },
   {
-    name: 'Hoax Network',
-    icon: Snowflake,
-    slug: 'hoax-network',
-    description: 'Explore Hoaxes Data in Interactive Viz',
-    type: 'visualization'
-  },
-  {
     name: 'More Apps',
     icon: Infinity,
     slug: 'https://enaiblr.org',
