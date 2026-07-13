@@ -66,10 +66,10 @@ export const apps: AppConfig[] = [
     type: 'general'
   },
   {
-    name: 'More Apps',
+    name: 'Enaiblr Apps',
     icon: Infinity,
     slug: 'https://enaiblr.org',
-    description: 'Access Enaiblr Apps',
+    description: 'Free Mini AI Apps',
     type: 'general'
   },
 ]
