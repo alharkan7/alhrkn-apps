@@ -170,8 +170,30 @@ export function FreeformDiagramViewer({
     
     setMessages((prev) => [...prev, optimisticUser]);
     setAttachments([]);
-    
-    submit({ message: apiMessage, isInitial: false });
+    const useStream = process.env.NEXT_PUBLIC_DISABLE_FREEFORM_STREAM !== 'true';
+    if (useStream) {
+      submit({ message: apiMessage, isInitial: false });
+    } else {
+      setIsGeneratingSync(true);
+      fetch(`/api/inztagram/${id}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: apiMessage })
+      })
+      .then(res => res.json())
+      .then(data => {
+         if (data.svg) {
+           setSvg(data.svg);
+           setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
+           setCurrentVersionIndex(0);
+           setMessages(data.messages || []);
+         } else if (data.error) {
+           setError(data.error);
+         }
+      })
+      .catch(e => setError(e.message || 'Failed to edit diagram'))
+      .finally(() => setIsGeneratingSync(false));
+    }
   };
 
   const handleAutoFixSvg = () => {
