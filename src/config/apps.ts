@@ -66,13 +66,6 @@ export const apps: AppConfig[] = [
     type: 'general'
   },
   {
-    name: 'Good News Garden',
-    icon: Flower,
-    slug: 'goodnews-garden',
-    description: 'Explore Good News as a Blooming Garden',
-    type: 'visualization'
-  },
-  {
     name: 'Hoax Network',
     icon: Snowflake,
     slug: 'hoax-network',
