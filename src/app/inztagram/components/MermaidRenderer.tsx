@@ -8,6 +8,7 @@ import { DIAGRAM_THEMES, DIAGRAM_TYPES } from './diagram-types';
 import panzoom from 'panzoom';
 import { Sheet, SheetTrigger, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toPng, toJpeg } from 'html-to-image';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MermaidRendererProps {
     code: string;
@@ -382,12 +383,21 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                                             </button>
                                         </li>
                                         <li>
-                                            <button
-                                                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
-                                                onClick={() => initiateDownload('svg', handleDownloadSvg)}
-                                            >
-                                                SVG
-                                            </button>
+                                            <TooltipProvider>
+                                                <Tooltip delayDuration={300}>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                                                            onClick={() => initiateDownload('svg', handleDownloadSvg)}
+                                                        >
+                                                            SVG
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="left">
+                                                        <p>Figma Design compatible</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </li>
                                     </ul>
                                 </div>

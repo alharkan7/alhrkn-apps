@@ -24,6 +24,7 @@ import { toPng } from 'html-to-image';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { sanitizeSvg } from '../lib/sanitize-svg';
 import {
   type BoxRect,
@@ -765,12 +766,21 @@ export function SvgArtifact({
                       </button>
                     </li>
                     <li>
-                      <button
-                        className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
-                        onClick={handleDownloadSvg}
-                      >
-                        SVG
-                      </button>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                              onClick={handleDownloadSvg}
+                            >
+                              SVG
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            <p>Figma Design compatible</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </li>
                   </ul>
                 </div>
