@@ -20,7 +20,7 @@ export const apps: AppConfig[] = [
     name: 'Beeblio',
     icon: BookOpen,
     slug: 'beeblio',
-    description: 'AI-Powered Scientific Literature Search',
+    description: 'Automated Scientific Literature Search',
     type: 'academic'
   },
   {
