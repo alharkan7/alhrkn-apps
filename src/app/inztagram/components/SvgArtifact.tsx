@@ -12,8 +12,8 @@ import {
   LoaderCircle,
   Wrench,
   MousePointer2,
-  ChevronLeft,
-  ChevronRight,
+  Undo,
+  Redo,
   Sparkles,
   Save,
   Copy,
@@ -621,10 +621,10 @@ export function SvgArtifact({
             {hasPrevious !== undefined && (
               <>
                 <Button variant="secondary" size="icon" aria-label="Previous version" onClick={onPreviousVersion} disabled={!hasPrevious}>
-                  <ChevronLeft className="size-5" />
+                  <Undo className="size-5" />
                 </Button>
                 <Button variant="secondary" size="icon" aria-label="Next version" onClick={onNextVersion} disabled={!hasNext}>
-                  <ChevronRight className="size-5" />
+                  <Redo className="size-5" />
                 </Button>
                 <div className="w-px h-5 bg-border mx-1" />
               </>
