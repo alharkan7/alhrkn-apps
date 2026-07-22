@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Lightbulb, BookOpen, Microscope, LineChart, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import ReactMarkdown from 'react-markdown';
 
 type ResearchIdea = {
     title: string;
@@ -25,12 +26,14 @@ export default function IdeasGrid({
     ideas,
     isLoading,
     isLoadingMore,
-    language = 'en'
+    language = 'en',
+    queryId,
 }: {
     ideas: ResearchIdea[],
     isLoading: boolean,
     isLoadingMore: boolean,
-    language?: Language
+    language?: Language,
+    queryId?: string,
 }) {
     const [open, setOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -55,16 +58,37 @@ export default function IdeasGrid({
 
     async function navigateToExpanded(idea: ResearchIdea) {
         setIsExpanding(true);
-        const id = crypto.randomUUID();
-
-        // Store the original idea and language preference immediately
-        localStorage.setItem(`outliner:${id}`, JSON.stringify(idea));
-        localStorage.setItem(`outliner:${id}:language`, language);
-
-        // Navigate immediately - the outline page will handle streaming
-        router.push(`/outliner/${id}`);
-
-        setIsExpanding(false);
+        
+        try {
+            if (queryId) {
+                // Save to DB
+                const res = await fetch('/api/outliner/drafts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ queryId, idea, language })
+                });
+                
+                if (!res.ok) throw new Error('Failed to create draft');
+                
+                const data = await res.json();
+                router.push(`/outliner/d/${data.draftId}`);
+            } else {
+                // Fallback for missing queryId
+                const id = crypto.randomUUID();
+                localStorage.setItem(`outliner:${id}`, JSON.stringify(idea));
+                localStorage.setItem(`outliner:${id}:language`, language);
+                router.push(`/outliner/d/${id}`);
+            }
+        } catch (error) {
+            console.error('Error creating draft:', error);
+            // Fallback
+            const id = crypto.randomUUID();
+            localStorage.setItem(`outliner:${id}`, JSON.stringify(idea));
+            localStorage.setItem(`outliner:${id}:language`, language);
+            router.push(`/outliner/d/${id}`);
+        } finally {
+            setIsExpanding(false);
+        }
     }
 
     function goPrev() {
@@ -82,6 +106,21 @@ export default function IdeasGrid({
             return next < ideas.length ? next : idx;
         });
     }
+
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') {
+                goPrev();
+            } else if (e.key === 'ArrowRight') {
+                goNext();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [open, ideas.length]);
 
     const renderSkeletonCard = () => (
         <Card className="h-full bg-background">
@@ -179,7 +218,9 @@ export default function IdeasGrid({
                                                         <Icon className="h-5 w-5 text-primary" />
                                                     </div>
                                                     <h4 className="font-semibold text-foreground text-base mb-1">{section.title}</h4>
-                                                    <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{section.content}</p>
+                                                    <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap [&>p]:mb-2 [&>p:last-child]:mb-0 [&_strong]:font-semibold [&_strong]:text-foreground [&_em]:italic">
+                                                        <ReactMarkdown>{section.content}</ReactMarkdown>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -187,17 +228,17 @@ export default function IdeasGrid({
                                 </div>
                             </div>
                             <div className="p-4 sm:px-6 sm:pb-6 pt-4 border-t bg-background shrink-0 mt-auto">
-                                <DialogFooter className="flex flex-row sm:flex-row justify-between items-center gap-2 space-x-0 sm:space-x-0 w-full">
+                                <DialogFooter className="flex flex-row w-full items-center gap-2 space-x-0 sm:space-x-0">
                                     <Button size="icon" variant="default" aria-label={language === 'en' ? 'Previous' : 'Sebelumnya'}
                                         onClick={goPrev}
                                         disabled={selectedIndex === null || selectedIndex <= 0}
-                                        className="shrink-0"
+                                        className="shrink-0 order-1"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
                                     
                                     <Button
-                                        className="flex-1"
+                                        className="flex-1 order-2 md:flex-none md:order-4 md:px-8"
                                         onClick={() => selected && navigateToExpanded(selected)}
                                         disabled={isExpanding}
                                     >
@@ -207,10 +248,12 @@ export default function IdeasGrid({
                                         }
                                     </Button>
 
+                                    <div className="hidden md:block flex-1 order-3" />
+
                                     <Button size="icon" variant="default" aria-label={language === 'en' ? 'Next' : 'Selanjutnya'}
                                         onClick={goNext}
                                         disabled={selectedIndex === null || selectedIndex >= ideas.length - 1}
-                                        className="shrink-0"
+                                        className="shrink-0 order-3 md:order-2"
                                     >
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>

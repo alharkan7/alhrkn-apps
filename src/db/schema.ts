@@ -204,6 +204,45 @@ export const outlinerEvents = pgTable('outliner_events', {
 export type OutlinerEvent = typeof outlinerEvents.$inferSelect;
 export type NewOutlinerEvent = typeof outlinerEvents.$inferInsert;
 
+export const outlinerQueries = pgTable('outliner_queries', {
+  id: text('id').primaryKey(), // We will use nanoid for short IDs
+  userId: uuid('user_id').notNull(),
+  keywords: text('keywords').notNull(),
+  language: text('language').notNull(),
+  ideas: jsonb('ideas').default('[]'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type OutlinerQuery = typeof outlinerQueries.$inferSelect;
+export type NewOutlinerQuery = typeof outlinerQueries.$inferInsert;
+
+export const outlinerDrafts = pgTable('outliner_drafts', {
+  id: text('id').primaryKey(),
+  queryId: text('query_id').references(() => outlinerQueries.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull(),
+  title: text('title').notNull(),
+  abstract: jsonb('abstract').notNull(),
+  content: jsonb('content'),
+  language: text('language'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type OutlinerDraft = typeof outlinerDrafts.$inferSelect;
+export type NewOutlinerDraft = typeof outlinerDrafts.$inferInsert;
+
+export const outlinerQueriesRelations = relations(outlinerQueries, ({ many }) => ({
+  drafts: many(outlinerDrafts),
+}));
+
+export const outlinerDraftsRelations = relations(outlinerDrafts, ({ one }) => ({
+  query: one(outlinerQueries, {
+    fields: [outlinerDrafts.queryId],
+    references: [outlinerQueries.id],
+  }),
+}));
+
 // --- Chat Tables ---
 
 export const chatSessions = pgTable('chat_sessions', {

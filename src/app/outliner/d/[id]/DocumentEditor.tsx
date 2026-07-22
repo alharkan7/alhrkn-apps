@@ -5,16 +5,16 @@ import List from '@editorjs/list';
 import Marker from '@editorjs/marker';
 import InlineCode from '@editorjs/inline-code';
 import Underline from '@editorjs/underline';
-import { ExpandInlineTool } from '../tools/ExpandInlineTool';
-import { CitationTool } from '../tools/CitationTool';
-import { ParaphraseTool } from '../tools/ParaphraseTool';
-import { ChatTool } from '../tools/ChatTool';
+import { ExpandInlineTool } from '../../tools/ExpandInlineTool';
+import { CitationTool } from '../../tools/CitationTool';
+import { ParaphraseTool } from '../../tools/ParaphraseTool';
+import { ChatTool } from '../../tools/ChatTool';
 import { ResearchIdea, convertToMarkdown, convertToPlainText, convertToHTML, buildBibliographyHTML, buildBibliographyMarkdown, buildBibliographyPlain, renderPdfFromEditorData, getBibliographyEntries } from './utils';
-import { Toolbar } from '../components/Toolbar';
-import { ChatInterface } from '../components/ChatInterface';
+import { Toolbar } from '../../components/Toolbar';
+import { ChatInterface } from '../../components/ChatInterface';
 import { useDocumentEditor } from './hooks';
 
-export function FullDocumentEditor({ id, idea, language }: { id: string; idea: ResearchIdea; language: 'en' | 'id'; }) {
+export function FullDocumentEditor({ id, idea, language, initialContent }: { id: string; idea: ResearchIdea; language: 'en' | 'id'; initialContent?: any; }) {
     const {
         // Refs
         editorRef,
@@ -54,6 +54,9 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
         handleOpenChat,
         handleCloseChat,
         debouncedSave,
+        saveToDB,
+        isSavingToDB,
+        isSavedToDB,
         createSkeletonBlocks,
         startStreaming,
         positionMiniToolbar,
@@ -62,7 +65,7 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
         hideMiniToolbar,
         warmInlineToolsOnce,
         ensureMiniAIToolbar,
-    } = useDocumentEditor(id, idea, language);
+    } = useDocumentEditor(id, idea, language, initialContent);
 
     const handleDownload = async (format: 'pdf' | 'markdown' | 'txt' | 'docx') => {
         if (!editorRef.current) return;
@@ -182,57 +185,30 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
             if (!isMounted) return;
 
             // Get initial data
-            const existing = localStorage.getItem(`outliner:${id}:doc`);
-            const expandedOutline = localStorage.getItem(`outliner:${id}:expanded`);
             let initialData;
             let shouldStartStreaming = false;
 
-            if (existing) {
-                try {
-                    const parsedData = JSON.parse(existing);
-                    if (parsedData && Array.isArray(parsedData.blocks) && parsedData.blocks.length > 0) {
-                        initialData = parsedData;
-                        console.log('Loaded existing document with', parsedData.blocks.length, 'blocks');
-                    } else {
-                        // Use skeleton blocks and start streaming
-                        initialData = { blocks: createSkeletonBlocks() };
-                        shouldStartStreaming = true;
-                        console.log('Document exists but empty, starting streaming');
-                    }
-                } catch (error) {
-                    console.error('Error parsing localStorage data:', error);
-                    // Use skeleton blocks and start streaming
-                    initialData = { blocks: createSkeletonBlocks() };
-                    shouldStartStreaming = true;
-                    console.log('Document parse error, starting streaming');
-                    localStorage.removeItem(`outliner:${id}:doc`);
-                }
-            } else if (expandedOutline) {
-                try {
-                    const parsedExpanded = JSON.parse(expandedOutline);
-                    if (parsedExpanded && Array.isArray(parsedExpanded.blocks) && parsedExpanded.blocks.length > 0) {
-                        initialData = parsedExpanded;
-                        console.log('Loaded existing expanded outline with', parsedExpanded.blocks.length, 'blocks');
-                    } else {
-                        // Use skeleton blocks and start streaming
-                        initialData = { blocks: createSkeletonBlocks() };
-                        shouldStartStreaming = true;
-                        localStorage.removeItem(`outliner:${id}:expanded`);
-                        console.log('Expanded outline invalid, starting streaming');
-                    }
-                } catch (error) {
-                    console.error('Error parsing expanded outline:', error);
-                    // Use skeleton blocks and start streaming
-                    initialData = { blocks: createSkeletonBlocks() };
-                    shouldStartStreaming = true;
-                    localStorage.removeItem(`outliner:${id}:expanded`);
-                    console.log('Expanded outline parse error, starting streaming');
-                }
+            if (initialContent && Array.isArray(initialContent.blocks) && initialContent.blocks.length > 0) {
+                initialData = initialContent;
+                console.log('Loaded existing document from DB with', initialContent.blocks.length, 'blocks');
             } else {
-                // New document - start with skeleton blocks and begin streaming
-                initialData = { blocks: createSkeletonBlocks() };
-                shouldStartStreaming = true;
-                console.log('New document, starting streaming');
+                // Fallback to check if we had it in localStorage for offline editing reasons
+                const existing = localStorage.getItem(`outliner:${id}:doc`);
+                if (existing) {
+                    try {
+                        const parsedData = JSON.parse(existing);
+                        if (parsedData && Array.isArray(parsedData.blocks) && parsedData.blocks.length > 0) {
+                            initialData = parsedData;
+                        }
+                    } catch {}
+                }
+                
+                if (!initialData) {
+                    // Start streaming
+                    initialData = { blocks: [] };
+                    shouldStartStreaming = true;
+                    console.log('New document or empty DB content, starting streaming');
+                }
             }
 
             // Create the editor
@@ -465,20 +441,13 @@ export function FullDocumentEditor({ id, idea, language }: { id: string; idea: R
 
     return (
         <div className="prose prose-neutral dark:prose-invert max-w-none w-full pb-32">
-            <Toolbar onDownload={handleDownload} onOpenChat={handleOpenChat} />
+            <Toolbar onDownload={handleDownload} onOpenChat={handleOpenChat} onSave={saveToDB} isSaving={isSavingToDB} isSaved={isSavedToDB} />
 
             <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200">
-                {!isReady && (
-                    <div className="text-center py-8 text-gray-500 font-sans animate-pulse">
-                        {language === 'en' ? 'Loading editor...' : 'Memuat editor...'}
-                    </div>
-                )}
-                
                 <div
                     id={holderId}
                     ref={containerRef}
                     style={{
-                        display: isReady ? 'block' : 'none',
                         minHeight: '200px',
                         position: 'relative'
                     }}

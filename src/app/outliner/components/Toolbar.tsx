@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, FileText, FileCode, FileType, File, ArrowLeft, Quote, MessageCircle, Menu } from 'lucide-react';
+import { Download, FileText, FileCode, FileType, File, ArrowLeft, Quote, MessageCircle, Menu, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +13,12 @@ import { useRouter } from 'next/navigation';
 interface ToolbarProps {
   onDownload: (format: 'pdf' | 'markdown' | 'txt' | 'docx') => void;
   onOpenChat?: () => void;
+  onSave?: () => void;
+  isSaving?: boolean;
+  isSaved?: boolean;
 }
 
-export function Toolbar({ onDownload, onOpenChat }: ToolbarProps) {
+export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: ToolbarProps) {
   const router = useRouter();
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 px-4 md:px-8 py-3 bg-background/60 backdrop-blur-xl">
@@ -75,8 +78,20 @@ export function Toolbar({ onDownload, onOpenChat }: ToolbarProps) {
         </Button>
       </div>
 
-      {/* Right side - download dropdown */}
+      {/* Right side - save and download */}
       <div className="flex items-center space-x-2">
+        {onSave && (
+          <Button
+            variant="default"
+            size="sm"
+            className={`rounded-full shadow-sm gap-2 ${isSaved ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+            onClick={onSave}
+            disabled={isSaving}
+          >
+            {isSaved ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+            <span className="font-medium">{isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}</span>
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="sm" className="rounded-full shadow-sm gap-2">

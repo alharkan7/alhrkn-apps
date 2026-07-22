@@ -12,7 +12,7 @@ export function useDebouncedCallback<T extends any[]>(fn: (...args: T) => void, 
 }
 
 // Main document editor hook
-export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en' | 'id') {
+export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en' | 'id', initialContent?: any) {
     // Editor refs
     const editorRef = useRef<EditorJS | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +42,10 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
     const markdownBufferRef = useRef<string>('');
     const streamingRenderTimerRef = useRef<number | null>(null);
     const lastAppliedBlocksRef = useRef<any[]>([]);
+
+    // Save to DB state
+    const [isSavingToDB, setIsSavingToDB] = useState(false);
+    const [isSavedToDB, setIsSavedToDB] = useState(false);
 
     // Email form state
     const [showEmailForm, setShowEmailForm] = useState(false);
@@ -124,18 +128,40 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
     }, [idea.title]);
 
     // Document save functionality
-    const saveDoc = useCallback(async () => {
+    const saveDocLocal = useCallback(async () => {
         if (!editorRef.current) return;
         try {
             const data = await editorRef.current.save();
             localStorage.setItem(`outliner:${id}:doc`, JSON.stringify(data));
-            console.log('Saved document with', data.blocks?.length || 0, 'blocks');
         } catch (error) {
-            console.error('Error saving document:', error);
+            console.error('Error saving document locally:', error);
         }
     }, [id]);
 
-    const debouncedSave = useDebouncedCallback(saveDoc, 600);
+    const debouncedSave = useDebouncedCallback(saveDocLocal, 600);
+
+    const saveToDB = useCallback(async () => {
+        if (!editorRef.current) return;
+        setIsSavingToDB(true);
+        setIsSavedToDB(false);
+        try {
+            const data = await editorRef.current.save();
+            const res = await fetch(`/api/outliner/drafts/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: data }),
+            });
+            if (!res.ok) throw new Error('Failed to save to DB');
+            // Toast or visual feedback could go here
+            console.log('Saved to DB successfully');
+            setIsSavedToDB(true);
+            setTimeout(() => setIsSavedToDB(false), 2000);
+        } catch (error) {
+            console.error('Error saving to DB:', error);
+        } finally {
+            setIsSavingToDB(false);
+        }
+    }, [id]);
 
     // Function to create skeleton blocks for streaming
     const createSkeletonBlocks = useCallback(() => {
@@ -198,9 +224,9 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
         streamingInitiatedRef.current = true;
         setIsStreaming(true);
 
-        // Initialize with skeleton blocks
-        const skeletonBlocks = createSkeletonBlocks();
-        setStreamingBlocks(skeletonBlocks);
+        // Initialize with empty blocks
+        const emptyBlocks: any[] = [];
+        setStreamingBlocks(emptyBlocks);
 
         try {
             // Use fetch with POST and stream the body
@@ -564,7 +590,7 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
         badge.style.marginRight = '2px';
         
         // Import SPARKLES_ICON_SVG dynamically to avoid circular dependency
-        import('../components/svg-icons').then(({ SPARKLES_ICON_SVG }) => {
+        import('../../components/svg-icons').then(({ SPARKLES_ICON_SVG }) => {
             badge.innerHTML = SPARKLES_ICON_SVG;
         });
 
@@ -675,7 +701,9 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
         handleOpenChat,
         handleCloseChat,
         getDocumentContext,
-        saveDoc,
+        saveToDB,
+        isSavingToDB,
+        isSavedToDB,
         debouncedSave,
         createSkeletonBlocks,
         startStreaming,

@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest } from 'next/server';
 import { db } from '@/db';
-import { outlinerEvents } from '@/db/schema';
+import { outlinerEvents, outlinerQueries } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { eq, and } from 'drizzle-orm';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
@@ -48,35 +49,37 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('=== OUTLINER STREAM API START ===');
-    console.log('Environment check - GOOGLE_GENERATIVE_AI_API_KEY exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
-
     const body = await req.json();
-    const { keywords, numIdeas, language = 'en', existingTitles = [] } = body || {};
+    const { queryId, numIdeas, existingTitles = [] } = body || {};
 
-    // Debug logging
-    console.log('Stream API called with:', { keywords, numIdeas, language, existingTitlesCount: existingTitles?.length });
-
-    if (!keywords || typeof keywords !== 'string') {
-      return new Response(JSON.stringify({ error: 'Missing or invalid "keywords"' }), {
+    if (!queryId || typeof queryId !== 'string') {
+      return new Response(JSON.stringify({ error: 'Missing or invalid "queryId"' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const ideasCount = Math.min(Math.max(Number(numIdeas) || 6, 1), 10);
+    // Fetch the query from DB
+    const queryRecords = await db
+      .select()
+      .from(outlinerQueries)
+      .where(and(eq(outlinerQueries.id, queryId), eq(outlinerQueries.userId, user.id)))
+      .limit(1);
 
-    // For debugging - return a simple test response if requested
-    if (keywords === '__TEST__') {
-      console.log('Returning test response for debugging');
-      const testResponse = '{"title":"Test Research Idea","abstract":{"background":"Test background","literatureReview":"Test literature review","method":"Test method","analysisTechnique":"Test analysis","impact":"Test impact"}}\n';
-      return new Response(testResponse, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/x-ndjson; charset=utf-8',
-          'Cache-Control': 'no-cache',
-        },
+    if (queryRecords.length === 0) {
+      return new Response(JSON.stringify({ error: 'Query not found or unauthorized' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    const queryRecord = queryRecords[0];
+    const keywords = queryRecord.keywords;
+    const language = queryRecord.language || 'en';
+
+    console.log('Stream API called for query:', { queryId, keywords, numIdeas, language, existingTitlesCount: existingTitles?.length });
+
+    const ideasCount = Math.min(Math.max(Number(numIdeas) || 6, 1), 10);
 
     const avoidPrompt = existingTitles && existingTitles.length > 0 
       ? `\nCRITICAL: You MUST NOT generate any of the following ideas that were already provided:\n${existingTitles.map((t: string) => `- ${t}`).join('\n')}\nGenerate COMPLETELY NEW and DIFFERENT ideas.` 
@@ -128,8 +131,6 @@ KENDALA KRITIS:
     };
 
     const config = languageConfig[language as keyof typeof languageConfig] || languageConfig.en;
-    console.log('Using language config:', language);
-    console.log('Model configuration - attempting to call Gemini API...');
 
     const result = await model.generateContentStream({
       contents: [
@@ -144,19 +145,15 @@ KENDALA KRITIS:
       },
     });
 
-    console.log('Streaming setup - creating ReadableStream...');
     const encoder = new TextEncoder();
-    let chunkCount = 0;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         let buffer = '';
         let fullResponse = '';
+        const parsedIdeas: any[] = [];
         try {
-          console.log('Starting to read from result.stream...');
           for await (const chunk of result.stream) {
-            chunkCount++;
             const text = chunk.text();
-            console.log(`Chunk ${chunkCount}: received text of length ${text.length}. Raw text: ${JSON.stringify(text)}`);
             buffer += text;
 
             let depth = 0;
@@ -182,9 +179,9 @@ KENDALA KRITIS:
                       const objStr = buffer.substring(start, i + 1);
                       const safe = sanitizeIdeaLine(objStr);
                       if (safe) {
-                        console.log(`Enqueuing sanitized idea line: ${safe.substring(0, 100)}...`);
                         controller.enqueue(encoder.encode(safe + '\n'));
                         fullResponse += safe + '\n';
+                        try { parsedIdeas.push(JSON.parse(safe)); } catch {}
                       }
                       start = -1;
                       lastValidEnd = i;
@@ -198,12 +195,17 @@ KENDALA KRITIS:
               buffer = buffer.substring(lastValidEnd + 1);
             }
           }
-          // The buffer should only contain trailing brackets, whitespace, etc.
-          // Any incomplete objects at the end of the stream are discarded.
-          console.log(`Stream completed - processed ${chunkCount} chunks`);
           controller.close();
           
           try {
+            // Update the ideas in the queries table
+            const currentIdeas = (queryRecord.ideas as any[]) || [];
+            const updatedIdeas = [...currentIdeas, ...parsedIdeas];
+            await db.update(outlinerQueries)
+              .set({ ideas: updatedIdeas, updatedAt: new Date() })
+              .where(eq(outlinerQueries.id, queryId));
+            
+            // Keep original log as well
             await db.insert(outlinerEvents).values({
               userId: user.id,
               action: 'stream',
@@ -229,23 +231,9 @@ KENDALA KRITIS:
     });
   } catch (error: any) {
     console.error('=== OUTLINER STREAM API ERROR ===');
-    console.error('Error type:', error?.constructor?.name);
-    console.error('Error message:', error?.message);
-    console.error('Error stack:', error?.stack);
-    console.error('Full error object:', JSON.stringify(error, null, 2));
-
-    // Check for specific Google AI errors
-    if (error?.message?.includes('API_KEY')) {
-      console.error('API KEY ERROR: Check GOOGLE_GENERATIVE_AI_API_KEY environment variable');
-    } else if (error?.message?.includes('model')) {
-      console.error('MODEL ERROR: Check if the model is available');
-    } else if (error?.message?.includes('quota') || error?.message?.includes('billing')) {
-      console.error('QUOTA/BILLING ERROR: Check Google AI Studio billing and quota');
-    }
-
+    console.error(error);
     return new Response(JSON.stringify({
       error: error?.message || 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -258,7 +246,6 @@ function sanitizeIdeaLine(line: string): string | null {
     const obj = JSON.parse(line);
     if (!obj || typeof obj !== 'object') return null;
 
-    // Helper to find key case-insensitively
     const getVal = (o: any, key: string) => {
       const lowerKey = key.toLowerCase();
       const actualKey = Object.keys(o).find(k => k.toLowerCase() === lowerKey);
@@ -290,5 +277,3 @@ function sanitizeIdeaLine(line: string): string | null {
     return null;
   }
 }
-
-

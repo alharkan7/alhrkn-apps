@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
-import { outlinerEvents } from '@/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { outlinerQueries, outlinerDrafts } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
@@ -17,39 +17,44 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const events = await db
-      .select({
-        id: outlinerEvents.id,
-        inputPayload: outlinerEvents.inputPayload,
-        createdAt: outlinerEvents.createdAt,
-      })
-      .from(outlinerEvents)
-      .where(and(eq(outlinerEvents.userId, user.id), eq(outlinerEvents.action, 'stream')))
-      .orderBy(desc(outlinerEvents.createdAt))
+    const queries = await db
+      .select()
+      .from(outlinerQueries)
+      .where(eq(outlinerQueries.userId, user.id))
+      .orderBy(desc(outlinerQueries.updatedAt))
       .limit(limit)
       .offset(offset);
 
-    // Deduplicate by keywords
-    const seen = new Set();
-    const history = [];
-
-    for (const event of events) {
-      try {
-        if (!event.inputPayload) continue;
-        const payload = JSON.parse(event.inputPayload);
-        const keywords = payload.keywords;
-        if (!keywords || seen.has(keywords)) continue;
-        
-        seen.add(keywords);
-        history.push({
-          id: `?q=${encodeURIComponent(keywords)}`,
-          title: keywords,
-          createdAt: event.createdAt,
-        });
-      } catch (e) {
-        continue;
-      }
+    // Fetch drafts for these queries
+    const queryIds = queries.map(q => q.id);
+    let allDrafts: any[] = [];
+    
+    if (queryIds.length > 0) {
+      // Need to query drafts where queryId IN (queryIds)
+      // Since drizzle-orm doesn't cleanly export `inArray` if not imported, we can fetch all for user or loop.
+      allDrafts = await db
+        .select()
+        .from(outlinerDrafts)
+        .where(eq(outlinerDrafts.userId, user.id))
+        .orderBy(desc(outlinerDrafts.updatedAt));
     }
+
+    const history = queries.map(q => {
+      const draftsForQuery = allDrafts.filter(d => d.queryId === q.id).map(d => ({
+        id: `/outliner/d/${d.id}`,
+        title: d.title,
+        type: 'draft',
+        createdAt: d.createdAt,
+      }));
+
+      return {
+        id: `/outliner/q/${q.id}`,
+        title: q.keywords,
+        type: 'query',
+        createdAt: q.createdAt,
+        drafts: draftsForQuery,
+      };
+    });
 
     return NextResponse.json(history);
   } catch (error) {
