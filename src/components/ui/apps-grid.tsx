@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { apps } from '@/config/apps';
 import { useRouter } from 'next/navigation';
 import { Mail, Home } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
+import { getInitials, getAvatarColor } from '@/lib/utils';
 
 interface AppsGridProps {
   trigger: React.ReactNode;
@@ -17,6 +20,7 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showTooltips, setShowTooltips] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
+  const [user, setUser] = React.useState<User | null>(null);
 
   // Add Home item to the apps array
   const allApps = React.useMemo(() => [
@@ -65,9 +69,22 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
     }
   }, [isOpen]);
 
-  // Mark as loaded on mount
+  // Mark as loaded on mount and fetch user
   React.useEffect(() => {
     setIsLoaded(true);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+    
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -115,7 +132,7 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
             );
           })}
         </div>
-        <div className="mt-2 pt-3 border-t border-border">
+        <div className="mt-2 pt-3 border-t border-border flex flex-col gap-1">
           <Button
             variant="ghost"
             className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors"
@@ -125,9 +142,37 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
               setIsOpen(false);
             }}
           >
-            <Mail className='mr-1 ml-2' />
+            <Mail className='mr-1 ml-2' size={16} />
             Contact / Email
           </Button>
+          
+          {user && (
+            <Button
+              variant="ghost"
+              className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors h-auto py-2"
+              onClick={() => {
+                router.push('/profile');
+                setIsOpen(false);
+              }}
+            >
+              <div className="ml-1 w-6 h-6 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div 
+                    className="w-full h-full flex items-center justify-center text-[10px] font-medium text-white" 
+                    style={{ backgroundColor: getAvatarColor(user.email) }}
+                  >
+                    {getInitials(user.user_metadata?.full_name, user.email)}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-start overflow-hidden ml-1">
+                <span className="truncate w-[170px] text-left">{user.user_metadata?.full_name || 'Profile'}</span>
+                <span className="text-[10px] opacity-70 truncate w-[170px] text-left">{user.email}</span>
+              </div>
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>

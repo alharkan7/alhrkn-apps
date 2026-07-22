@@ -33,6 +33,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid, FileText, Menu } from 'lucide-react';
 import dagre from '@dagrejs/dagre';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 import CustomNode from './CustomNode';
 import Sidebar from './Sidebar';
@@ -229,6 +230,10 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Document Menu State
+  const [isNewDocAlertOpen, setIsNewDocAlertOpen] = useState(false);
+  const [isImportDocAlertOpen, setIsImportDocAlertOpen] = useState(false);
 
   const handleMakeCopy = async () => {
     if (!flownoteId) return;
@@ -934,43 +939,39 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
             </TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={(e) => {
-                  if (!handleInteract(e)) return;
-                  setIsAIDialogOpen(true);
-                }}
-                className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
-              >
-                <Sparkles size={20} className="transition-transform group-hover:scale-110" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="group px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center gap-2 font-medium text-sm">
+                <Plus size={18} className="transition-transform group-hover:scale-110" />
+                New
               </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={8}>
-              <p>Create with AI</p>
-            </TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={(e) => {
+                if (!handleInteract(e)) return;
+                setIsAIDialogOpen(true);
+              }} className="cursor-pointer">
+                <Sparkles size={16} className="mr-2" />
+                Create with AI
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => {
+                if (!handleInteract(e)) return;
+                setIsNewDocAlertOpen(true);
+              }} className="cursor-pointer">
+                <Plus size={16} className="mr-2" />
+                New from Blank
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => {
+                if (!handleInteract(e)) return;
+                setIsImportDocAlertOpen(true);
+              }} disabled={isUploadingFile} className="cursor-pointer">
+                {isUploadingFile ? <Loader2 size={16} className="mr-2 animate-spin" /> : <FileText size={16} className="mr-2" />}
+                Generate from Doc
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <AlertDialog>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertDialogTrigger asChild>
-                  <button
-                    className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
-                    onClick={(e) => {
-                      if (!handleInteract(e)) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <Plus size={20} className="transition-transform group-hover:scale-110" />
-                  </button>
-                </AlertDialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={8}>
-                <p>New from Blank</p>
-              </TooltipContent>
-            </Tooltip>
+          <AlertDialog open={isNewDocAlertOpen} onOpenChange={setIsNewDocAlertOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Create New Document?</AlertDialogTitle>
@@ -980,7 +981,7 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleNewDocument}>Continue</AlertDialogAction>
+                <AlertDialogAction onClick={() => { setIsNewDocAlertOpen(false); handleNewDocument(); }}>Continue</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -992,27 +993,8 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
             accept=".docx,.odt,.epub,.html,.md,.txt,.rst,.latex,.pdf"
             onChange={handleFileUpload} 
           />
-          <AlertDialog>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertDialogTrigger asChild>
-                  <button
-                    disabled={isUploadingFile}
-                    className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center disabled:opacity-50"
-                    onClick={(e) => {
-                      if (!handleInteract(e)) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    {isUploadingFile ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} className="transition-transform group-hover:scale-110" />}
-                  </button>
-                </AlertDialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={8}>
-                <p>Generate from Doc</p>
-              </TooltipContent>
-            </Tooltip>
+
+          <AlertDialog open={isImportDocAlertOpen} onOpenChange={setIsImportDocAlertOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Import Document?</AlertDialogTitle>
@@ -1022,7 +1004,7 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => fileInputRef.current?.click()}>Continue</AlertDialogAction>
+                <AlertDialogAction onClick={() => { setIsImportDocAlertOpen(false); fileInputRef.current?.click(); }}>Continue</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
