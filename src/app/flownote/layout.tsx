@@ -4,6 +4,17 @@ import { FlownoteHistorySidebar } from './components/FlownoteHistorySidebar';
 export const metadata: Metadata = {
   title: 'FlowNote',
   description: 'A Node-based Document Authoring System',
+  openGraph: {
+    title: 'FlowNote',
+    description: 'A Node-based Document Authoring System',
+    images: [`/api/og?title=${encodeURIComponent('FlowNote')}&description=${encodeURIComponent('A Node-based Document Authoring System')}&path=flownote`],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: 'FlowNote',
+    description: 'A Node-based Document Authoring System',
+    images: [`/api/og?title=${encodeURIComponent('FlowNote')}&description=${encodeURIComponent('A Node-based Document Authoring System')}&path=flownote`],
+  },
 };
 
 export const viewport: Viewport = {

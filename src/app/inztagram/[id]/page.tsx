@@ -6,6 +6,30 @@ import { FreeformDiagramViewer } from "./FreeformDiagramViewer";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { InztagramMessage } from "../lib/types";
+import type { Metadata } from "next";
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const [diagram] = await db.select().from(inztagramDiagrams).where(eq(inztagramDiagrams.id, id));
+  
+  const title = diagram?.pdfName ? `Inztagram - ${diagram.pdfName}` : 'Inztagram Diagram';
+  const description = diagram?.description ? diagram.description.substring(0, 100) : 'Create Any Diagram in Seconds with AI';
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=inztagram/${id}`],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=inztagram/${id}`],
+    },
+  };
+}
 
 export default async function InztagramIdPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

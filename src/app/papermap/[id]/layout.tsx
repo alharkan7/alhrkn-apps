@@ -10,6 +10,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title,
     description: 'Learn Anything with Interactive AI Mindmap',
+    openGraph: {
+      title,
+      description: 'Learn Anything with Interactive AI Mindmap',
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=Learn%20Anything%20with%20Interactive%20AI%20Mindmap&path=papermap/${id}`],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: 'Learn Anything with Interactive AI Mindmap',
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=Learn%20Anything%20with%20Interactive%20AI%20Mindmap&path=papermap/${id}`],
+    },
   };
 }
 
