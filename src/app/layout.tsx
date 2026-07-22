@@ -30,12 +30,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: title,
+    images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`],
   },
   twitter: {
     card: "summary_large_image",
     title: title,
     description: description,
     creator: "@alhrkn",
+    images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`],
   },
 }
 
