@@ -59,7 +59,7 @@ export async function generateOpenGraphImage({
             fontFamily: '"Space Grotesk"',
           }}
         >
-          {path ? `/${path}` : ""}
+          {title}
         </h1>
         
         <h2
