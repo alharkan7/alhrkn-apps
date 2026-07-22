@@ -150,7 +150,7 @@ export function OutlinerHistorySidebar() {
 
                     {/* Render Drafts */}
                     {query.drafts && query.drafts.length > 0 && (
-                      <div className="pl-6 space-y-1 border-l ml-3 border-border/50">
+                      <div className="space-y-1 border-l border-border/50 ml-[15px] pl-[6px]">
                         {query.drafts.map((draft: any) => {
                           const isDraftActive = pathname === draft.id;
                           return (
