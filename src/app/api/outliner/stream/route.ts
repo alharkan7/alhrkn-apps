@@ -11,7 +11,7 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
+  model: process.env.OUTLINER_STREAM_MODEL || 'gemini-2.5-flash',
 });
 
 const ideaSchema = {
@@ -213,7 +213,7 @@ KENDALA KRITIS:
     if (error?.message?.includes('API_KEY')) {
       console.error('API KEY ERROR: Check GOOGLE_GENERATIVE_AI_API_KEY environment variable');
     } else if (error?.message?.includes('model')) {
-      console.error('MODEL ERROR: Check if gemini-2.5-flash-lite model is available');
+      console.error('MODEL ERROR: Check if the model is available');
     } else if (error?.message?.includes('quota') || error?.message?.includes('billing')) {
       console.error('QUOTA/BILLING ERROR: Check Google AI Studio billing and quota');
     }

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     if (!structuredQueries && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
       try {
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.5-flash',
+          model: process.env.BEEBLIO_SEARCH_MODEL || 'gemini-2.5-flash',
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: querySchema,

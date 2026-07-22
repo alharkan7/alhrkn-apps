@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Prompt Gemini to extract text to markdown
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: process.env.FLOWNOTE_UPLOAD_MODEL || "gemini-2.5-flash" });
         const result = await model.generateContent([
             { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
             { text: "Extract the text content from this document and output it as clean, structured Markdown. Use appropriate headings (# for title, ## for sections), bullet points, and paragraphs. Do not add any conversational text outside of the extracted markdown content." }

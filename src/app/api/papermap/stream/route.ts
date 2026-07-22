@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
             // Initialize Gemini API
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash",
+                model: process.env.PAPERMAP_STREAM_MODEL || "gemini-2.5-flash",
                 generationConfig: {
                     temperature: 0.7,
                     topK: 40,

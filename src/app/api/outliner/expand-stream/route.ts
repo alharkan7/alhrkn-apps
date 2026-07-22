@@ -11,7 +11,7 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
+  model: process.env.OUTLINER_EXPAND_STREAM_MODEL || 'gemini-2.5-flash',
 });
 
 export async function POST(req: NextRequest) {

@@ -205,7 +205,7 @@ Write the content to be added after the selected text:`;
     // If streaming is requested, stream raw plaintext paragraphs as they are generated
     if (shouldStream) {
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-lite',
+        model: process.env.OUTLINER_EXPAND_PASSAGE_MODEL || 'gemini-2.5-flash-lite',
         generationConfig: {
           temperature: 0.7,
           topP: 0.9,
@@ -251,7 +251,7 @@ Write the content to be added after the selected text:`;
 
     // Non-streaming: Use Gemini to generate structured JSON with paragraphs
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: process.env.OUTLINER_EXPAND_PASSAGE_MODEL || 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.7,
         topP: 0.9,

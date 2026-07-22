@@ -31,7 +31,7 @@ For mathematical calculations, use the calculate function only when precise comp
 Use markdown formatting to style your text answer to make it more readable and appealing for user.`;
 
 const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: process.env.CHAT_MODEL || "gemini-2.5-flash",
     generationConfig: {
         temperature: 0.7,
         topP: 0.8,

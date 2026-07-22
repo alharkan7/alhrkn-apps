@@ -31,7 +31,7 @@ const keywordExtractionSchema = {
 
 // Initialize model without schema (will be set per request)
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash-lite',
+  model: process.env.OUTLINER_CITE_MODEL || 'gemini-2.5-flash-lite',
   generationConfig: {
     temperature: 0.1,
     topP: 0.8,
@@ -152,7 +152,7 @@ Return the result in JSON format with:
   try {
     // Create model with structured output for this specific request
     const structuredModel = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: process.env.OUTLINER_CITE_MODEL || 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.1,
         topP: 0.8,

@@ -18,7 +18,7 @@ if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
+  model: process.env.INZTAGRAM_EDIT_MODEL || 'gemini-2.5-flash',
   generationConfig: {
     ...FREEFORM_EDIT_GENERATION_CONFIG,
   },

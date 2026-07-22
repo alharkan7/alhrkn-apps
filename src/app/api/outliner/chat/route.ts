@@ -22,7 +22,8 @@ interface ChatRequest {
 
 // You'll need to set this in your environment variables
 const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const model = process.env.OUTLINER_CHAT_MODEL || 'gemini-2.5-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 export async function POST(request: NextRequest) {
   try {

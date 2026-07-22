@@ -126,7 +126,7 @@ If the message includes a "Selected SVG element context" section, prioritize edi
     }
 
     const streamConfig: any = {
-      model: google('gemini-2.5-flash'),
+      model: google(process.env.INZTAGRAM_STREAM_MODEL || 'gemini-2.5-flash'),
       system: systemInstruction,
       schema: z.object({
         svg: z.string().describe('The raw SVG code. Must be complete and well-formed.'),
