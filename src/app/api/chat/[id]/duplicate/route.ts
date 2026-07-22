@@ -33,7 +33,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       userId: user.id,
       title: `${original.title} (Copy)`,
       messages: original.messages,
-      systemPrompt: original.systemPrompt,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
