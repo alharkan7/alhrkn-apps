@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     where: eq(beeblioSearches.id, id)
   });
 
-  const title = searchData?.query ? `Beeblio - ${searchData.query}` : 'Beeblio Search';
+  const title = searchData?.originalQuery ? `Beeblio - ${searchData.originalQuery}` : 'Beeblio Search';
   const description = 'Experimental Apps by @alhrkn';
 
   return {
