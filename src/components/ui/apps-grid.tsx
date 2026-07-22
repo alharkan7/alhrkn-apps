@@ -5,10 +5,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { apps } from '@/config/apps';
 import { useRouter } from 'next/navigation';
-import { Mail, Home } from 'lucide-react';
+import { Mail, Home, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { getInitials, getAvatarColor } from '@/lib/utils';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AppsGridProps {
   trigger: React.ReactNode;
@@ -21,6 +23,7 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
   const [showTooltips, setShowTooltips] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [user, setUser] = React.useState<User | null>(null);
+  const [showEmail, setShowEmail] = React.useState(false);
 
   // Add Home item to the apps array
   const allApps = React.useMemo(() => [
@@ -135,15 +138,44 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
         <div className="mt-2 pt-3 border-t border-border flex flex-col gap-1">
           <Button
             variant="ghost"
-            className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors"
+            className="w-full flex items-center justify-start gap-2 text-xs rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-muted-foreground hover:text-primary transition-colors overflow-hidden"
             onClick={(e) => {
               e.preventDefault();
-              window.open('https://mail.google.com/mail/?view=cm&fs=1&to=alharkan7@gmail.com', '_blank');
-              setIsOpen(false);
+              navigator.clipboard.writeText('alharkan7@gmail.com');
+              setShowEmail(true);
+              toast('Email address copied to clipboard');
+              setTimeout(() => {
+                setShowEmail(false);
+              }, 2500);
             }}
           >
-            <Mail className='mr-1 ml-2' size={16} />
-            Contact / Email
+            <AnimatePresence mode="wait" initial={false}>
+              {!showEmail ? (
+                <motion.div
+                  key="contact"
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center"
+                >
+                  <Mail className='mr-1 ml-2' size={16} />
+                  Contact / Email
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="email"
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center"
+                >
+                  <Check className='mr-1 ml-2 text-green-500' size={16} />
+                  alharkan7@gmail.com
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Button>
           
           {user && (

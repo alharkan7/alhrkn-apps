@@ -2,7 +2,7 @@
 
 import { apps, type AppConfig } from '@/config/apps'
 import Link from 'next/link'
-import { ArrowRight, Github, Twitter, Moon, Sun } from 'lucide-react'
+import { ArrowRight, Github, Twitter, Instagram, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { useTheme } from '@/components/theme-provider'
@@ -204,6 +204,10 @@ export default function HomePage() {
             <a href="https://x.com/alhrkn" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
               <Twitter className="h-5 w-5" />
               <span className="sr-only">Twitter</span>
+            </a>
+            <a href="https://Instagram.com/alhrkn" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Instagram className="h-5 w-5" />
+              <span className="sr-only">Instagram</span>
             </a>
             <a href="https://github.com/alharkan7" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
               <Github className="h-5 w-5" />
