@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const userAgent = request.headers.get('user-agent') || ''
-  const isBot = /bot|googlebot|crawler|spider|robot|crawling|facebookexternalhit|twitterbot|slackbot|whatsapp|telegrambot/i.test(userAgent)
+  const isBot = /bot|googlebot|crawler|spider|robot|crawling|facebookexternalhit|twitterbot|slackbot|whatsapp|telegrambot|curl|wget|postman|insomnia|applebot|discordbot|skype|linkedin|embedly|outbrain|pinterest|yahoo/i.test(userAgent)
 
   const isPublicRoute = request.nextUrl.pathname === '/' ||
                         request.nextUrl.pathname.startsWith('/api/og') ||
