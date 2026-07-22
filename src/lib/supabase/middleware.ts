@@ -38,12 +38,17 @@ export async function updateSession(request: NextRequest) {
   const userAgent = request.headers.get('user-agent') || ''
   const isBot = /bot|googlebot|crawler|spider|robot|crawling|facebookexternalhit|twitterbot|slackbot|whatsapp|telegrambot/i.test(userAgent)
 
+  const isPublicRoute = request.nextUrl.pathname === '/' ||
+                        request.nextUrl.pathname.startsWith('/api/og') ||
+                        request.nextUrl.pathname.includes('/opengraph-image') ||
+                        request.nextUrl.pathname.includes('/twitter-image');
+
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
-    if (request.nextUrl.pathname === '/' || isBot) {
+    if (isPublicRoute || isBot) {
       return supabaseResponse
     }
     // no user, potentially respond by redirecting the user to the login page
