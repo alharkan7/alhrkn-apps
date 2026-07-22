@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-export function DiagramViewer({ initialCode, initialType, initialDescription, fileName }: any) {
+export function DiagramViewer({ initialCode, initialType, initialDescription, fileName, id, isOwner = true }: any) {
   const router = useRouter();
   const [diagramCode, setDiagramCode] = useState<string>(initialCode);
   const [diagramType, setDiagramType] = useState<string>(initialType);
@@ -82,6 +82,8 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
                 onCodeChange={setDiagramCode}
                 fileName={fileName}
                 description={initialDescription}
+                isOwner={isOwner}
+                id={id}
               />
             </motion.div>
         </AnimatePresence>

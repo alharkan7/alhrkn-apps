@@ -22,6 +22,8 @@ interface SidebarProps {
   onClose: () => void;
   onUpdateNode: (id: string, data: Partial<NoteNode['data']>) => void;
   onAddChild: (parentId: string) => void;
+  isOwner?: boolean;
+  onInteract?: (e?: React.SyntheticEvent | Event) => boolean | void;
 }
 
 const getHeadingStyle = (depth: number) => {
@@ -37,13 +39,17 @@ const SidebarSection = ({
   depth,
   onUpdateNode,
   onAddChild,
-  forceUpdateTrigger
+  forceUpdateTrigger,
+  isOwner = true,
+  onInteract
 }: {
   node: NoteNode;
   depth: number;
   onUpdateNode: (id: string, data: Partial<NoteNode['data']>) => void;
   onAddChild: (id: string) => void;
   forceUpdateTrigger: boolean;
+  isOwner?: boolean;
+  onInteract?: (e?: React.SyntheticEvent | Event) => boolean | void;
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,6 +77,10 @@ const SidebarSection = ({
         ref={textareaRef}
         rows={1}
         value={node.data.title}
+        readOnly={!isOwner}
+        onClick={(e) => {
+          if (!isOwner && onInteract) onInteract(e);
+        }}
         onChange={(e) => onUpdateNode(node.id, { title: e.target.value })}
         className={`w-full bg-transparent border-none focus:ring-0 outline-none resize-none overflow-hidden placeholder:text-slate-300 dark:placeholder:text-slate-700 whitespace-pre-wrap ${getHeadingStyle(depth)}`}
         placeholder="Untitled Section"
@@ -78,40 +88,47 @@ const SidebarSection = ({
       />
 
       {/* Content (Rich Text Editor) */}
-      <div className="mb-6">
+      <div className="mb-6" onClick={(e) => {
+        if (!isOwner && onInteract) onInteract(e);
+      }}>
         <RichTextEditor
           key={node.id}
           value={node.data.content}
           onChange={(content) => onUpdateNode(node.id, { content })}
           placeholder="Type your content here..."
           className="text-slate-800 dark:text-slate-200 leading-relaxed prose max-w-none dark:prose-invert font-serif prose-p:text-justify prose-a:text-blue-600 dark:prose-a:text-blue-400"
+          readOnly={!isOwner}
         />
       </div>
 
-      {/* Hover Controls for Section */}
-      <div className="absolute -left-10 top-3 opacity-0 group-hover/section:opacity-100 transition-opacity hidden md:block">
-        <button
-          onClick={() => onAddChild(node.id)}
-          title="Add Sub-section"
-          className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
-      {/* Mobile Controls for Section (always visible or different interaction) */}
-      <div className="md:hidden mb-4">
-        <button
-          onClick={() => onAddChild(node.id)}
-          className="flex items-center gap-1 text-xs text-slate-400"
-        >
-          <Plus size={14} /> Add Sub-section
-        </button>
-      </div>
+      {isOwner && (
+        <>
+          {/* Hover Controls for Section */}
+          <div className="absolute -left-10 top-3 opacity-0 group-hover/section:opacity-100 transition-opacity hidden md:block">
+            <button
+              onClick={() => onAddChild(node.id)}
+              title="Add Sub-section"
+              className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          {/* Mobile Controls for Section (always visible or different interaction) */}
+          <div className="md:hidden mb-4">
+            <button
+              onClick={() => onAddChild(node.id)}
+              className="flex items-center gap-1 text-xs text-slate-400"
+            >
+              <Plus size={14} /> Add Sub-section
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
-export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onClose, onUpdateNode, onAddChild }: SidebarProps) {
+export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onClose, onUpdateNode, onAddChild, isOwner = true, onInteract }: SidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const documentStructure = useMemo(() => {
@@ -313,19 +330,22 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
                     onUpdateNode={onUpdateNode}
                     onAddChild={onAddChild}
                     forceUpdateTrigger={isOpen}
+                    isOwner={isOwner}
+                    onInteract={onInteract}
                   />
                 ))}
 
-                {/* End of Doc / Add New */}
-                <div className="mt-16 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800 text-center">
-                  <button
-                    onClick={() => selectedNode && onAddChild(documentStructure[documentStructure.length - 1]?.node.id || selectedNode.id)}
-                    className="flex items-center gap-2 mx-auto text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-3 px-6 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <Plus size={20} />
-                    <span className="font-medium">Append Section</span>
-                  </button>
-                </div>
+                {isOwner && (
+                  <div className="mt-16 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800 text-center">
+                    <button
+                      onClick={() => selectedNode && onAddChild(documentStructure[documentStructure.length - 1]?.node.id || selectedNode.id)}
+                      className="flex items-center gap-2 mx-auto text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-3 px-6 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <Plus size={20} />
+                      <span className="font-medium">Append Section</span>
+                    </button>
+                  </div>
+                )}
 
               </div>
             </div>

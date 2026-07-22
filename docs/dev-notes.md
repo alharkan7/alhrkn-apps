@@ -16,5 +16,4 @@ chat/8327fc81-5778-437b-a63b-c601ddc99221
 
 - Users Page & Logout Function
 - Dashboard Analytics & Improvement
-- Content Edit Ownership Toast
 - OpenGraph

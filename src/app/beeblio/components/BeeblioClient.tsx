@@ -51,11 +51,14 @@ const cleanText = (text: string) => {
   return str.replace(/\s\s+/g, ' ').trim();
 };
 
+import { toast } from 'sonner'
+
 interface BeeblioClientProps {
-  pageId?: string
+  pageId?: string;
+  isOwner?: boolean;
 }
 
-export default function BeeblioClient({ pageId }: BeeblioClientProps) {
+export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialQuery = searchParams?.get('q') || ''
@@ -80,6 +83,37 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const searchRequestedRef = useRef<string | null>(null)
   const [results, setResults] = useState<Paper[]>([])
   const [mounted, setMounted] = useState(false)
+  
+  const handleMakeCopy = async () => {
+    if (!pageId) return;
+    try {
+      const res = await fetch(`/api/beeblio/${pageId}/duplicate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to duplicate');
+      const data = await res.json();
+      window.location.href = `/beeblio/${data.newId}`;
+    } catch (error) {
+      console.error('Failed to duplicate document', error);
+      toast.error('Failed to copy document. Please try again.');
+    }
+  };
+
+  const handleInteract = (e?: React.SyntheticEvent | Event) => {
+    if (!isOwner) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      toast('View Only', {
+        description: "You're not the owner of this search.",
+        action: {
+          label: 'Make Copy',
+          onClick: handleMakeCopy
+        }
+      });
+      return false;
+    }
+    return true;
+  };
   
   // Settings State
   const [aiOptimize, setAiOptimize] = useState(false)
@@ -388,6 +422,10 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!handleInteract()) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) await uploadFile(file);
   };
@@ -407,6 +445,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (!handleInteract(e)) return;
     if (activeTab === 'context') {
       const file = e.dataTransfer.files?.[0];
       if (file) await uploadFile(file);
@@ -516,6 +555,7 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
   };
 
   const handleSearch = async () => {
+    if (!handleInteract()) return;
     if (!query.trim() && !attachment) return
 
     if (attachment) {
@@ -623,6 +663,14 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
             </div>
           }
         />
+        {!isOwner && (
+            <div 
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50 whitespace-nowrap" 
+                onClick={handleMakeCopy}
+            >
+                <span>View Only - Make a Copy</span>
+            </div>
+        )}
       </div>
 
       <main className={`relative z-10 flex-1 container mx-auto max-w-5xl px-4 md:px-8 pt-20 pb-20 ${pageId ? 'space-y-6' : 'space-y-12'}`}>
@@ -744,8 +792,10 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                   className="bg-transparent border-none text-base md:text-lg shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10 truncate placeholder:text-muted-foreground/50"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onFocus={handleInteract}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   disabled={activeTab === 'context' && !!attachment}
+                  readOnly={!isOwner}
                 />
 
               </div>
@@ -853,8 +903,10 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                         className="bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none py-8"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onFocus={handleInteract}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         autoFocus={!pageId}
+                        readOnly={!isOwner}
                       />
                     ) : (
                       <div className="relative group">
@@ -864,8 +916,10 @@ export default function BeeblioClient({ pageId }: BeeblioClientProps) {
                           className="min-h-[140px] bg-transparent border-none text-lg md:text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none py-2 resize-none scrollbar-thin scrollbar-thumb-muted"
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
+                          onFocus={handleInteract}
                           autoFocus={!pageId}
                           disabled={!!attachment}
+                          readOnly={!isOwner}
                         />
                       </div>
                     )}

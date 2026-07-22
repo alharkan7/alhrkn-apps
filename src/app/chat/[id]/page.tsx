@@ -63,10 +63,13 @@ export default async function ChatSessionPage({ params }: { params: Promise<{ id
         }
     }
 
+    const isOwner = sessionData.userId === user.id;
+
     return (
         <ChatInterface 
             initialMessages={messages} 
             initialSessionId={sessionData.id} 
+            isOwner={isOwner}
         />
     );
 }

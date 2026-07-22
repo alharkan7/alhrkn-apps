@@ -12,12 +12,15 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { usePathname } from 'next/navigation'
 import { Message } from '../types/types'
 
+import { toast } from 'sonner'
+
 interface ChatInterfaceProps {
     initialMessages?: Message[];
     initialSessionId?: string;
+    isOwner?: boolean;
 }
 
-export function ChatInterface({ initialMessages = [], initialSessionId }: ChatInterfaceProps) {
+export function ChatInterface({ initialMessages = [], initialSessionId, isOwner = true }: ChatInterfaceProps) {
     const { messages, isLoading, isStreaming, sendMessage, clearMessages, sessionId } = useChatMessages(initialMessages, initialSessionId);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +29,37 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
     const [isInputFocused, setIsInputFocused] = useState(false);
     const { file, handleFileSelect, clearFile } = useFileUpload();
     const pathname = usePathname();
+
+    const handleMakeCopy = async () => {
+        if (!initialSessionId) return;
+        try {
+            const res = await fetch(`/api/chat/${initialSessionId}/duplicate`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to duplicate');
+            const data = await res.json();
+            window.location.href = `/chat/${data.newId}`;
+        } catch (error) {
+            console.error('Failed to duplicate document', error);
+            toast.error('Failed to copy document. Please try again.');
+        }
+    };
+
+    const handleInteract = (e?: React.SyntheticEvent | Event) => {
+        if (!isOwner) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            toast('View Only', {
+                description: "You're not the owner of this chat.",
+                action: {
+                    label: 'Make Copy',
+                    onClick: handleMakeCopy
+                }
+            });
+            return false;
+        }
+        return true;
+    };
 
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -125,7 +159,9 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
                             </Button>
                             {hasUserSentMessage && (
                                 <Button
-                                    onClick={handleClearChat}
+                                    onClick={(e) => {
+                                        if (handleInteract(e)) handleClearChat();
+                                    }}
                                     className="p-2 rounded-lg"
                                     title="Clear chat history"
                                     variant="secondary"
@@ -136,6 +172,14 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
                         </div>
                     }
                 />
+                {!isOwner && (
+                    <div 
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50 whitespace-nowrap" 
+                        onClick={handleMakeCopy}
+                    >
+                        <span>View Only</span>
+                    </div>
+                )}
             </div>
             <div className={`relative z-10 flex-1 overflow-hidden flex flex-col justify-start max-w-4xl mx-auto w-full px-1 md:px-4 pt-16 ${!hasUserSentMessage ? 'pb-12' : 'pb-0'}`}>
                 {!hasUserSentMessage && (
@@ -168,6 +212,7 @@ export function ChatInterface({ initialMessages = [], initialSessionId }: ChatIn
                         clearFile={clearFile}
                         sendMessage={handleSendMessage}
                         onFocusChange={setIsInputFocused}
+                        onInteract={handleInteract}
                     />
                 </div>
 

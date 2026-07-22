@@ -212,7 +212,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 };
 
 
-function FlowEditor({ flownoteId }: { flownoteId?: string }) {
+import { toast } from 'sonner';
+
+function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwner?: boolean }) {
   const router = useRouter();
   const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -228,11 +230,46 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const handleMakeCopy = async () => {
+    if (!flownoteId) return;
+    try {
+      const res = await fetch(`/api/flownote/${flownoteId}/duplicate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to duplicate');
+      const data = await res.json();
+      window.location.href = `/flownote/${data.newId}`;
+    } catch (error) {
+      console.error('Failed to duplicate document', error);
+      toast.error('Failed to copy document. Please try again.');
+    }
+  };
+
+  const handleInteract = (e?: React.SyntheticEvent | Event) => {
+    if (!isOwner) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      toast('View Only', {
+        description: "You're not the owner of this document.",
+        action: {
+          label: 'Make Copy',
+          onClick: handleMakeCopy
+        }
+      });
+      return false;
+    }
+    return true;
+  };
+
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!handleInteract()) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -353,7 +390,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   // Auto-save logic
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (!flownoteId || !mounted || nodes.length === 0) return;
+    if (!flownoteId || !mounted || nodes.length === 0 || !isOwner) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -465,6 +502,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   const onConnect = useCallback(
     (params: Connection) => {
+      if (!handleInteract()) return;
       const alreadyConnected = edges.some(
         (edge) => edge.source === params.source && edge.target === params.target
       );
@@ -488,6 +526,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
+      if (!handleInteract()) return;
       setEdges((eds) =>
         eds.map((edge) => {
           if (edge.id === oldEdge.id) {
@@ -535,6 +574,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   const addNode = useCallback(
     (x?: number, y?: number) => {
+      if (!handleInteract()) return;
       const id = uuidv4();
       const position =
         x !== undefined && y !== undefined
@@ -563,6 +603,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   );
 
   const addChildNode = useCallback((parentId: string) => {
+    if (!handleInteract()) return;
     const parentNode = nodes.find(n => n.id === parentId);
     if (!parentNode) return;
 
@@ -660,6 +701,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   }, [setNodes, setEdges]);
 
   const handleNewDocument = useCallback(async () => {
+    if (!handleInteract()) return;
     const id = uuidv4();
     const position = { x: 250, y: 250 };
     
@@ -688,6 +730,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   // AI Generation Handler
   const handleAIGenerate = async () => {
+    if (!handleInteract()) return;
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
 
@@ -750,6 +793,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
+      if (!handleInteract(event)) return;
       const currentNodes = getNodes();
       const currentEdges = getEdges();
       const outgoers = getOutgoers(node, currentNodes, currentEdges);
@@ -771,6 +815,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   const onEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
+      if (!handleInteract(event)) return;
       setContextMenu({
         id: edge.id,
         top: event.clientY,
@@ -786,6 +831,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
+      if (!handleInteract(event)) return;
       setContextMenu({
         id: null,
         top: event.clientY,
@@ -799,6 +845,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
   );
 
   const onContextMenuAddNode = useCallback(() => {
+    if (!handleInteract()) return;
     if (!contextMenu || !ref.current) return;
     const paneBounds = ref.current.getBoundingClientRect();
     const position = project({
@@ -811,6 +858,7 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   const updateNodeData = useCallback(
     (id: string, newData: Partial<NoteNode['data']>) => {
+      if (!handleInteract()) return;
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id === id) {
@@ -834,6 +882,14 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
 
   return (
     <div className={`w-screen min-h-dvh flex overflow-hidden ${isDarkMode ? 'dark' : ''}`} ref={ref} style={{ height: '100dvh' }}>
+      {!isOwner && (
+        <div 
+          className="absolute top-4 right-[250px] bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50" 
+          onClick={handleMakeCopy}
+        >
+          <span>View Only - Make a Copy</span>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -881,7 +937,10 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={() => setIsAIDialogOpen(true)}
+                onClick={(e) => {
+                  if (!handleInteract(e)) return;
+                  setIsAIDialogOpen(true);
+                }}
                 className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
               >
                 <Sparkles size={20} className="transition-transform group-hover:scale-110" />
@@ -898,6 +957,11 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
                 <AlertDialogTrigger asChild>
                   <button
                     className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
+                    onClick={(e) => {
+                      if (!handleInteract(e)) {
+                        e.preventDefault();
+                      }
+                    }}
                   >
                     <Plus size={20} className="transition-transform group-hover:scale-110" />
                   </button>
@@ -935,6 +999,11 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
                   <button
                     disabled={isUploadingFile}
                     className="group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center disabled:opacity-50"
+                    onClick={(e) => {
+                      if (!handleInteract(e)) {
+                        e.preventDefault();
+                      }
+                    }}
                   >
                     {isUploadingFile ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} className="transition-transform group-hover:scale-110" />}
                   </button>
@@ -1081,15 +1150,17 @@ function FlowEditor({ flownoteId }: { flownoteId?: string }) {
         onClose={() => setIsSidebarOpen(false)}
         onUpdateNode={updateNodeData}
         onAddChild={addChildNode}
+        isOwner={isOwner}
+        onInteract={handleInteract}
       />
     </div>
   );
 }
 
-export default function App({ flownoteId }: { flownoteId?: string }) {
+export default function App({ flownoteId, isOwner = true }: { flownoteId?: string, isOwner?: boolean }) {
   return (
     <ReactFlowProvider>
-      <FlowEditor flownoteId={flownoteId} />
+      <FlowEditor flownoteId={flownoteId} isOwner={isOwner} />
     </ReactFlowProvider>
   );
 }

@@ -18,6 +18,7 @@ export default function OutlinerDetailPage() {
     const [idea, setIdea] = useState<ResearchIdea | null>(null);
     const [initialContent, setInitialContent] = useState<any>(null);
     const [language, setLanguage] = useState<'en' | 'id'>('en');
+    const [isOwner, setIsOwner] = useState<boolean>(true);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -44,6 +45,7 @@ export default function OutlinerDetailPage() {
                     });
                     setInitialContent(data.content);
                     if (data.language) setLanguage(data.language);
+                    setIsOwner(data.isOwner ?? true);
                 } else {
                     // Fallback to localStorage if draft not found in DB
                     const raw = localStorage.getItem(`outliner:${id}`);
@@ -102,7 +104,7 @@ export default function OutlinerDetailPage() {
                         </button>
                     </div>
                 ) : (
-                    <FullDocumentEditor id={id} idea={idea} language={language} initialContent={initialContent} />
+                    <FullDocumentEditor id={id} idea={idea} language={language} initialContent={initialContent} isOwner={isOwner} />
                 )}
             </div>
         </div>

@@ -20,6 +20,7 @@ interface FreeformChatPanelProps {
   attachments?: SvgElementSelection[];
   onRemoveAttachment?: (key: string) => void;
   onClearAttachments?: () => void;
+  onInteract?: (e?: React.SyntheticEvent) => boolean | void;
 }
 
 const SUGGESTIONS = [
@@ -40,6 +41,7 @@ export function FreeformChatPanel({
   attachments = [],
   onRemoveAttachment,
   onClearAttachments,
+  onInteract,
 }: FreeformChatPanelProps) {
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,11 @@ export function FreeformChatPanel({
     await onSend(value);
   };
 
-  const handleFocus = () => {
+  const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    if (onInteract && onInteract(e) === false) {
+      e.target.blur();
+      return;
+    }
     requestAnimationFrame(() => {
       formRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
       setTimeout(() => {
@@ -234,6 +240,7 @@ export function FreeformChatPanel({
             )}
             onSubmit={(e) => {
               e.preventDefault();
+              if (onInteract && onInteract(e) === false) return;
               void submit();
             }}
           >

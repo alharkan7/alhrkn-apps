@@ -26,7 +26,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return new Response(JSON.stringify({ error: 'Draft not found' }), { status: 404 });
     }
 
-    return new Response(JSON.stringify(draftRecords[0]), {
+    const draft = draftRecords[0];
+    const isOwner = draft.userId === user.id;
+
+    return new Response(JSON.stringify({ ...draft, isOwner }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -9,8 +9,18 @@ interface PageProps {
   params: { id: string };
 }
 
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+
 export default async function MindmapIdPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/login?next=/papermap/${id}`);
+  }
 
   // Fetch mindmap and nodes from DB
   const mindmap = await db.query.mindmaps.findFirst({ where: eq(mindmaps.id, id) });
@@ -26,6 +36,8 @@ export default async function MindmapIdPage({ params }: { params: Promise<{ id: 
     level: n.level,
     pageNumber: n.pageNumber ?? undefined,
   }));
+  
+  const isOwner = mindmap.userId === user.id;
 
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
@@ -38,6 +50,7 @@ export default async function MindmapIdPage({ params }: { params: Promise<{ id: 
         mindmapExpiresAt={mindmap.expiresAt ? mindmap.expiresAt.toISOString() : undefined}
         mindmapParsedPdfContent={mindmap.parsed_pdf_content ?? undefined}
         mindmapId={id}
+        isOwner={isOwner}
       />
     </Suspense>
   );

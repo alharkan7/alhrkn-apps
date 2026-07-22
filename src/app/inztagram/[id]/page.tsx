@@ -23,6 +23,8 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
     notFound();
   }
 
+  const isOwner = diagram.userId === user.id;
+
   if (diagram.mode === 'freeform') {
     // allow empty svgCode for streaming
     
@@ -40,6 +42,7 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
         initialDescription={diagram.description}
         fileName={diagram.pdfName}
         initialVersions={versions as { svgCode: string, createdAt: Date }[]}
+        isOwner={isOwner}
       />
     );
   }
@@ -50,6 +53,8 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
       initialType={diagram.diagramType}
       initialDescription={diagram.description}
       fileName={diagram.pdfName}
+      id={diagram.id}
+      isOwner={isOwner}
     />
   );
 }

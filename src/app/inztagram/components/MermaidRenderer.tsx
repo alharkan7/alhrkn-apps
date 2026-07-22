@@ -19,9 +19,13 @@ interface MermaidRendererProps {
     onCodeChange?: (code: string) => void;
     fileName?: string;
     description?: string;
+    isOwner?: boolean;
+    id?: string;
 }
 
-export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramType, diagramTheme, onThemeChange, onNewDiagram, onCodeChange, fileName, description }) => {
+import { toast } from 'sonner';
+
+export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramType, diagramTheme, onThemeChange, onNewDiagram, onCodeChange, fileName, description, isOwner = true, id }) => {
     const fullscreenRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const panzoomRef = useRef<any>(null);
@@ -33,6 +37,37 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     const downloadDropdownRef = useRef<HTMLDivElement>(null);
     const [autoCorrected, setAutoCorrected] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const handleMakeCopy = async () => {
+        if (!id) return;
+        try {
+            const res = await fetch(`/api/inztagram/${id}/duplicate`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to duplicate');
+            const data = await res.json();
+            window.location.href = `/inztagram/${data.newId}`;
+        } catch (error) {
+            console.error('Failed to duplicate diagram', error);
+            toast.error('Failed to copy document. Please try again.');
+        }
+    };
+
+    const handleInteract = (e?: React.SyntheticEvent | Event) => {
+        if (!isOwner) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            toast('View Only', {
+                description: "You're not the owner of this diagram.",
+                action: {
+                    label: 'Make Copy',
+                    onClick: handleMakeCopy
+                }
+            });
+            return false;
+        }
+        return true;
+    };
 
     // Pre-validation: ensure code starts with a valid diagram type and auto-correct '--' to '-->' for flowcharts
     function getRenderableCode(rawCode: string, diagramType: string) {
@@ -278,7 +313,15 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     };
 
     return (
-        <div className="flex-1 flex flex-col justify-center items-center max-w-6xl mx-auto w-full px-1 md:px-4 mt-[80px] mb-[20px]">
+        <div className="flex-1 flex flex-col justify-center items-center max-w-6xl mx-auto w-full px-1 md:px-4 mt-[80px] mb-[20px] relative">
+            {!isOwner && (
+                <div 
+                    className="absolute top-0 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50 mt-16" 
+                    onClick={handleMakeCopy}
+                >
+                    <span>View Only</span>
+                </div>
+            )}
             <div ref={fullscreenRef} className={isFullscreen ? 'w-screen h-screen bg-background p-2 md:p-4' : 'w-full'}>
             <Card className={isFullscreen ? 'w-full h-full shadow-lg flex flex-col max-w-none' : 'w-full max-w-6xl shadow-lg flex flex-col'}>
                 <div className="flex items-center justify-between p-2 border-b">
@@ -295,11 +338,17 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                         </Select>
                     </div>
                     <div className="flex items-center gap-1 ml-auto">
-                        <Sheet open={editOpen} onOpenChange={setEditOpen}>
+                        <Sheet open={editOpen} onOpenChange={(open) => {
+                            if (open && !handleInteract()) return;
+                            setEditOpen(open);
+                        }}>
                             <SheetTrigger asChild>
                                 <Button
                                     variant="secondary"
                                     aria-label="Edit Diagram Text"
+                                    onClick={(e) => {
+                                        if (!handleInteract(e)) return;
+                                    }}
                                 >
                                     Edit
                                 </Button>

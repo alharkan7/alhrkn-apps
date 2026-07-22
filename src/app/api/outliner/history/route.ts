@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
 import { outlinerQueries, outlinerDrafts } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray, or } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
@@ -17,27 +17,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const queries = await db
+    // 1. Fetch all drafts for this user first
+    const allDrafts = await db
       .select()
-      .from(outlinerQueries)
-      .where(eq(outlinerQueries.userId, user.id))
+      .from(outlinerDrafts)
+      .where(eq(outlinerDrafts.userId, user.id))
+      .orderBy(desc(outlinerDrafts.updatedAt));
+
+    const draftQueryIds = Array.from(new Set(allDrafts.map(d => d.queryId).filter(Boolean))) as string[];
+
+    // 2. Fetch queries: either owned by user OR referenced by their drafts
+    let queriesQuery = db.select().from(outlinerQueries);
+    if (draftQueryIds.length > 0) {
+      queriesQuery = queriesQuery.where(
+        or(
+          eq(outlinerQueries.userId, user.id),
+          inArray(outlinerQueries.id, draftQueryIds)
+        )
+      ) as any;
+    } else {
+      queriesQuery = queriesQuery.where(eq(outlinerQueries.userId, user.id)) as any;
+    }
+
+    const queries = await queriesQuery
       .orderBy(desc(outlinerQueries.updatedAt))
       .limit(limit)
       .offset(offset);
 
-    // Fetch drafts for these queries
     const queryIds = queries.map(q => q.id);
-    let allDrafts: any[] = [];
-    
-    if (queryIds.length > 0) {
-      // Need to query drafts where queryId IN (queryIds)
-      // Since drizzle-orm doesn't cleanly export `inArray` if not imported, we can fetch all for user or loop.
-      allDrafts = await db
-        .select()
-        .from(outlinerDrafts)
-        .where(eq(outlinerDrafts.userId, user.id))
-        .orderBy(desc(outlinerDrafts.updatedAt));
-    }
+    // drafts are already fetched in allDrafts
 
     const history = queries.map(q => {
       const draftsForQuery = allDrafts.filter(d => d.queryId === q.id).map(d => ({

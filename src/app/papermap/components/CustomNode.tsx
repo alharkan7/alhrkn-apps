@@ -24,8 +24,10 @@ interface CustomNodeProps {
     openPdfViewer?: (pageNumber: number) => void; // Function to open PDF viewer
     columnLevel?: number; // Column level for color assignment
     layoutDirection?: 'LR' | 'TB' | 'RL' | 'BT'; // Current layout direction
-    deleteNode?: (nodeId: string) => void; // Add this line
-    expanded?: boolean; // Whether the node is expanded by default
+    deleteNode?: (nodeId: string) => void;
+    expanded?: boolean;
+    isOwner?: boolean;
+    onInteract?: () => void;
   };
   id: string;
   selected?: boolean; // Add selected prop
@@ -163,7 +165,20 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
     }
   }, [editingTitle, editingDescription]);
 
-  const handleTitleDoubleClick = () => {
+  const checkInteraction = (e?: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
+    if (data.isOwner === false) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (data.onInteract) data.onInteract();
+      return false;
+    }
+    return true;
+  };
+
+  const handleTitleDoubleClick = (e: React.MouseEvent) => {
+    if (!checkInteraction(e)) return;
     // Clear placeholder text if it matches before editing
     if (titleValue === 'Double Click to Edit') {
       setTitleValue('');
@@ -172,7 +187,8 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
     setShowInfo(false);
   };
 
-  const handleDescriptionDoubleClick = () => {
+  const handleDescriptionDoubleClick = (e: React.MouseEvent) => {
+    if (!checkInteraction(e)) return;
     // Clear placeholder text if it matches before editing
     if (descriptionValue === 'Double-click to add a description') {
       setDescriptionValue('');
@@ -258,6 +274,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
   };
 
   const handleChatButtonClick = (e: React.MouseEvent) => {
+    if (!checkInteraction(e)) return;
     e.stopPropagation();
     setShowFollowUpCard(true);
   };
@@ -290,6 +307,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
   };
 
   const handleAddBlankChildNode = (e: React.MouseEvent) => {
+    if (!checkInteraction(e)) return;
     e.stopPropagation();
     if (data.addFollowUpNode) {
       // Create a blank child node with placeholder title and default description
@@ -611,6 +629,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
 
   // Add handler for delete button click
   const handleDeleteButtonClick = (e: React.MouseEvent) => {
+    if (!checkInteraction(e)) return;
     e.stopPropagation();
     setShowDeleteConfirm(true);
   };

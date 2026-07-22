@@ -12,9 +12,10 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, placeholder, className, readOnly = false }: RichTextEditorProps) {
   const [showBubble, setShowBubble] = React.useState(false);
   const [bubblePosition, setBubblePosition] = React.useState({ top: 0, left: 0 });
 
@@ -36,6 +37,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
   ], [placeholder]);
 
   const editor = useEditor({
+    editable: !readOnly,
     immediatelyRender: false,
     extensions,
     content: value,

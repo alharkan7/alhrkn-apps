@@ -20,19 +20,49 @@ interface MindmapClientViewProps {
   mindmapExpiresAt?: string;
   mindmapParsedPdfContent?: string;
   mindmapId?: string;
+  isOwner?: boolean;
 }
 
 interface MindmapViewLayoutProps {
   mindmapInputType: 'pdf' | 'text' | 'url' | null;
   mindMap: ReturnType<typeof useMindMap> & { setLoading: (loading: boolean) => void };
+  isOwner?: boolean;
+  mindmapId?: string;
 }
 
-const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType, mindMap }) => {
+import { toast } from 'sonner';
+
+const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType, mindMap, isOwner = true, mindmapId }) => {
   const {
     viewMode,
     closeViewer,
     parsedPdfContent: archivedContent
   } = usePdfViewerContext();
+
+  const handleMakeCopy = async () => {
+    if (!mindmapId) return;
+    try {
+      const res = await fetch(`/api/papermap/${mindmapId}/duplicate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to duplicate');
+      const data = await res.json();
+      window.location.href = `/papermap/${data.newId}`;
+    } catch (error) {
+      console.error('Failed to duplicate mindmap', error);
+      toast.error('Failed to copy document. Please try again.');
+    }
+  };
+
+  const handleInteract = () => {
+    if (!isOwner) {
+      toast('View Only', {
+        description: "You're not the owner of this mindmap.",
+        action: {
+          label: 'Make Copy',
+          onClick: handleMakeCopy
+        }
+      });
+    }
+  };
 
   return (
     <MindMapProvider value={mindMap}>
@@ -61,8 +91,16 @@ const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType,
               />
             )}
 
-            <div className="flex-grow h-[calc(100vh-4rem)]">
-              <MindMapFlow />
+            <div className="flex-grow h-[calc(100vh-4rem)] relative" onDoubleClick={handleInteract}>
+              {!isOwner && (
+                <div 
+                  className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50" 
+                  onClick={handleMakeCopy}
+                >
+                  <span>View Only</span>
+                </div>
+              )}
+              <MindMapFlow isOwner={isOwner} onInteract={handleInteract} />
             </div>
           </div>
         </div>
@@ -79,7 +117,8 @@ export default function MindmapClientView({
   mindmapSourceUrl,
   mindmapExpiresAt,
   mindmapParsedPdfContent,
-  mindmapId
+  mindmapId,
+  isOwner = true
 }: MindmapClientViewProps) {
   const mindMap = useMindMap() as ReturnType<typeof useMindMap> & { setLoading: (loading: boolean) => void };
   const searchParams = useSearchParams();
@@ -247,6 +286,8 @@ export default function MindmapClientView({
       <MindmapViewLayout
         mindmapInputType={mindmapInputType || null}
         mindMap={mindMap}
+        isOwner={isOwner}
+        mindmapId={mindmapId}
       />
     </PdfViewerProvider>
   );

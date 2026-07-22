@@ -12,7 +12,7 @@ export function useDebouncedCallback<T extends any[]>(fn: (...args: T) => void, 
 }
 
 // Main document editor hook
-export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en' | 'id', initialContent?: any) {
+export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en' | 'id', initialContent?: any, isOwner: boolean = true) {
     // Editor refs
     const editorRef = useRef<EditorJS | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -116,7 +116,15 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
     const getDocumentContext = useCallback(async (): Promise<string> => {
         if (!editorRef.current) return '';
         try {
-            const data = await editorRef.current.save();
+            let data;
+            if (!isOwner) {
+                data = initialContent;
+            } else {
+                data = await editorRef.current.save();
+            }
+            
+            if (!data) return `Document Title: ${idea.title}`;
+
             // Import the conversion function here to avoid circular dependency
             const { convertToPlainText } = await import('./utils');
             const plainText = convertToPlainText(data);

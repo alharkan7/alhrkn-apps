@@ -48,7 +48,7 @@ const defaultEdgeOptions = {
 // Pro options to remove attribution
 const proOptions = { hideAttribution: true };
 
-const MindMapFlow = () => {
+const MindMapFlow = ({ isOwner = true, onInteract }: { isOwner?: boolean, onInteract?: () => void }) => {
   const {
     nodes,
     edges,
@@ -100,6 +100,8 @@ const MindMapFlow = () => {
       data: {
         ...node.data,
         openPdfViewer, // Pass the openPdfViewer function to all nodes
+        isOwner,
+        onInteract,
         // Only set layoutDirection if it doesn't already exist to avoid overriding initial value
         ...(node.data.layoutDirection ? {} : { layoutDirection: currentLayoutDirection })
       }
@@ -208,7 +210,7 @@ const MindMapFlow = () => {
         >
           <Network
             size={16}
-            className={`text-gray-700 dark:text-gray-300 ${currentLayoutDirection === 'LR' ? '-rotate-90' : ''} transition-transform`}
+            className={`text-gray-700 dark:text-gray-300 ${isClient && currentLayoutDirection === 'LR' ? '-rotate-90' : ''} transition-transform`}
           />
         </button>
       </div>

@@ -26,9 +26,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const papers = await db.select().from(beeblioPapers).where(eq(beeblioPapers.searchId, searchId));
 
     // Fetch Evaluations
-    // Since evaluations are per paper, we can get all evaluations for the user for these papers
-    // Or just all evaluations for this user that match the papers
-    const evaluations = await db.select().from(beeblioEvaluations).where(eq(beeblioEvaluations.userId, user.id));
+    // Since evaluations are per paper, we can get all evaluations for the user who owns the search
+    const evaluations = await db.select().from(beeblioEvaluations).where(eq(beeblioEvaluations.userId, searchRecord.userId));
 
     // Map them to the frontend Paper format
     const mappedPapers = papers.map((p) => {

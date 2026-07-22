@@ -43,7 +43,10 @@ interface FreeformDiagramViewerProps {
   initialDescription?: string | null;
   fileName?: string | null;
   initialVersions?: { svgCode: string | null, createdAt: Date }[];
+  isOwner?: boolean;
 }
+
+import { toast } from 'sonner';
 
 export function FreeformDiagramViewer({
   id,
@@ -52,6 +55,7 @@ export function FreeformDiagramViewer({
   initialDescription,
   fileName,
   initialVersions,
+  isOwner = true,
 }: FreeformDiagramViewerProps) {
   const router = useRouter();
   const [svg, setSvg] = useState(initialSvg || '');
@@ -67,6 +71,36 @@ export function FreeformDiagramViewer({
   const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
   const [hasAutoImproved, setHasAutoImproved] = useState(false);
   const [isGeneratingSync, setIsGeneratingSync] = useState(false);
+
+  const handleMakeCopy = async () => {
+    try {
+      const res = await fetch(`/api/inztagram/${id}/duplicate`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to duplicate');
+      const data = await res.json();
+      window.location.href = `/inztagram/${data.newId}`;
+    } catch (error) {
+      console.error('Failed to duplicate diagram', error);
+      toast.error('Failed to copy document. Please try again.');
+    }
+  };
+
+  const handleInteract = (e?: React.SyntheticEvent | Event) => {
+    if (!isOwner) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      toast('View Only', {
+        description: "You're not the owner of this diagram.",
+        action: {
+          label: 'Make Copy',
+          onClick: handleMakeCopy
+        }
+      });
+      return false;
+    }
+    return true;
+  };
 
   // Setup streaming
   const { object, submit, isLoading } = useObject({
@@ -146,6 +180,7 @@ export function FreeformDiagramViewer({
     message: string,
     attachmentOverride?: SvgElementSelection[]
   ) => {
+    if (!handleInteract()) return;
     if (!message.trim() || isStreaming) return;
     setError(null);
 
@@ -197,12 +232,14 @@ export function FreeformDiagramViewer({
   };
 
   const handleAutoFixSvg = () => {
+    if (!handleInteract()) return;
     if (isStreaming) return;
     setChatMinimized(false);
     void handleSend(SVG_AUTO_FIX_MESSAGE, []);
   };
 
   const handleAutoImprove = useCallback((dataUrl: string) => {
+    if (!handleInteract()) return;
     if (isStreaming) return;
     setHasAutoImproved(true);
     setChatMinimized(false);
@@ -211,11 +248,15 @@ export function FreeformDiagramViewer({
   }, [isStreaming, handleSend]);
 
   const handleAttachmentsChange = useCallback((next: SvgElementSelection[]) => {
+    if (next.length > 0 && !isOwner) {
+      handleInteract();
+      return;
+    }
     setAttachments(next);
     if (next.length > 0) {
       setChatMinimized(false);
     }
-  }, []);
+  }, [isOwner]);
 
   const handleRemoveAttachment = useCallback((key: string) => {
     setAttachments((prev) => prev.filter((a) => selectionKey(a) !== key));
@@ -275,41 +316,52 @@ export function FreeformDiagramViewer({
                 <PlayfulLoader />
               </div>
             ) : (
-              <SvgArtifact
-                svg={displayedSvg}
-                loading={isStreaming}
-                isStreaming={isStreaming}
-                fileName={fileName || undefined}
-                description={initialDescription || undefined}
-                onAutoFix={handleAutoFixSvg}
-                attachments={attachments}
-                onAttachmentsChange={handleAttachmentsChange}
-                hasPrevious={currentVersionIndex < versions.length - 1}
-                hasNext={currentVersionIndex > 0}
-                onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
-                onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
-                showAutoImprove={versions.length <= 1 && !hasAutoImproved && !isStreaming && !!displayedSvg}
-                onAutoImprove={handleAutoImprove}
-                onLocalSave={async (newSvg) => {
-                  try {
-                    const res = await fetch(`/api/inztagram/${id}/save`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ svg: newSvg }),
-                    });
-                    if (res.ok) {
-                      const data = await res.json();
-                      if (data.svg) {
-                        setSvg(data.svg);
-                        setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
-                        setCurrentVersionIndex(0);
+              <div className="relative w-full h-full">
+                {!isOwner && (
+                  <div 
+                    className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50" 
+                    onClick={handleMakeCopy}
+                  >
+                    <span>View Only</span>
+                  </div>
+                )}
+                <SvgArtifact
+                  svg={displayedSvg}
+                  loading={isStreaming}
+                  isStreaming={isStreaming}
+                  fileName={fileName || undefined}
+                  description={initialDescription || undefined}
+                  onAutoFix={handleAutoFixSvg}
+                  attachments={attachments}
+                  onAttachmentsChange={handleAttachmentsChange}
+                  hasPrevious={currentVersionIndex < versions.length - 1}
+                  hasNext={currentVersionIndex > 0}
+                  onPreviousVersion={() => setCurrentVersionIndex(i => Math.min(i + 1, versions.length - 1))}
+                  onNextVersion={() => setCurrentVersionIndex(i => Math.max(i - 1, 0))}
+                  showAutoImprove={versions.length <= 1 && !hasAutoImproved && !isStreaming && !!displayedSvg}
+                  onAutoImprove={handleAutoImprove}
+                  onLocalSave={async (newSvg) => {
+                    if (!handleInteract()) return;
+                    try {
+                      const res = await fetch(`/api/inztagram/${id}/save`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ svg: newSvg }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.svg) {
+                          setSvg(data.svg);
+                          setVersions(prev => [{ svgCode: data.svg, createdAt: new Date() }, ...prev]);
+                          setCurrentVersionIndex(0);
+                        }
                       }
+                    } catch (e) {
+                      console.error('Error saving local edits:', e);
                     }
-                  } catch (e) {
-                    console.error('Error saving local edits:', e);
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             )}
           </div>
 
@@ -331,6 +383,7 @@ export function FreeformDiagramViewer({
               attachments={attachments}
               onRemoveAttachment={handleRemoveAttachment}
               onClearAttachments={() => setAttachments([])}
+              onInteract={handleInteract}
             />
           </div>
         </div>

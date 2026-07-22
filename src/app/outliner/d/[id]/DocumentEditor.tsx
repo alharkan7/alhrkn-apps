@@ -13,8 +13,9 @@ import { ResearchIdea, convertToMarkdown, convertToPlainText, convertToHTML, bui
 import { Toolbar } from '../../components/Toolbar';
 import { ChatInterface } from '../../components/ChatInterface';
 import { useDocumentEditor } from './hooks';
+import { toast } from 'sonner';
 
-export function FullDocumentEditor({ id, idea, language, initialContent }: { id: string; idea: ResearchIdea; language: 'en' | 'id'; initialContent?: any; }) {
+export function FullDocumentEditor({ id, idea, language, initialContent, isOwner = true }: { id: string; idea: ResearchIdea; language: 'en' | 'id'; initialContent?: any; isOwner?: boolean; }) {
     const {
         // Refs
         editorRef,
@@ -65,7 +66,7 @@ export function FullDocumentEditor({ id, idea, language, initialContent }: { id:
         hideMiniToolbar,
         warmInlineToolsOnce,
         ensureMiniAIToolbar,
-    } = useDocumentEditor(id, idea, language, initialContent);
+    } = useDocumentEditor(id, idea, language, initialContent, isOwner);
 
     const handleDownload = async (format: 'pdf' | 'markdown' | 'txt' | 'docx') => {
         if (!editorRef.current) return;
@@ -216,6 +217,7 @@ export function FullDocumentEditor({ id, idea, language, initialContent }: { id:
                 const editor = new EditorJS({
                     holder: holderId,
                     placeholder: "Start writing… Use '/' for blocks",
+                    readOnly: !isOwner,
                     inlineToolbar: true,
                     autofocus: true,
                     tools: {
@@ -439,14 +441,47 @@ export function FullDocumentEditor({ id, idea, language, initialContent }: { id:
         };
     }, [id, idea, holderId, debouncedSave, language, startStreaming, createSkeletonBlocks, ensureMiniAIToolbar, warmInlineToolsOnce, hideMiniToolbar, positionMiniToolbar, scheduleMiniToolbarShow, cancelScheduledMiniShow]);
 
+    const handleMakeCopy = async () => {
+        try {
+            const res = await fetch(`/api/outliner/drafts/${id}/duplicate`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to duplicate');
+            const data = await res.json();
+            window.location.href = `/outliner/d/${data.draftId}`;
+        } catch (error) {
+            console.error('Failed to duplicate draft', error);
+            toast.error('Failed to copy document. Please try again.');
+        }
+    };
+
+    const handleEditorClick = () => {
+        if (!isOwner) {
+            toast('View Only', {
+                description: "You're not the owner of this document.",
+                action: {
+                    label: 'Make Copy',
+                    onClick: handleMakeCopy
+                }
+            });
+        }
+    };
+
     return (
         <div className="prose prose-neutral dark:prose-invert max-w-none w-full pb-32">
             <Toolbar onDownload={handleDownload} onOpenChat={handleOpenChat} onSave={saveToDB} isSaving={isSavingToDB} isSaved={isSavedToDB} />
 
-            <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200">
+            <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200 relative">
+                {!isOwner && (
+                    <div 
+                        className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-10" 
+                        onClick={handleMakeCopy}
+                    >
+                        <span>View Only</span>
+                    </div>
+                )}
                 <div
                     id={holderId}
                     ref={containerRef}
+                    onClickCapture={handleEditorClick}
                     style={{
                         minHeight: '200px',
                         position: 'relative'

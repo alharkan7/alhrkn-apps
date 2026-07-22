@@ -16,6 +16,7 @@ interface ChatInputProps {
     onFocusChange?: (focused: boolean) => void;
     file: { name: string; type: string; url: string; uploaded?: boolean } | null;
     onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+    onInteract?: (e?: React.SyntheticEvent) => boolean | void;
 }
 
 export function ChatInput({
@@ -27,7 +28,8 @@ export function ChatInput({
     file,
     clearFile,
     sendMessage,
-    onFocusChange
+    onFocusChange,
+    onInteract
 }: ChatInputProps) {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const form = useForm();
@@ -35,6 +37,7 @@ export function ChatInput({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (onInteract && onInteract(e) === false) return;
         inputRef.current?.blur();
 
         if ((file && file.uploaded) || input.trim()) {
@@ -45,7 +48,8 @@ export function ChatInput({
         }
     };
 
-    const handleFileClick = (type: 'file' | 'image') => {
+    const handleFileClick = (type: 'file' | 'image', e: React.MouseEvent) => {
+        if (onInteract && onInteract(e) === false) return;
         if (fileInputRef.current) {
             fileInputRef.current.accept = type === 'image' ? 'image/*' : '*/*';
             fileInputRef.current.click();
@@ -59,7 +63,11 @@ export function ChatInput({
         }
     };
 
-    const handleFocus = () => {
+    const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+        if (onInteract && onInteract(e) === false) {
+            e.target.blur();
+            return;
+        }
         console.log('Focus event triggered');
         setIsFocused(true);
         onFocusChange?.(true);
@@ -122,7 +130,7 @@ export function ChatInput({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => handleFileClick('file')}
+                                    onClick={(e) => handleFileClick('file', e)}
                                     className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
                                     disabled={isLoading || !!file}
                                     aria-label="Attach file"
@@ -132,7 +140,7 @@ export function ChatInput({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => handleFileClick('image')}
+                                    onClick={(e) => handleFileClick('image', e)}
                                     className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
                                     disabled={isLoading || !!file}
                                     aria-label="Attach image"
