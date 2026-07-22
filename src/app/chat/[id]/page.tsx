@@ -3,6 +3,7 @@ import { chatSessions } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { isBotRequest } from '@/lib/bot';
 import { ChatInterface } from '../components/ChatInterface';
 import { Message } from '../types/types';
 import { getBucket } from '@/lib/storage/client';
@@ -12,7 +13,10 @@ export default async function ChatSessionPage({ params }: { params: Promise<{ id
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    const isBot = await isBotRequest();
+
     if (!user?.id) {
+        if (isBot) return <div />;
         redirect(`/login?next=/chat/${id}`);
     }
 

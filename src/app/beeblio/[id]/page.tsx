@@ -3,6 +3,7 @@ import BeeblioClient from '../components/BeeblioClient'
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
+import { isBotRequest } from '@/lib/bot';
 import { beeblioSearches } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -12,7 +13,10 @@ export default async function BeeblioResultsPage({ params }: { params: Promise<{
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isBot = await isBotRequest();
+
   if (!user) {
+    if (isBot) return <div />;
     redirect(`/login?next=/beeblio/${resolvedParams.id}`);
   }
 

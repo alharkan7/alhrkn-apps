@@ -5,6 +5,7 @@ import { DiagramViewer } from "./DiagramViewer";
 import { FreeformDiagramViewer } from "./FreeformDiagramViewer";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isBotRequest } from "@/lib/bot";
 import type { InztagramMessage } from "../lib/types";
 import type { Metadata } from "next";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -37,7 +38,10 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isBot = await isBotRequest();
+
   if (!user) {
+    if (isBot) return <div />;
     redirect(`/login?next=/inztagram/${id}`);
   }
 

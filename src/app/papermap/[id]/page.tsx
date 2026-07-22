@@ -11,6 +11,7 @@ interface PageProps {
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { isBotRequest } from '@/lib/bot';
 
 export default async function MindmapIdPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +19,10 @@ export default async function MindmapIdPage({ params }: { params: Promise<{ id: 
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isBot = await isBotRequest();
+
   if (!user) {
+    if (isBot) return <div />;
     redirect(`/login?next=/papermap/${id}`);
   }
 

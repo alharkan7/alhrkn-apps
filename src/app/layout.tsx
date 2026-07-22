@@ -18,7 +18,7 @@ const title = "@alhrkn's Apps Gallery"
 const description = "Collection of Experimental AI Apps by @alhrkn"
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://alhrkn.vercel.app'), // Replace with your actual domain
+  metadataBase: new URL('https://apps.raihankalla.id'), // Replace with your actual domain
   title: title,
   description: description,
   icons: {

@@ -1,6 +1,7 @@
 import FlowNoteApp from '../components/FlowNoteApp';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
+import { isBotRequest } from '@/lib/bot';
 import { db } from '@/db';
 import { flownotes } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -36,7 +37,10 @@ export default async function FlowNoteIdPage({ params }: { params: Promise<{ id:
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isBot = await isBotRequest();
+
   if (!user) {
+    if (isBot) return <div />;
     redirect(`/login?next=/flownote/${resolvedParams.id}`);
   }
 
