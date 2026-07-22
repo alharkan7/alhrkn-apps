@@ -19,10 +19,7 @@ export async function GET(
 
     const [flownote] = await db.select()
       .from(flownotes)
-      .where(and(
-        eq(flownotes.id, params.id),
-        eq(flownotes.userId, user.id)
-      ))
+      .where(eq(flownotes.id, params.id))
       .limit(1);
 
     if (!flownote) {

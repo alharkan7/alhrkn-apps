@@ -1,7 +1,16 @@
 import FlowNoteApp from '../components/FlowNoteApp';
-import { use } from 'react';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function FlowNoteIdPage(props: { params: Promise<{ id: string }> }) {
-  const params = use(props.params);
-  return <FlowNoteApp key={params.id} flownoteId={params.id} />;
+export default async function FlowNoteIdPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/login?next=/flownote/${resolvedParams.id}`);
+  }
+
+  return <FlowNoteApp key={resolvedParams.id} flownoteId={resolvedParams.id} />;
 }

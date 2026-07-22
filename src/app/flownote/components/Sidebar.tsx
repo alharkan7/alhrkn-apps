@@ -25,10 +25,10 @@ interface SidebarProps {
 }
 
 const getHeadingStyle = (depth: number) => {
-  if (depth === 0) return "text-4xl font-extrabold text-slate-900 dark:text-white mb-3 mt-0 tracking-tight leading-tight";
-  if (depth === 1) return "text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2 mt-4 pb-1 border-b border-slate-100 dark:border-slate-700 leading-tight";
-  if (depth === 2) return "text-2xl font-bold text-slate-800 dark:text-slate-200 mb-1.5 mt-3 leading-snug";
-  return "text-xl font-bold text-slate-700 dark:text-slate-300 mb-1 mt-2 leading-snug";
+  if (depth === 0) return "text-3xl font-serif font-normal text-center text-slate-900 dark:text-white mb-6 mt-0 leading-tight";
+  if (depth === 1) return "text-2xl font-serif font-normal text-slate-800 dark:text-slate-100 mb-4 mt-6 pb-1 border-b border-black/10 dark:border-white/10 leading-tight";
+  if (depth === 2) return "text-xl font-serif font-normal text-slate-800 dark:text-slate-200 mb-2 mt-4 leading-snug";
+  return "text-lg font-serif font-normal text-slate-700 dark:text-slate-300 mb-2 mt-3 leading-snug";
 };
 
 // Subcomponent to handle individual section rendering and textarea auto-resizing
@@ -84,7 +84,7 @@ const SidebarSection = ({
           value={node.data.content}
           onChange={(content) => onUpdateNode(node.id, { content })}
           placeholder="Type your content here..."
-          className="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+          className="text-slate-800 dark:text-slate-200 leading-relaxed prose max-w-none dark:prose-invert font-serif prose-p:text-justify prose-a:text-blue-600 dark:prose-a:text-blue-400"
         />
       </div>
 
@@ -299,11 +299,11 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
         </div>
 
         {selectedNode ? (
-          <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900">
+          <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-[#111]">
 
             {/* Scrollable Document Area */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="max-w-3xl mx-auto px-6 md:px-12 py-8 md:py-16 min-h-full pb-32">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+              <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mx-auto w-full max-w-[850px] min-h-full font-serif transition-colors duration-200 pb-32">
 
                 {documentStructure.map(({ node, depth }) => (
                   <SidebarSection

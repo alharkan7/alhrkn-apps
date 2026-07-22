@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const queryRecords = await db
       .select()
       .from(outlinerQueries)
-      .where(and(eq(outlinerQueries.id, id), eq(outlinerQueries.userId, user.id)))
+      .where(eq(outlinerQueries.id, id))
       .limit(1);
 
     if (queryRecords.length === 0) {

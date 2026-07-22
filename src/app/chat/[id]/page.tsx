@@ -13,7 +13,7 @@ export default async function ChatSessionPage({ params }: { params: Promise<{ id
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user?.id) {
-        redirect('/'); // Or to a login page
+        redirect(`/login?next=/chat/${id}`);
     }
 
     const sessionData = await db.query.chatSessions.findFirst({
@@ -23,11 +23,6 @@ export default async function ChatSessionPage({ params }: { params: Promise<{ id
     if (!sessionData) {
         // If session not found, we can either redirect or just let them start fresh with this ID
         // For security, if they try to access a non-existent chat, redirect to /chat
-        redirect('/chat');
-    }
-
-    if (sessionData.userId !== user.id) {
-        // Prevent accessing someone else's chat
         redirect('/chat');
     }
 

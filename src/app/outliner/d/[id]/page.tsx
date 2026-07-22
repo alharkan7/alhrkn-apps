@@ -31,6 +31,11 @@ export default function OutlinerDetailPage() {
                 const res = await fetch(`/api/outliner/drafts/${id}`);
                 if (ignore) return;
                 
+                if (res.status === 401) {
+                    router.push(`/login?next=/outliner/d/${id}`);
+                    return;
+                }
+
                 if (res.ok) {
                     const data = await res.json();
                     setIdea({

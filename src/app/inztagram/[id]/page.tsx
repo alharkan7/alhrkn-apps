@@ -3,7 +3,7 @@ import { inztagramDiagrams, inztagramDiagramVersions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { DiagramViewer } from "./DiagramViewer";
 import { FreeformDiagramViewer } from "./FreeformDiagramViewer";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { InztagramMessage } from "../lib/types";
 
@@ -14,7 +14,7 @@ export default async function InztagramIdPage({ params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    // Viewing may still load; ownership enforced on edit API.
+    redirect(`/login?next=/inztagram/${id}`);
   }
 
   const [diagram] = await db.select().from(inztagramDiagrams).where(eq(inztagramDiagrams.id, id));

@@ -5,10 +5,10 @@ import List from '@editorjs/list';
 import Marker from '@editorjs/marker';
 import InlineCode from '@editorjs/inline-code';
 import Underline from '@editorjs/underline';
-import { ExpandInlineTool } from '../tools/ExpandInlineTool';
-import { CitationTool } from '../tools/CitationTool';
-import { ParaphraseTool } from '../tools/ParaphraseTool';
-import { ChatTool } from '../tools/ChatTool';
+import { ExpandInlineTool } from '../../tools/ExpandInlineTool';
+import { CitationTool } from '../../tools/CitationTool';
+import { ParaphraseTool } from '../../tools/ParaphraseTool';
+import { ChatTool } from '../../tools/ChatTool';
 import type EditorJS from '@editorjs/editorjs';
 import type { RefObject } from 'react';
 

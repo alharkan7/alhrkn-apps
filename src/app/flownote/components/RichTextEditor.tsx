@@ -41,7 +41,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
     content: value,
     editorProps: {
       attributes: {
-        class: `outline-none min-h-[2em] prose prose-sm max-w-none dark:prose-invert focus:outline-none ${className || ''}`,
+        class: `outline-none min-h-[2em] focus:outline-none ${className || ''}`,
       },
     },
     onUpdate: ({ editor }) => {

@@ -32,6 +32,12 @@ export default function OutlinerQueryPage() {
             setIsLoading(true);
             try {
                 const res = await fetch(`/api/outliner/queries/${queryId}`);
+                
+                if (res.status === 401) {
+                    router.push(`/login?next=/outliner/q/${queryId}`);
+                    return;
+                }
+
                 if (!res.ok) throw new Error('Failed to load query');
                 const data = await res.json();
                 
