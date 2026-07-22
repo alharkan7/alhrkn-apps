@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['300', '400', '500', '600', '700'],
 });
 
-const title = "@alhrkn's Apps Gallery"
-const description = "Collection of Experimental AI Apps by @alhrkn"
+const title = "My Apps Gallery"
+const description = "Collection of Experimental Apps by @alhrkn"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://apps.raihankalla.id'), // Replace with your actual domain

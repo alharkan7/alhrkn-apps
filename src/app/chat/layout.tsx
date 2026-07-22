@@ -3,17 +3,17 @@ import { ChatHistorySidebar } from './components/ChatHistorySidebar'
 
 export const metadata: Metadata = {
   title: 'Ask AI',
-  description: 'Experimental AI Apps',
+  description: 'Experimental Apps by @alhrkn',
   openGraph: {
     title: 'Ask AI',
-    description: 'Experimental AI Apps',
-    images: [`/api/og?title=${encodeURIComponent('Ask AI')}&description=${encodeURIComponent('Experimental AI Apps')}&path=chat`],
+    description: 'Experimental Apps by @alhrkn',
+    images: [`/api/og?title=${encodeURIComponent('Ask AI')}&description=${encodeURIComponent('Experimental Apps by @alhrkn')}&path=chat`],
   },
   twitter: {
     card: "summary_large_image",
     title: 'Ask AI',
-    description: 'Experimental AI Apps',
-    images: [`/api/og?title=${encodeURIComponent('Ask AI')}&description=${encodeURIComponent('Experimental AI Apps')}&path=chat`],
+    description: 'Experimental Apps by @alhrkn',
+    images: [`/api/og?title=${encodeURIComponent('Ask AI')}&description=${encodeURIComponent('Experimental Apps by @alhrkn')}&path=chat`],
   },
 }
 

@@ -6,6 +6,33 @@ import { db } from '@/db';
 import { isBotRequest } from '@/lib/bot';
 import { beeblioSearches } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const searchData = await db.query.beeblioSearches.findFirst({
+    where: eq(beeblioSearches.id, id)
+  });
+
+  const title = searchData?.query ? `Beeblio - ${searchData.query}` : 'Beeblio Search';
+  const description = 'Experimental Apps by @alhrkn';
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=beeblio/${id}`],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=beeblio/${id}`],
+    },
+  };
+}
 
 export default async function BeeblioResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;

@@ -5,8 +5,8 @@ export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const title = searchParams.get('title') || "@alhrkn's Apps Gallery";
-  const description = searchParams.get('description') || "Collection of Experimental AI Apps";
+  const title = searchParams.get('title') || "My Apps Gallery";
+  const description = searchParams.get('description') || "Collection of Experimental Apps by @alhrkn";
   const path = searchParams.get('path') || "";
 
   return generateOpenGraphImage({ title, description, path });

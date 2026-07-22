@@ -7,6 +7,33 @@ import { isBotRequest } from '@/lib/bot';
 import { ChatInterface } from '../components/ChatInterface';
 import { Message } from '../types/types';
 import { getBucket } from '@/lib/storage/client';
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
+    const sessionData = await db.query.chatSessions.findFirst({
+        where: eq(chatSessions.id, id)
+    });
+
+    const title = sessionData?.title ? `Ask AI - ${sessionData.title}` : 'Ask AI';
+    const description = 'Experimental Apps by @alhrkn';
+
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=chat/${id}`],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title,
+            description,
+            images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=chat/${id}`],
+        },
+    };
+}
 
 export default async function ChatSessionPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
