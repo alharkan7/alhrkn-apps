@@ -35,12 +35,15 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const userAgent = request.headers.get('user-agent') || ''
+  const isBot = /bot|googlebot|crawler|spider|robot|crawling|facebookexternalhit|twitterbot|slackbot|whatsapp|telegrambot/i.test(userAgent)
+
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
-    if (request.nextUrl.pathname === '/') {
+    if (request.nextUrl.pathname === '/' || isBot) {
       return supabaseResponse
     }
     // no user, potentially respond by redirecting the user to the login page
