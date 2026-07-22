@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, Cell
 } from 'recharts';
@@ -21,8 +21,16 @@ type AppTotals = {
   flownote: number;
   discourse: number;
   chatSessions: number;
-  chatMessages: number;
   totalUsers: number;
+  uniqueUsersPerApp: {
+    papermap: number;
+    beeblio: number;
+    inztagram: number;
+    outliner: number;
+    chat: number;
+    flownote: number;
+    discourse: number;
+  };
 };
 
 type TimelineData = {
@@ -36,14 +44,14 @@ interface ClientDashboardProps {
   timeline: TimelineData[];
 }
 
-const APP_GRADIENTS = {
-  papermap: { from: '#0284c7', to: '#38bdf8' }, // sky
-  beeblio: { from: '#0369a1', to: '#0ea5e9' }, // sky dark
-  inztagram: { from: '#1d4ed8', to: '#60a5fa' }, // blue
-  outliner: { from: '#4338ca', to: '#818cf8' }, // indigo
-  chat: { from: '#5b21b6', to: '#a78bfa' }, // violet
-  flownote: { from: '#7e22ce', to: '#c084fc' }, // purple
-  discourse: { from: '#a21caf', to: '#e879f9' }, // fuchsia
+const APP_COLORS = {
+  papermap: '#0ea5e9',
+  beeblio: '#0284c7',
+  inztagram: '#3b82f6',
+  outliner: '#6366f1',
+  chat: '#8b5cf6',
+  flownote: '#a855f7',
+  discourse: '#d946ef',
 };
 
 const APP_ICONS = {
@@ -61,8 +69,14 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   
-  const timeRange = searchParams.get('range') || '30';
+  const rangeQuery = searchParams.get('range') || '30';
+  const [localTimeRange, setLocalTimeRange] = useState<string>(rangeQuery);
   const [selectedApp, setSelectedApp] = useState<string>('all');
+  const [isPending, startTransition] = useTransition();
+  
+  useEffect(() => {
+    setLocalTimeRange(rangeQuery);
+  }, [rangeQuery]);
   
   // App Details Sheet State
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -81,27 +95,45 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
     setIsLoadingDetails(false);
   };
 
-  // Process timeline data for recharts AreaChart
   const processedTimeline = useMemo(() => {
-    // Group by date
-    const grouped = timeline.reduce((acc, curr) => {
-      // Create date string formatted nicely if possible, else keep ISO
-      const dateStr = curr.date;
-      if (!acc[dateStr]) {
-        acc[dateStr] = { date: dateStr, displayDate: format(new Date(dateStr), 'MMM dd') };
-        Object.keys(APP_GRADIENTS).forEach(app => {
-          acc[dateStr][app] = 0;
+    const grouped: Record<string, any> = {};
+    const days = parseInt(rangeQuery, 10);
+    
+    if (!isNaN(days)) {
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = format(d, 'MMM dd');
+        grouped[key] = { date: d.toISOString(), displayDate: key };
+        Object.keys(APP_COLORS).forEach(app => {
+          grouped[key][app] = 0;
         });
       }
-      acc[dateStr][curr.app] = Number(curr.count);
-      return acc;
-    }, {} as Record<string, any>);
+    }
 
-    // The server already filters timeline data, so we just group and format it
-    let data = Object.values(grouped).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    timeline.forEach(curr => {
+      const d = new Date(curr.date);
+      if (isNaN(d.getTime())) return;
+      const key = format(d, 'MMM dd');
+      
+      if (!grouped[key]) {
+        grouped[key] = { date: curr.date, displayDate: key };
+        Object.keys(APP_COLORS).forEach(app => {
+          grouped[key][app] = 0;
+        });
+      }
+      grouped[key][curr.app] = (grouped[key][curr.app] || 0) + Number(curr.count);
+    });
+
+    let data = Object.values(grouped).sort((a, b) => {
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+    });
     
     return data;
-  }, [timeline]);
+  }, [timeline, rangeQuery]);
 
   // Totals array for BarChart
   const totalsData = useMemo(() => {
@@ -114,32 +146,65 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
       flownote: totals.flownote,
       discourse: totals.discourse,
     };
-    return Object.entries(apps).map(([app, count]) => ({
+    
+    let entries = Object.entries(apps).map(([app, count]) => ({
       app,
       count,
-      fill: `url(#gradient-${app})`
-    })).sort((a, b) => b.count - a.count);
-  }, [totals]);
+      fill: APP_COLORS[app as keyof typeof APP_COLORS]
+    }));
+    
+    if (selectedApp !== 'all') {
+      entries = entries.filter(e => e.app === selectedApp);
+    }
+    
+    return entries.sort((a, b) => b.count - a.count);
+  }, [totals, selectedApp]);
 
   const totalActivityCount = totalsData.reduce((a, b) => a + b.count, 0);
 
+  const displayedUniqueUsers = selectedApp === 'all' 
+    ? totals.totalUsers 
+    : totals.uniqueUsersPerApp?.[selectedApp as keyof typeof totals.uniqueUsersPerApp] ?? 0;
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 font-sans">
+      {isPending && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-md dark:bg-slate-950/60">
+          <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400 mb-4" />
+          <p className="text-lg font-medium text-slate-800 dark:text-slate-200">Crunching analytics data...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">This can take up to a minute depending on the time range.</p>
+        </div>
+      )}
       <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200/60 bg-white/60 px-6 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-950/60">
         <div className="flex items-center gap-3 font-semibold text-slate-800 dark:text-slate-100">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
             <Activity className="h-4 w-4 text-white" />
           </div>
           <span className="text-xl tracking-tight">Apps Dashboard</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
+          <Select value={selectedApp} onValueChange={setSelectedApp}>
+            <SelectTrigger className="w-[120px] bg-white/50 dark:bg-slate-900/50">
+              <SelectValue placeholder="App" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Apps</SelectItem>
+              {Object.keys(APP_COLORS).map(app => (
+                <SelectItem key={app} value={app} className="capitalize">{app}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select 
-            value={timeRange} 
+            value={localTimeRange} 
             onValueChange={(val) => {
+              setLocalTimeRange(val);
               const params = new URLSearchParams(searchParams.toString());
               params.set('range', val);
-              router.push(`${pathname}?${params.toString()}`);
+              startTransition(() => {
+                router.push(`${pathname}?${params.toString()}`);
+              });
             }}
+            disabled={isPending}
           >
             <SelectTrigger className="w-[150px] bg-white/50 dark:bg-slate-900/50">
               <SelectValue placeholder="Time Range" />
@@ -158,47 +223,37 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
       </header>
 
       <main className="flex flex-1 flex-col gap-8 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-        {/* Global Summary Stats */}
-        <div className="flex flex-wrap justify-center gap-6">
-          <Card className="flex-1 min-w-[280px] max-w-[400px] border-none bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-xl shadow-indigo-500/10">
+        {/* Apps Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="flex flex-col justify-between border-slate-200/60 bg-white/80 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-white/80">Total Unique Users</CardTitle>
-              <UsersIcon className="h-5 w-5 text-white/80" />
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Unique Users</CardTitle>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <UsersIcon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold tracking-tight">{totals.totalUsers.toLocaleString()}</div>
-              <p className="text-sm text-white/60 mt-1 font-medium">Across all applications</p>
+              <div className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{displayedUniqueUsers.toLocaleString()}</div>
+              <p className="text-xs font-medium text-slate-500 mt-1">
+                {selectedApp === 'all' ? 'Across all applications' : `Unique users for ${selectedApp}`}
+              </p>
             </CardContent>
           </Card>
           
-          <Card className="flex-1 min-w-[280px] max-w-[400px] border-none bg-gradient-to-br from-fuchsia-500 to-rose-600 text-white shadow-xl shadow-fuchsia-500/10">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-white/80">Total Chat Messages</CardTitle>
-              <MessageCircle className="h-5 w-5 text-white/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold tracking-tight">{totals.chatMessages.toLocaleString()}</div>
-              <p className="text-sm text-white/60 mt-1 font-medium">Total messages sent globally</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Apps Grid */}
-        <div className="flex flex-wrap justify-center gap-4">
           {totalsData.map(({ app, count }) => {
             const Icon = APP_ICONS[app as keyof typeof APP_ICONS] || Activity;
-            const gradient = APP_GRADIENTS[app as keyof typeof APP_GRADIENTS];
+            const color = APP_COLORS[app as keyof typeof APP_COLORS];
             return (
               <Card 
                 key={app} 
-                className="flex-1 min-w-[160px] max-w-[220px] cursor-pointer border-slate-200/60 bg-white/80 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10 dark:border-slate-800/60 dark:bg-slate-900/80"
+                className="flex flex-col justify-between cursor-pointer border-slate-200/60 bg-white/80 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/80"
                 onClick={() => handleCardClick(app)}
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                   <CardTitle className="text-sm font-medium capitalize text-slate-600 dark:text-slate-400">
                     {app === 'chat' ? 'Chat Sessions' : app === 'discourse' ? 'Discourse' : app}
                   </CardTitle>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: `linear-gradient(135deg, ${gradient.from} 0%, ${gradient.to} 100%)` }}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: color }}>
                     <Icon className="h-4 w-4 text-white" />
                   </div>
                 </CardHeader>
@@ -221,35 +276,16 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
 
         {/* Charts Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="lg:col-span-4">
+          <Card className="lg:col-span-4 min-w-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Activity Timeline</CardTitle>
                 <CardDescription>Daily creation of records across all apps</CardDescription>
               </div>
-              <Select value={selectedApp} onValueChange={setSelectedApp}>
-                <SelectTrigger className="w-[120px] bg-white/50 dark:bg-slate-900/50">
-                  <SelectValue placeholder="App" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Apps</SelectItem>
-                  {Object.keys(APP_GRADIENTS).map(app => (
-                    <SelectItem key={app} value={app} className="capitalize">{app}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </CardHeader>
-            <CardContent className="h-[400px] w-full min-h-[400px] pb-4">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={400}>
+            <CardContent className="pb-4">
+              <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={processedTimeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    {Object.entries(APP_GRADIENTS).map(([app, gradient]) => (
-                      <linearGradient key={`color${app}`} id={`color${app}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={gradient.from} stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor={gradient.to} stopOpacity={0}/>
-                      </linearGradient>
-                    ))}
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                   <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tickMargin={10} minTickGap={20} tick={{fill: '#888', fontSize: 12}} />
                   <YAxis axisLine={false} tickLine={false} tickMargin={10} tick={{fill: '#888', fontSize: 12}} />
@@ -257,16 +293,17 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  {Object.entries(APP_GRADIENTS).map(([app, gradient]) => (
+                  {Object.entries(APP_COLORS).map(([app, color]) => (
                     (selectedApp === 'all' || selectedApp === app) && (
                       <Area 
                         key={app}
                         type="monotone" 
                         dataKey={app} 
-                        stackId={selectedApp === 'all' ? "1" : undefined}
-                        stroke={gradient.from} 
+                        stackId="1"
+                        stroke={color} 
                         strokeWidth={2}
-                        fill={`url(#color${app})`}
+                        fill={color}
+                        fillOpacity={0.2}
                         name={app.charAt(0).toUpperCase() + app.slice(1)}
                       />
                     )
@@ -276,22 +313,14 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-3">
+          <Card className="lg:col-span-3 min-w-0">
             <CardHeader>
               <CardTitle>Total Volume Comparison</CardTitle>
               <CardDescription>Breakdown by application ({totalActivityCount.toLocaleString()} total)</CardDescription>
             </CardHeader>
-            <CardContent className="h-[400px] w-full min-h-[400px] pb-4">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={400}>
+            <CardContent className="pb-4">
+              <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={totalsData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 0 }}>
-                  <defs>
-                    {Object.entries(APP_GRADIENTS).map(([app, gradient]) => (
-                      <linearGradient key={`gradient-${app}`} id={`gradient-${app}`} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={gradient.from} />
-                        <stop offset="100%" stopColor={gradient.to} />
-                      </linearGradient>
-                    ))}
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} />
                   <YAxis dataKey="app" type="category" axisLine={false} tickLine={false} className="capitalize" tick={{fill: '#888', fontSize: 12, fontWeight: 500}} />
@@ -317,9 +346,9 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
             <SheetTitle className="capitalize text-2xl flex items-center gap-3">
               {activeDetailApp && (() => {
                 const Icon = APP_ICONS[activeDetailApp as keyof typeof APP_ICONS] || Activity;
-                const gradient = APP_GRADIENTS[activeDetailApp as keyof typeof APP_GRADIENTS];
+                const color = APP_COLORS[activeDetailApp as keyof typeof APP_COLORS] || '#000';
                 return (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-md" style={{ background: `linear-gradient(135deg, ${gradient?.from || '#000'} 0%, ${gradient?.to || '#333'} 100%)` }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-md" style={{ backgroundColor: color }}>
                     <Icon className="h-5 w-5 text-white" />
                   </div>
                 );
