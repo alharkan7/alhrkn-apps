@@ -7,7 +7,7 @@ import { Globe } from 'lucide-react';
 import AppsFooter from '@/components/apps-footer'
 import { AppsHeader } from '@/components/apps-header'
 import IdeasGrid from './components/IdeasGrid'
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 
 type ResearchIdea = {
@@ -53,6 +53,8 @@ export default function OutlinerPage() {
         handleLanguageChange(newLanguage);
     };
 
+    const searchParams = useSearchParams();
+
     // Initialize from URL parameter (?q=...) and localStorage for language
     useEffect(() => {
         try {
@@ -62,16 +64,18 @@ export default function OutlinerPage() {
                 setLanguage(savedLanguage);
             }
 
-            const params = new URLSearchParams(window.location.search);
-            const q = params.get('q');
-            if (q && q.trim()) {
+            const q = searchParams.get('q');
+            // If the URL has a query, and it's different from our current text, fetch it!
+            if (q && q.trim() && q.trim() !== queryText) {
                 setQueryText(q);
                 setHasResponded(false);
                 fetchIdeas(q.trim());
             }
         } catch { }
+        // We do NOT want to include queryText in dependencies to avoid infinite loops,
+        // but we do want to re-run when searchParams change (like clicking a history item)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [searchParams]);
 
     // Debug language changes
     useEffect(() => {
@@ -179,10 +183,11 @@ export default function OutlinerPage() {
         try {
             // rely on isLoadingMore to control skeleton visibility
             console.log('Appending ideas with language:', language);
+            const existingTitles = ideas ? ideas.map(i => i.title) : [];
             const res = await fetch('/api/outliner/stream', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keywords: queryText.trim(), numIdeas: 6, language })
+                body: JSON.stringify({ keywords: queryText.trim(), numIdeas: 6, language, existingTitles })
             });
             if (!res.ok || !res.body) {
                 const data = await res.json().catch(() => ({}));

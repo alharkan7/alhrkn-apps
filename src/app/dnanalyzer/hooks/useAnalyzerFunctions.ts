@@ -198,6 +198,9 @@ export function useAnalyzerFunctions() {
                 file.id === selectedFile.id ? { ...file, processed: true } : file
             ))
 
+            // Analysis is done, reset loading before starting the background save
+            setLoading(false)
+
             await autoSaveStatements(true, newStatements, [selectedFile.id])
         } catch (err) {
             console.error('Error processing text:', err)
@@ -217,60 +220,69 @@ export function useAnalyzerFunctions() {
         setLoading(true)
         setError('')
 
-        let processedCount = 0
-        let errorCount = 0
-        const allNewStatements: Statement[] = []
-        const processedFileIds: string[] = []
+        try {
+            let processedCount = 0
+            let errorCount = 0
+            const allNewStatements: Statement[] = []
+            const processedFileIds: string[] = []
 
-        for (const file of unprocessedFiles) {
-            try {
-                const response = await fetch('/api/dnanalyzer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: file.content }),
-                })
+            for (const file of unprocessedFiles) {
+                try {
+                    const response = await fetch('/api/dnanalyzer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: file.content }),
+                    })
 
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-                const data = await response.json()
-                if (data.error) throw new Error(data.error)
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+                    const data = await response.json()
+                    if (data.error) throw new Error(data.error)
 
-                const newStatements = (data.statements || []).map((stmt: Statement) => ({
-                    ...stmt,
-                    sourceFile: file.title,
-                    startIndex: stmt.startIndex,
-                    endIndex: stmt.endIndex,
-                    isLoaded: false,
-                    isModified: false
-                }))
+                    const newStatements = (data.statements || []).map((stmt: Statement) => ({
+                        ...stmt,
+                        sourceFile: file.title,
+                        startIndex: stmt.startIndex,
+                        endIndex: stmt.endIndex,
+                        isLoaded: false,
+                        isModified: false
+                    }))
 
-                allNewStatements.push(...newStatements)
-                processedFileIds.push(file.id)
-                processedCount++
-            } catch (err) {
-                console.error(`Error processing file "${file.title}":`, err)
-                errorCount++
+                    allNewStatements.push(...newStatements)
+                    processedFileIds.push(file.id)
+                    processedCount++
+                } catch (err) {
+                    console.error(`Error processing file "${file.title}":`, err)
+                    errorCount++
+                }
             }
+
+            setAllStatements(prev => [...prev, ...allNewStatements])
+            setFiles(prev => prev.map(f =>
+                processedFileIds.includes(f.id) ? { ...f, processed: true } : f
+            ))
+
+            // Analysis is done, reset loading before starting the background save
+            setLoading(false)
+
+            if (errorCount === 0) {
+                setSaveStatus('success')
+                setSaveMessage(`Successfully analyzed ${processedCount} file(s)!`)
+                await autoSaveStatements(true, allNewStatements, processedFileIds, true)
+            } else if (processedCount > 0) {
+                setSaveStatus('error')
+                setSaveMessage(`Analyzed ${processedCount} file(s), but ${errorCount} failed.`)
+                await autoSaveStatements(true, allNewStatements, processedFileIds, true)
+            } else {
+                setError('Failed to analyze all files. Please check your API configuration.')
+            }
+
+            setTimeout(() => setSaveStatus('idle'), 3000)
+        } catch (error) {
+            console.error('Unexpected error in handleBulkAnalyze:', error)
+            setError('An unexpected error occurred during bulk analysis.')
+        } finally {
+            setLoading(false)
         }
-
-        setAllStatements(prev => [...prev, ...allNewStatements])
-        setFiles(prev => prev.map(f =>
-            processedFileIds.includes(f.id) ? { ...f, processed: true } : f
-        ))
-
-        if (errorCount === 0) {
-            setSaveStatus('success')
-            setSaveMessage(`Successfully analyzed ${processedCount} file(s)!`)
-            await autoSaveStatements(true, allNewStatements, processedFileIds, true)
-        } else if (processedCount > 0) {
-            setSaveStatus('error')
-            setSaveMessage(`Analyzed ${processedCount} file(s), but ${errorCount} failed.`)
-            await autoSaveStatements(true, allNewStatements, processedFileIds, true)
-        } else {
-            setError('Failed to analyze all files. Please check your API configuration.')
-        }
-
-        setTimeout(() => setSaveStatus('idle'), 3000)
-        setLoading(false)
     }
 
     const handleUpdateStatement = async (index: number, updatedStatement: Statement) => {

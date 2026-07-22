@@ -470,7 +470,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
         <CardDescription>
           {selectedFile
             ? 'Review the full content and analyze its discourse network'
-            : 'Choose a file from the list above to view its content'
+            : 'Select a text from the list to view its content'
           }
         </CardDescription>
       </CardHeader>

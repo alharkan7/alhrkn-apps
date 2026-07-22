@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
     console.log('Environment check - GOOGLE_GENERATIVE_AI_API_KEY exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
     const body = await req.json();
-    const { keywords, numIdeas, language = 'en' } = body || {};
+    const { keywords, numIdeas, language = 'en', existingTitles = [] } = body || {};
 
     // Debug logging
-    console.log('Stream API called with:', { keywords, numIdeas, language });
+    console.log('Stream API called with:', { keywords, numIdeas, language, existingTitlesCount: existingTitles?.length });
 
     if (!keywords || typeof keywords !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing or invalid "keywords"' }), {
@@ -78,12 +78,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const avoidPrompt = existingTitles && existingTitles.length > 0 
+      ? `\nCRITICAL: You MUST NOT generate any of the following ideas that were already provided:\n${existingTitles.map((t: string) => `- ${t}`).join('\n')}\nGenerate COMPLETELY NEW and DIFFERENT ideas.` 
+      : '';
+
     // Language-specific instructions
     const languageConfig = {
       en: {
         systemInstruction: 'You are an academic research assistant. Generate concise, high-quality research ideas with structured abstracts. Stream each idea as soon as it is ready.',
         userPrompt: `Task: Propose ${ideasCount} distinct research ideas based on the following keywords.
 Keywords: ${keywords}
+${avoidPrompt}
 
 Output format: Newline-delimited JSON (NDJSON). Emit exactly one JSON object per line, with no leading or trailing commentary, and no enclosing array.
 Example format for each line:
@@ -102,6 +107,7 @@ CRITICAL CONSTRAINTS:
         systemInstruction: 'Anda adalah asisten penelitian akademik. Buat ide penelitian yang ringkas dan berkualitas tinggi dengan abstrak yang terstruktur dalam Bahasa Indonesia. Streaming setiap ide segera setelah siap. PENTING: Semua output harus dalam Bahasa Indonesia.',
         userPrompt: `Tugas: Usulkan ${ideasCount} ide penelitian yang berbeda berdasarkan kata kunci berikut.
 Kata kunci: ${keywords}
+${avoidPrompt}
 
 PENTING: Semua konten (judul, background, literature review, method, analysis technique, impact) HARUS dalam Bahasa Indonesia.
 
@@ -133,7 +139,7 @@ KENDALA KRITIS:
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         responseMimeType: 'text/plain',
       },
     });
@@ -150,31 +156,50 @@ KENDALA KRITIS:
           for await (const chunk of result.stream) {
             chunkCount++;
             const text = chunk.text();
-            console.log(`Chunk ${chunkCount}: received text of length ${text.length}`);
+            console.log(`Chunk ${chunkCount}: received text of length ${text.length}. Raw text: ${JSON.stringify(text)}`);
             buffer += text;
-            let idx: number;
-            while ((idx = buffer.indexOf('\n')) !== -1) {
-              const line = buffer.slice(0, idx);
-              buffer = buffer.slice(idx + 1);
-              const trimmed = line.trim();
-              if (!trimmed) continue;
-              const safe = sanitizeIdeaLine(trimmed);
-              if (safe) {
-                console.log(`Enqueuing sanitized idea line: ${safe.substring(0, 100)}...`);
-                controller.enqueue(encoder.encode(safe + '\n'));
-                fullResponse += safe + '\n';
+
+            let depth = 0;
+            let start = -1;
+            let inString = false;
+            let isEscaped = false;
+            let lastValidEnd = -1;
+
+            for (let i = 0; i < buffer.length; i++) {
+              const char = buffer[i];
+              if (isEscaped) { isEscaped = false; continue; }
+              if (char === '\\') { isEscaped = true; continue; }
+              if (char === '"') { inString = !inString; continue; }
+
+              if (!inString) {
+                if (char === '{') {
+                  if (depth === 0) start = i;
+                  depth++;
+                } else if (char === '}') {
+                  if (depth > 0) {
+                    depth--;
+                    if (depth === 0 && start !== -1) {
+                      const objStr = buffer.substring(start, i + 1);
+                      const safe = sanitizeIdeaLine(objStr);
+                      if (safe) {
+                        console.log(`Enqueuing sanitized idea line: ${safe.substring(0, 100)}...`);
+                        controller.enqueue(encoder.encode(safe + '\n'));
+                        fullResponse += safe + '\n';
+                      }
+                      start = -1;
+                      lastValidEnd = i;
+                    }
+                  }
+                }
               }
             }
-          }
-          const remaining = buffer.trim();
-          if (remaining) {
-            const safe = sanitizeIdeaLine(remaining);
-            if (safe) {
-              console.log(`Enqueuing final sanitized idea line: ${safe.substring(0, 100)}...`);
-              controller.enqueue(encoder.encode(safe + '\n'));
-              fullResponse += safe + '\n';
+
+            if (lastValidEnd !== -1) {
+              buffer = buffer.substring(lastValidEnd + 1);
             }
           }
+          // The buffer should only contain trailing brackets, whitespace, etc.
+          // Any incomplete objects at the end of the stream are discarded.
           console.log(`Stream completed - processed ${chunkCount} chunks`);
           controller.close();
           
@@ -233,18 +258,25 @@ function sanitizeIdeaLine(line: string): string | null {
     const obj = JSON.parse(line);
     if (!obj || typeof obj !== 'object') return null;
 
-    // Basic validation - just ensure we have the expected structure
-    const title = typeof obj.title === 'string' ? obj.title : '';
-    const abstract = obj.abstract && typeof obj.abstract === 'object' ? obj.abstract : {};
+    // Helper to find key case-insensitively
+    const getVal = (o: any, key: string) => {
+      const lowerKey = key.toLowerCase();
+      const actualKey = Object.keys(o).find(k => k.toLowerCase() === lowerKey);
+      return actualKey ? o[actualKey] : undefined;
+    };
 
-    // More lenient validation - allow empty strings but ensure structure exists
-    const background = typeof abstract.background === 'string' ? abstract.background : '';
-    const literatureReview = typeof abstract.literatureReview === 'string' ? abstract.literatureReview : '';
-    const method = typeof abstract.method === 'string' ? abstract.method : '';
-    const analysisTechnique = typeof abstract.analysisTechnique === 'string' ? abstract.analysisTechnique : '';
-    const impact = typeof abstract.impact === 'string' ? abstract.impact : '';
+    let titleRaw = getVal(obj, 'title') || getVal(obj, 'name') || getVal(obj, 'topic') || '';
+    const title = typeof titleRaw === 'string' ? titleRaw : '';
 
-    // Only require that title exists - the rest can be empty strings
+    let abstractRaw = getVal(obj, 'abstract') || getVal(obj, 'summary') || {};
+    const abstract = abstractRaw && typeof abstractRaw === 'object' ? abstractRaw : {};
+
+    const background = typeof getVal(abstract, 'background') === 'string' ? getVal(abstract, 'background') : '';
+    const literatureReview = typeof getVal(abstract, 'literatureReview') === 'string' ? getVal(abstract, 'literatureReview') : (typeof getVal(abstract, 'literature_review') === 'string' ? getVal(abstract, 'literature_review') : '');
+    const method = typeof getVal(abstract, 'method') === 'string' ? getVal(abstract, 'method') : (typeof getVal(abstract, 'methodology') === 'string' ? getVal(abstract, 'methodology') : '');
+    const analysisTechnique = typeof getVal(abstract, 'analysisTechnique') === 'string' ? getVal(abstract, 'analysisTechnique') : (typeof getVal(abstract, 'analysis_technique') === 'string' ? getVal(abstract, 'analysis_technique') : '');
+    const impact = typeof getVal(abstract, 'impact') === 'string' ? getVal(abstract, 'impact') : '';
+
     if (!title.trim()) {
       return null;
     }

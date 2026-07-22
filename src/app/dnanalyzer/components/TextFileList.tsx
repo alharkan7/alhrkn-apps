@@ -200,7 +200,7 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
         ) : (
           <div className="max-h-[400px] overflow-y-auto">
             <div className="space-y-3 pr-2">
-              {files.map((file) => (
+              {[...files].reverse().map((file) => (
                 <div
                   key={file.id}
                   className={`p-4 border rounded-lg bg-white cursor-pointer transition-colors ${

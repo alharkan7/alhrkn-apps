@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lightbulb, BookOpen, Microscope, LineChart, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type ResearchIdea = {
@@ -150,61 +150,73 @@ export default function IdeasGrid({
             </div>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="w-[90vw] sm:w-[90vw] max-w-5xl max-h-[90vh] overflow-auto p-6" aria-describedby={undefined}>
+                <DialogContent className="w-[90vw] sm:w-[90vw] max-w-5xl max-h-[90vh] overflow-hidden p-0 flex flex-col" aria-describedby={undefined}>
                     {selected && (
-                        <div className="space-y-4">
-                            <DialogHeader>
-                                <DialogTitle className="text-2xl font-semibold leading-tight">
-                                    {selected.title}
-                                </DialogTitle>
-                            </DialogHeader>
-                            <section className="space-y-1">
-                                <h4 className="font-medium">{language === 'en' ? 'Background' : 'Latar Belakang'}</h4>
-                                <p className="text-sm opacity-90 whitespace-pre-line">{selected.abstract.background}</p>
-                            </section>
-                            <section className="space-y-1">
-                                <h4 className="font-medium">{language === 'en' ? 'Literature Review' : 'Tinjauan Literatur'}</h4>
-                                <p className="text-sm opacity-90 whitespace-pre-line">{selected.abstract.literatureReview}</p>
-                            </section>
-                            <section className="space-y-1">
-                                <h4 className="font-medium">{language === 'en' ? 'Method' : 'Metode'}</h4>
-                                <p className="text-sm opacity-90 whitespace-pre-line">{selected.abstract.method}</p>
-                            </section>
-                            <section className="space-y-1">
-                                <h4 className="font-medium">{language === 'en' ? 'Analysis Technique' : 'Teknik Analisis'}</h4>
-                                <p className="text-sm opacity-90 whitespace-pre-line">{selected.abstract.analysisTechnique}</p>
-                            </section>
-                            <section className="space-y-1">
-                                <h4 className="font-medium">{language === 'en' ? 'Impact' : 'Dampak'}</h4>
-                                <p className="text-sm opacity-90 whitespace-pre-line">{selected.abstract.impact}</p>
-                            </section>
-                            <DialogFooter className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                                <Button
-                                    className="order-1 sm:order-2"
-                                    onClick={() => selected && navigateToExpanded(selected)}
-                                    disabled={isExpanding}
-                                >
-                                    {isExpanding
-                                        ? (language === 'en' ? 'Expanding...' : 'Mengembangkan...')
-                                        : (language === 'en' ? 'Create Draft' : 'Draft Naskah')
-                                    }
-                                </Button>
-                                <div className="flex items-center gap-2 order-2 sm:order-1 justify-center sm:justify-start w-full sm:w-auto">
+                        <>
+                            <div className="flex-1 overflow-auto p-6 space-y-4">
+                                <DialogHeader className="pr-8">
+                                    <DialogTitle className="text-2xl font-semibold leading-tight">
+                                        {selected.title}
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-6 mb-8 px-2">
+                                    <div className="relative space-y-8">
+                                        {/* The Vertical Line */}
+                                        <div className="absolute top-4 bottom-4 left-[10px] w-[2px] bg-border" />
+                                        
+                                        {/* The sections */}
+                                        {[
+                                            { title: language === 'en' ? 'Background' : 'Latar Belakang', content: selected.abstract.background, icon: Lightbulb },
+                                            { title: language === 'en' ? 'Literature Review' : 'Tinjauan Literatur', content: selected.abstract.literatureReview, icon: BookOpen },
+                                            { title: language === 'en' ? 'Method' : 'Metode', content: selected.abstract.method, icon: Microscope },
+                                            { title: language === 'en' ? 'Analysis Technique' : 'Teknik Analisis', content: selected.abstract.analysisTechnique, icon: LineChart },
+                                            { title: language === 'en' ? 'Impact' : 'Dampak', content: selected.abstract.impact, icon: Target }
+                                        ].map((section, idx) => {
+                                            const Icon = section.icon;
+                                            return (
+                                                <div key={idx} className="relative pl-10">
+                                                    <div className="absolute left-[-1px] top-[-2px] flex h-6 w-6 items-center justify-center rounded-full bg-background ring-[6px] ring-background">
+                                                        <Icon className="h-5 w-5 text-primary" />
+                                                    </div>
+                                                    <h4 className="font-semibold text-foreground text-base mb-1">{section.title}</h4>
+                                                    <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{section.content}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 sm:px-6 sm:pb-6 pt-4 border-t bg-background shrink-0 mt-auto">
+                                <DialogFooter className="flex flex-row sm:flex-row justify-between items-center gap-2 space-x-0 sm:space-x-0 w-full">
                                     <Button size="icon" variant="default" aria-label={language === 'en' ? 'Previous' : 'Sebelumnya'}
                                         onClick={goPrev}
                                         disabled={selectedIndex === null || selectedIndex <= 0}
+                                        className="shrink-0"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
+                                    
+                                    <Button
+                                        className="flex-1"
+                                        onClick={() => selected && navigateToExpanded(selected)}
+                                        disabled={isExpanding}
+                                    >
+                                        {isExpanding
+                                            ? (language === 'en' ? 'Expanding...' : 'Mengembangkan...')
+                                            : (language === 'en' ? 'Create Draft' : 'Draft Naskah')
+                                        }
+                                    </Button>
+
                                     <Button size="icon" variant="default" aria-label={language === 'en' ? 'Next' : 'Selanjutnya'}
                                         onClick={goNext}
                                         disabled={selectedIndex === null || selectedIndex >= ideas.length - 1}
+                                        className="shrink-0"
                                     >
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
-                                </div>
-                            </DialogFooter>
-                        </div>
+                                </DialogFooter>
+                            </div>
+                        </>
                     )}
                 </DialogContent>
             </Dialog>
