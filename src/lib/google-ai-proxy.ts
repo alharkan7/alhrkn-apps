@@ -91,7 +91,7 @@ class GenerativeModel {
       temperature: genConfig.temperature,
       topP: genConfig.topP,
       topK: genConfig.topK,
-    });
+    } as any);
     
     return {
       response: {
@@ -147,7 +147,7 @@ class GenerativeModel {
       temperature: genConfig.temperature,
       topP: genConfig.topP,
       topK: genConfig.topK,
-    });
+    } as any);
     
     async function* makeStream() {
       for await (const textPart of result.textStream) {

@@ -7,6 +7,7 @@ export const getModel = (modelId: string, customApiKey?: string) => {
   const openRouter = createOpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey,
+    // @ts-ignore - Some versions of @ai-sdk/openai may not have this in their types yet
     compatibility: 'compatible',
     fetch: async (url, options) => {
       if (options?.body) {
