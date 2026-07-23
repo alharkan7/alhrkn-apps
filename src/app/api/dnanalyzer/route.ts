@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { jsonrepair } from 'jsonrepair';
 
 // Function to find the character indices of a statement in the original text
 function findStatementIndices(originalText: string, statement: string): { start: number; end: number } | null {
@@ -126,34 +127,49 @@ Return ONLY the JSON structure with the statements array. Do not include any add
 
     const responseText = result.response.text().trim();
 
+    let cleanText = responseText;
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.substring(7);
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.substring(3);
+    }
+    if (cleanText.endsWith('```')) {
+      cleanText = cleanText.substring(0, cleanText.length - 3);
+    }
+    cleanText = cleanText.trim();
+
     let parsed: any;
     try {
-      parsed = JSON.parse(responseText);
+      parsed = JSON.parse(cleanText);
     } catch (parseError) {
-      // Try to extract JSON from response if it's wrapped in text
-      const match = responseText.match(/\{[\s\S]*\}/);
-      if (match) {
-        try {
-          parsed = JSON.parse(match[0]);
-        } catch {
+      try {
+        parsed = JSON.parse(jsonrepair(cleanText));
+      } catch (repairError) {
+        // Fallback to regex extraction for arrays or objects
+        const match = cleanText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+        if (match) {
+          try {
+            parsed = JSON.parse(jsonrepair(match[0]));
+          } catch {
+            return new Response(JSON.stringify({
+              error: 'Failed to parse model response as JSON',
+              raw: responseText,
+              parseError: repairError instanceof Error ? repairError.message : 'Unknown parse error'
+            }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        } else {
           return new Response(JSON.stringify({
             error: 'Failed to parse model response as JSON',
             raw: responseText,
-            parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+            parseError: repairError instanceof Error ? repairError.message : 'Unknown parse error'
           }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
           });
         }
-      } else {
-        return new Response(JSON.stringify({
-          error: 'Failed to parse model response as JSON',
-          raw: responseText,
-          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error'
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
       }
     }
 

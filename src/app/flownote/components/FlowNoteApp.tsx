@@ -990,7 +990,7 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
             type="file" 
             ref={fileInputRef} 
             className="hidden" 
-            accept=".docx,.odt,.epub,.html,.md,.txt,.rst,.latex,.pdf"
+            accept=".docx,.odt,.epub,.html,.md,.txt,.rst,.latex"
             onChange={handleFileUpload} 
           />
 

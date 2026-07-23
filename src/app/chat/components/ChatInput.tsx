@@ -127,7 +127,7 @@ export function ChatInput({
                         />
                         <div className="flex justify-between items-center w-full">
                             <div className="flex gap-2">
-                                <Button
+                                {/* <Button
                                     type="button"
                                     variant="ghost"
                                     onClick={(e) => handleFileClick('file', e)}
@@ -136,7 +136,7 @@ export function ChatInput({
                                     aria-label="Attach file"
                                 >
                                     <Paperclip className="size-5 text-muted-foreground hover:text-foreground" />
-                                </Button>
+                                </Button> */}
                                 <Button
                                     type="button"
                                     variant="ghost"

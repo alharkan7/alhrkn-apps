@@ -593,7 +593,7 @@ const InputForm: React.FC<InputFormProps> = ({
                         data-focused={isFocused}
                         className={`relative flex flex-col bg-background/80 backdrop-blur-2xl transition-all duration-200 max-w-2xl mx-auto w-full rounded-[2rem] border shadow-xl p-4 sm:p-6 pb-2 focus:outline-none ${isDragging ? 'ring-2 ring-primary border-primary' : ''}`}
                     >
-                        {inputMode === 'file' && (
+                        {/* {inputMode === 'file' && (
                             <div
                                 className={`bg-muted/50 rounded-3xl p-8 text-center mb-4 relative transition-all duration-200 ${file
                                     ? 'border-primary bg-primary/10'
@@ -654,7 +654,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                     </div>
                                 )}
                             </div>
-                        )}
+                        )} */}
 
                         {inputMode === 'url' && (
                             <textarea
@@ -707,14 +707,14 @@ const InputForm: React.FC<InputFormProps> = ({
                             <div className="flex items-center gap-0 md:gap-1 shrink-0">
                                 <Tabs defaultValue="text" onValueChange={isFormDisabled ? undefined : handleInputModeChange} className="w-fit">
                                     <TabsList className="flex p-1 -space-x-2 md:space-x-1 bg-muted/50 rounded-full border backdrop-blur-md h-auto">
-                                        <TabsTrigger
+                                        {/* <TabsTrigger
                                             value="file"
                                             className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
                                             PDF
-                                        </TabsTrigger>
+                                        </TabsTrigger> */}
                                         <TabsTrigger
                                             value="text"
                                             className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"

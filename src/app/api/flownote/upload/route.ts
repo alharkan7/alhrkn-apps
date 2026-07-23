@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
 
     // Check for PDF
     if (ext === '.pdf') {
+      await fs.rm(tempDir, { recursive: true, force: true });
+      return NextResponse.json({ error: 'PDF conversion is disabled' }, { status: 400 });
+
+      /* 
+      // Temporarily disabled PDF processing via Gemini
       try {
         if (!process.env.GOOGLE_API_KEY) {
             throw new Error('Missing GOOGLE_API_KEY for PDF conversion');
@@ -67,6 +72,7 @@ export async function POST(request: NextRequest) {
         await fs.rm(tempDir, { recursive: true, force: true });
         return NextResponse.json({ error: 'Failed to convert PDF document' }, { status: 500 });
       }
+      */
     }
 
     // Convert with pandoc

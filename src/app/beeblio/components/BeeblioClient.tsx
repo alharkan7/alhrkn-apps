@@ -753,7 +753,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               </div>
 
               {/* Attachment Button (Context mode only) */}
-              <AnimatePresence>
+              {/* <AnimatePresence>
                 {activeTab === 'context' && (
                   <motion.div
                     initial={{ opacity: 0, width: 0, scale: 0.8 }}
@@ -783,7 +783,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                     )}
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </AnimatePresence> */}
 
               {/* Search Box */}
               <div className="flex-1 min-w-0 pl-1.5 flex flex-col justify-center">
@@ -930,7 +930,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               {/* Action Bar */}
               <div className="p-4 sm:p-6 pt-2 flex justify-between items-center">
                 <div className="flex items-center">
-                  <AnimatePresence>
+                  {/* <AnimatePresence>
                     {activeTab === 'context' && (
                       <motion.div
                         initial={{ opacity: 0, x: -10 }}
@@ -964,7 +964,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                         )}
                       </motion.div>
                     )}
-                  </AnimatePresence>
+                  </AnimatePresence> */}
                 </div>
 
                 <Button 

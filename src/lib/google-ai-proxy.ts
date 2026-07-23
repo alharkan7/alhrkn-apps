@@ -47,7 +47,10 @@ class GenerativeModel {
     if (typeof contents === 'string') {
       messages.push({ role: 'user', content: contents });
     } else if (Array.isArray(contents)) {
-      for (const content of contents) {
+      const isArrayOfParts = contents.length > 0 && ('text' in contents[0] || 'inlineData' in contents[0] || 'fileData' in contents[0]);
+      const normalizedContents = isArrayOfParts ? [{ role: 'user', parts: contents }] : contents;
+      
+      for (const content of normalizedContents) {
         let role = content.role === 'model' ? 'assistant' : 'user';
         let parts = content.parts || [];
         let aiContent: any[] = [];
@@ -105,7 +108,10 @@ class GenerativeModel {
     if (typeof contents === 'string') {
       messages.push({ role: 'user', content: contents });
     } else if (Array.isArray(contents)) {
-      for (const content of contents) {
+      const isArrayOfParts = contents.length > 0 && ('text' in contents[0] || 'inlineData' in contents[0] || 'fileData' in contents[0]);
+      const normalizedContents = isArrayOfParts ? [{ role: 'user', parts: contents }] : contents;
+      
+      for (const content of normalizedContents) {
         let role = content.role === 'model' ? 'assistant' : 'user';
         let parts = content.parts || [];
         let aiContent: any[] = [];

@@ -10,9 +10,13 @@ import type { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const searchData = await db.query.beeblioSearches.findFirst({
-    where: eq(beeblioSearches.id, id)
-  });
+
+  let searchData = null;
+  if (id !== 'new') {
+    searchData = await db.query.beeblioSearches.findFirst({
+      where: eq(beeblioSearches.id, id)
+    });
+  }
 
   const title = searchData?.originalQuery ? `Beeblio - ${searchData.originalQuery}` : 'Beeblio Search';
   const description = 'Experimental Apps by @alhrkn';
@@ -47,11 +51,14 @@ export default async function BeeblioResultsPage({ params }: { params: Promise<{
     redirect(`/login?next=/beeblio/${resolvedParams.id}`);
   }
 
-  const searchData = await db.query.beeblioSearches.findFirst({
-    where: eq(beeblioSearches.id, resolvedParams.id)
-  });
+  let searchData = null;
+  if (resolvedParams.id !== 'new') {
+    searchData = await db.query.beeblioSearches.findFirst({
+      where: eq(beeblioSearches.id, resolvedParams.id)
+    });
+  }
 
-  const isOwner = searchData?.userId === user.id;
+  const isOwner = resolvedParams.id === 'new' ? true : (searchData?.userId === user.id);
 
   return (
     <Suspense fallback={<div>Loading results...</div>}>

@@ -351,7 +351,7 @@ export function DiagramInput({
               </Button>
             )}
           </div>
-          <Button
+          {/* <Button
             type="button"
             variant="outline"
             onClick={handleFileButtonClick}
@@ -360,7 +360,7 @@ export function DiagramInput({
             aria-label="Attach PDF"
           >
             <Paperclip className="size-5" />
-          </Button>
+          </Button> */}
           <Button
             type="submit"
             className="shrink-0 grow-0 transition-colors disabled:opacity-50 w-auto rounded-full font-semibold px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
