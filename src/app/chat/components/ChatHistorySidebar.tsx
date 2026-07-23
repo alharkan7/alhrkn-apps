@@ -20,6 +20,7 @@ export function ChatHistorySidebar() {
 
   return (
     <HistorySidebar
+      cacheKey="chat"
       fetchItems={fetchChatHistory}
       itemUrlPrefix="/chat/"
       eventName="toggleChatHistorySidebar"

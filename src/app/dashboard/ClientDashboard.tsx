@@ -143,6 +143,10 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
   // App Details Sheet State
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [activeDetailApp, setActiveDetailApp] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [users, setUsers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -363,16 +367,16 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
           <p className="text-sm text-slate-500 dark:text-slate-400">This can take up to a minute depending on the time range.</p>
         </div>
       )}
-      <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200/60 bg-white/60 px-6 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-950/60">
+      <header className="sticky top-0 z-20 flex min-h-16 flex-wrap items-center justify-between gap-4 border-b border-slate-200/60 bg-white/60 px-4 py-3 sm:px-6 sm:py-0 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-950/60">
         <div className="flex items-center gap-3 font-semibold text-slate-800 dark:text-slate-100">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 shadow-sm shrink-0">
             <Activity className="h-4 w-4 text-white" />
           </div>
-          <span className="text-xl tracking-tight">Apps Dashboard</span>
+          <span className="text-lg sm:text-xl tracking-tight">Apps Dashboard</span>
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Select value={selectedApp} onValueChange={setSelectedApp}>
-            <SelectTrigger className="w-[120px] bg-white/50 dark:bg-slate-900/50">
+            <SelectTrigger className="flex-1 sm:flex-none sm:w-[120px] bg-white/50 dark:bg-slate-900/50">
               <SelectValue placeholder="App" />
             </SelectTrigger>
             <SelectContent>
@@ -394,7 +398,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
             }}
             disabled={isPending}
           >
-            <SelectTrigger className="w-[150px] bg-white/50 dark:bg-slate-900/50">
+            <SelectTrigger className="flex-1 sm:flex-none sm:w-[150px] bg-white/50 dark:bg-slate-900/50">
               <SelectValue placeholder="Time Range" />
             </SelectTrigger>
             <SelectContent>
@@ -404,7 +408,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
               <SelectItem value="all">All time</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={() => logoutAdmin()} title="Logout" className="bg-white/50 dark:bg-slate-900/50">
+          <Button variant="outline" size="icon" onClick={() => logoutAdmin()} title="Logout" className="bg-white/50 dark:bg-slate-900/50 shrink-0">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -472,32 +476,38 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
               </div>
             </CardHeader>
             <CardContent className="pb-4">
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={processedTimeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                  <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tickMargin={10} minTickGap={20} tick={{fill: '#888', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tickMargin={10} tick={{fill: '#888', fontSize: 12}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                  />
-                  <Legend verticalAlign="top" height={36} iconType="circle" />
-                  {Object.entries(APP_COLORS).map(([app, color]) => (
-                    (selectedApp === 'all' || selectedApp === app) && (
-                      <Area 
-                        key={app}
-                        type="monotone" 
-                        dataKey={app} 
-                        stackId="1"
-                        stroke={color} 
-                        strokeWidth={2}
-                        fill={color}
-                        fillOpacity={0.2}
-                        name={app.charAt(0).toUpperCase() + app.slice(1)}
-                      />
-                    )
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height={400} debounce={50}>
+                  <AreaChart data={processedTimeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                    <XAxis dataKey="displayDate" axisLine={false} tickLine={false} tickMargin={10} minTickGap={20} tick={{fill: '#888', fontSize: 12}} />
+                    <YAxis axisLine={false} tickLine={false} tickMargin={10} tick={{fill: '#888', fontSize: 12}} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    {Object.entries(APP_COLORS).map(([app, color]) => (
+                      (selectedApp === 'all' || selectedApp === app) && (
+                        <Area 
+                          key={app}
+                          type="monotone" 
+                          dataKey={app} 
+                          stackId="1"
+                          stroke={color} 
+                          strokeWidth={2}
+                          fill={color}
+                          fillOpacity={0.2}
+                          name={app.charAt(0).toUpperCase() + app.slice(1)}
+                        />
+                      )
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-[400px] flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -507,22 +517,28 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
               <CardDescription>Breakdown by application ({totalActivityCount.toLocaleString()} total)</CardDescription>
             </CardHeader>
             <CardContent className="pb-4">
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={totalsData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} />
-                  <YAxis dataKey="app" type="category" axisLine={false} tickLine={false} className="capitalize" tick={{fill: '#888', fontSize: 12, fontWeight: 500}} />
-                  <Tooltip 
-                    cursor={{fill: 'var(--muted)', opacity: 0.4}}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                  />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                    {totalsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height={400} debounce={50}>
+                  <BarChart data={totalsData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} />
+                    <YAxis dataKey="app" type="category" axisLine={false} tickLine={false} className="capitalize" tick={{fill: '#888', fontSize: 12, fontWeight: 500}} />
+                    <Tooltip 
+                      cursor={{fill: 'var(--muted)', opacity: 0.4}}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                    />
+                    <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                      {totalsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-[400px] flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -552,7 +568,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
 
           <div className="flex flex-1 min-h-0 bg-slate-50 dark:bg-slate-950/50">
             {/* Left Sidebar for Lists */}
-            <div className={`${selectedActivityId ? 'w-1/3 border-r' : 'w-full'} flex flex-col border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300`}>
+            <div className={`${selectedActivityId ? 'hidden md:flex md:w-1/3 md:border-r' : 'flex w-full'} flex-col border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300`}>
               
               {/* Users Section */}
               <div className="flex-1 min-h-0 flex flex-col border-b border-slate-200 dark:border-slate-800">
@@ -671,7 +687,13 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
 
             {/* Right Sidebar for Content Detail */}
             {selectedActivityId && (
-              <div className="w-2/3 flex flex-col overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-950/20">
+              <div className="w-full md:w-2/3 flex flex-col overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950/20">
+                <div className="md:hidden mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedActivityId(null)} className="flex items-center gap-1 -ml-2 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Back to List
+                  </Button>
+                </div>
                 {isLoadingActivityDetails ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-8 h-8 animate-spin text-slate-400" />

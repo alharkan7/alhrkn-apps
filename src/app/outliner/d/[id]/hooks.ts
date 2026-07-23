@@ -309,6 +309,18 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
                                 localStorage.setItem(`outliner:${id}:expanded`, JSON.stringify(finalData));
                                 localStorage.setItem(`outliner:${id}:doc`, JSON.stringify(finalData));
                                 lastAppliedBlocksRef.current = finalData.blocks;
+
+                                // Automatically save to database once fully generated
+                                try {
+                                    await fetch(`/api/outliner/drafts/${id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ content: finalData }),
+                                    });
+                                    console.log('Automatically saved generated draft to DB');
+                                } catch (dbErr) {
+                                    console.error('Failed to auto-save to DB:', dbErr);
+                                }
                             } else if (data.type === 'error') {
                                 throw new Error(data.error || 'Streaming error');
                             }

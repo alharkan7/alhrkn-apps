@@ -195,7 +195,7 @@ KENDALA KRITIS:
               buffer = buffer.substring(lastValidEnd + 1);
             }
           }
-          controller.close();
+          try { controller.close(); } catch (e) {}
           
           try {
             // Update the ideas in the queries table
@@ -217,7 +217,7 @@ KENDALA KRITIS:
           }
         } catch (err) {
           console.error('Error in streaming:', err);
-          controller.error(err);
+          try { controller.error(err); } catch (e) {}
         }
       },
     });

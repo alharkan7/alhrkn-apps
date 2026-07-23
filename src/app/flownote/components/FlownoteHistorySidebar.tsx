@@ -24,6 +24,7 @@ export function FlownoteHistorySidebar() {
 
   return (
     <HistorySidebar
+      cacheKey="flownote"
       fetchItems={fetchFlownoteHistory}
       itemUrlPrefix="/flownote/"
       eventName="toggleHistorySidebar"
