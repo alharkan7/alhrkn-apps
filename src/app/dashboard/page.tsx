@@ -33,8 +33,8 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     if (!isNaN(days)) {
       dateFilter = `WHERE created_at >= NOW() - INTERVAL '${days} days'`;
       dateFilterAnd = `AND created_at >= NOW() - INTERVAL '${days} days'`;
-      discourseDateFilter = `WHERE to_timestamp("date"/1000) >= NOW() - INTERVAL '${days} days'`;
-      discourseDateFilterAnd = `AND to_timestamp("date"/1000) >= NOW() - INTERVAL '${days} days'`;
+      discourseDateFilter = `WHERE to_timestamp("date") >= NOW() - INTERVAL '${days} days'`;
+      discourseDateFilterAnd = `AND to_timestamp("date") >= NOW() - INTERVAL '${days} days'`;
     }
   }
 
@@ -84,7 +84,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
         UNION ALL
         SELECT date_trunc('day', created_at) AS date, 'flownote' AS app FROM flownotes WHERE created_at IS NOT NULL ${dateFilterAnd}
         UNION ALL
-        SELECT date_trunc('day', to_timestamp("date"/1000)) AS date, 'discourse' AS app FROM dnanalyzer_documents WHERE "date" IS NOT NULL ${discourseDateFilterAnd}
+        SELECT date_trunc('day', to_timestamp("date")) AS date, 'discourse' AS app FROM dnanalyzer_documents WHERE "date" IS NOT NULL ${discourseDateFilterAnd}
       )
       SELECT 
         date, 
@@ -104,7 +104,10 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     return acc;
   }, {} as Record<string, { total: number; unique: number }>);
 
-  const getStat = (app: string) => statsMap[app] || { total: 0, unique: 0 };
+  const getStat = (app: string): { total: number; unique: number } => {
+    const stat = (statsMap as any)[app];
+    return stat ? { total: Number(stat.total), unique: Number(stat.unique) } : { total: 0, unique: 0 };
+  };
 
   const totals = {
     papermap: getStat('papermap').total,
