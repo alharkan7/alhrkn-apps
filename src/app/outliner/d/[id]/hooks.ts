@@ -139,7 +139,9 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
     const saveDocLocal = useCallback(async () => {
         if (!editorRef.current) return;
         try {
+            const { getBibliographyEntries } = await import('./utils');
             const data = await editorRef.current.save();
+            (data as any).bibliography = getBibliographyEntries();
             localStorage.setItem(`outliner:${id}:doc`, JSON.stringify(data));
         } catch (error) {
             console.error('Error saving document locally:', error);
@@ -153,7 +155,9 @@ export function useDocumentEditor(id: string, idea: ResearchIdea, language: 'en'
         setIsSavingToDB(true);
         setIsSavedToDB(false);
         try {
+            const { getBibliographyEntries } = await import('./utils');
             const data = await editorRef.current.save();
+            (data as any).bibliography = getBibliographyEntries();
             const res = await fetch(`/api/outliner/drafts/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },

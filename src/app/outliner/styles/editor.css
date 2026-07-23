@@ -90,6 +90,28 @@
   cursor: help;
 }
 
+/* Inline Citation Styling */
+.inline-citation {
+  color: hsl(var(--primary));
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 2px;
+  background-color: hsl(var(--primary) / 0.05);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-style: normal;
+}
+
+.inline-citation:hover {
+  background-color: hsl(var(--primary) / 0.15);
+}
+
+.inline-citation[contenteditable="true"] {
+  background-color: hsl(var(--primary) / 0.15);
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  cursor: text;
+}
+
 /* Fix EditorJS excessive bottom padding */
 .codex-editor__redactor {
   padding-bottom: 50px !important; /* Reduce from default 300px */

@@ -16,10 +16,15 @@ export default function MiniOutlinerRenderer({ details }: { details: any }) {
 
   let contentBlocks: any[] = [];
   if (!isQuery && details.content) {
-    if (typeof details.content === 'string') {
-      try { contentBlocks = JSON.parse(details.content); } catch (e) {}
-    } else if (Array.isArray(details.content)) {
-      contentBlocks = details.content;
+    let parsedContent = details.content;
+    if (typeof parsedContent === 'string') {
+      try { parsedContent = JSON.parse(parsedContent); } catch (e) {}
+    }
+    
+    if (Array.isArray(parsedContent)) {
+      contentBlocks = parsedContent;
+    } else if (parsedContent && typeof parsedContent === 'object' && Array.isArray(parsedContent.blocks)) {
+      contentBlocks = parsedContent.blocks;
     }
   }
 
@@ -96,12 +101,13 @@ export default function MiniOutlinerRenderer({ details }: { details: any }) {
               </div>
             )}
 
-            <div className="prose prose-slate dark:prose-invert font-serif prose-headings:font-sans max-w-none">
+            <div className="prose prose-slate dark:prose-invert max-w-none font-serif prose-headings:font-serif prose-p:text-justify leading-relaxed">
               {contentBlocks.length === 0 ? (
                 <p className="text-slate-400 italic text-center py-8">Draft content is empty or still generating...</p>
               ) : (
                 contentBlocks.map((block: any, idx: number) => {
                   if (!block || !block.type || !block.data) return null;
+                  if (idx === 0 && block.type === 'header') return null;
                   
                   if (block.type === 'header') {
                     const HTag = `h${Math.min(Math.max(block.data.level || 2, 1), 6)}` as any;
@@ -112,9 +118,17 @@ export default function MiniOutlinerRenderer({ details }: { details: any }) {
                     const ListTag = block.data.style === 'ordered' ? 'ol' : 'ul';
                     return (
                       <ListTag key={idx}>
-                        {(block.data.items || []).map((item: string, i: number) => (
-                          <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
-                        ))}
+                        {(block.data.items || []).map((item: any, i: number) => {
+                          let itemText = '';
+                          if (typeof item === 'string') {
+                            itemText = item;
+                          } else if (item && typeof item === 'object') {
+                            itemText = item.content || item.text || item.value || item.label || item.name || item.title || String(item);
+                          } else {
+                            itemText = String(item);
+                          }
+                          return <li key={i} dangerouslySetInnerHTML={{ __html: itemText }} />;
+                        })}
                       </ListTag>
                     );
                   }

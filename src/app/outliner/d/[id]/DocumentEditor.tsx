@@ -12,6 +12,7 @@ import { ChatTool } from '../../tools/ChatTool';
 import { ResearchIdea, convertToMarkdown, convertToPlainText, convertToHTML, buildBibliographyHTML, buildBibliographyMarkdown, buildBibliographyPlain, renderPdfFromEditorData, getBibliographyEntries } from './utils';
 import { Toolbar } from '../../components/Toolbar';
 import { ChatInterface } from '../../components/ChatInterface';
+import { DocumentMap } from '../../components/DocumentMap';
 import { useDocumentEditor } from './hooks';
 import { toast } from 'sonner';
 
@@ -330,6 +331,20 @@ export function FullDocumentEditor({ id, idea, language, initialContent, isOwner
                             setIsReady(true);
                             try { lastAppliedBlocksRef.current = Array.isArray(initialData?.blocks) ? initialData.blocks : []; } catch { }
 
+                            // Restore bibliography if present
+                            if (initialData?.bibliography && Array.isArray(initialData.bibliography)) {
+                                const container = document.getElementById('bibliography-container');
+                                if (container && initialData.bibliography.length > 0) {
+                                    container.innerHTML = '';
+                                    initialData.bibliography.forEach((ref: any) => {
+                                        const div = document.createElement('div');
+                                        div.className = 'reference-entry mb-4';
+                                        div.innerHTML = `<p class="m-0 text-foreground">${ref.html || ref.text}</p>`;
+                                        container.appendChild(div);
+                                    });
+                                }
+                            }
+
                             // Start streaming if needed
                             if (shouldStartStreaming) {
                                 console.log('Starting streaming after editor ready');
@@ -441,6 +456,107 @@ export function FullDocumentEditor({ id, idea, language, initialContent, isOwner
         };
     }, [id, idea, holderId, debouncedSave, language, startStreaming, createSkeletonBlocks, ensureMiniAIToolbar, warmInlineToolsOnce, hideMiniToolbar, positionMiniToolbar, scheduleMiniToolbarShow, cancelScheduledMiniShow]);
 
+    // Global listener for double-clicking citations and bibliography items
+    useEffect(() => {
+        const handleDblClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            
+            // Handle inline citation double click
+            if (target.classList.contains('inline-citation')) {
+                target.contentEditable = "true";
+                target.focus();
+                
+                let isExiting = false;
+                const exitEditMode = () => {
+                    if (isExiting) return;
+                    isExiting = true;
+                    target.contentEditable = "false";
+                    target.removeEventListener('blur', exitEditMode);
+                    target.removeEventListener('keydown', onKeyDown);
+                    document.removeEventListener('mousedown', onOutsideClick);
+                    
+                    // Notify EditorJS of changes
+                    const editableAncestor = target.closest('.ce-block__content [contenteditable="true"]');
+                    if (editableAncestor) {
+                        editableAncestor.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
+                    }
+                };
+
+                const onOutsideClick = (ce: MouseEvent) => {
+                    if (!target.contains(ce.target as Node)) {
+                        exitEditMode();
+                    }
+                };
+                
+                const onKeyDown = (ke: KeyboardEvent) => {
+                    if (ke.key === 'Enter' || ke.key === 'Escape') {
+                        ke.preventDefault();
+                        exitEditMode();
+                    }
+                };
+                
+                target.addEventListener('blur', exitEditMode);
+                target.addEventListener('keydown', onKeyDown);
+                document.addEventListener('mousedown', onOutsideClick);
+                return;
+            }
+            
+            // Handle bibliography entry double click
+            const refEntry = target.closest('.reference-entry');
+            if (refEntry) {
+                const p = refEntry.querySelector('p');
+                if (p && e.target === p) {
+                    p.contentEditable = "true";
+                    p.focus();
+                    
+                    let isExiting = false;
+                    const exitEditMode = () => {
+                        if (isExiting) return;
+                        isExiting = true;
+                        p.contentEditable = "false";
+                        p.removeEventListener('blur', exitEditMode);
+                        p.removeEventListener('keydown', onKeyDown);
+                        document.removeEventListener('mousedown', onOutsideClick);
+                        debouncedSave(); // Force save to persist manual edits
+                    };
+
+                    const onOutsideClick = (ce: MouseEvent) => {
+                        if (!p.contains(ce.target as Node)) {
+                            exitEditMode();
+                        }
+                    };
+                    
+                    const onKeyDown = (ke: KeyboardEvent) => {
+                        if (ke.key === 'Enter' || ke.key === 'Escape') {
+                            ke.preventDefault();
+                            exitEditMode();
+                        }
+                    };
+                    
+                    p.addEventListener('blur', exitEditMode);
+                    p.addEventListener('keydown', onKeyDown);
+                    document.addEventListener('mousedown', onOutsideClick);
+                }
+            }
+        };
+
+        document.addEventListener('dblclick', handleDblClick);
+        return () => document.removeEventListener('dblclick', handleDblClick);
+    }, [debouncedSave]);
+
+    // Global keyboard shortcuts (Cmd/Ctrl + S to save)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveToDB();
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [saveToDB]);
+
     const handleMakeCopy = async () => {
         try {
             const res = await fetch(`/api/outliner/drafts/${id}/duplicate`, { method: 'POST' });
@@ -469,7 +585,7 @@ export function FullDocumentEditor({ id, idea, language, initialContent, isOwner
         <div className="prose prose-neutral dark:prose-invert max-w-none w-full pb-32">
             <Toolbar onDownload={handleDownload} onOpenChat={handleOpenChat} onSave={saveToDB} isSaving={isSavingToDB} isSaved={isSavedToDB} />
 
-            <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200 relative">
+            <div id="document-wrapper" className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mt-24 mb-16 mx-auto w-full max-w-[850px] min-h-[1100px] font-serif transition-colors duration-200 relative">
                 {!isOwner && (
                     <div 
                         className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-10" 
@@ -491,7 +607,7 @@ export function FullDocumentEditor({ id, idea, language, initialContent, isOwner
 
                 {/* Bibliography Section */}
                 <div className="mt-16 pt-8 border-t border-black/10 dark:border-white/10">
-                    <h2 className="text-2xl font-serif font-normal mb-6 text-foreground text-center">References</h2>
+                    <h2 id="references-header" className="text-2xl font-serif font-normal mb-6 text-foreground text-center">References</h2>
                     <div id="bibliography-container" className="space-y-4 break-words font-serif text-[15px] leading-relaxed pl-6 -indent-6">
                         <p data-bibliography-placeholder="true" className="text-muted-foreground italic text-center indent-0">
                             Citations will appear here as you add them to your document using the citation tool.
@@ -499,6 +615,8 @@ export function FullDocumentEditor({ id, idea, language, initialContent, isOwner
                     </div>
                 </div>
             </div>
+
+            <DocumentMap containerId="document-wrapper" />
 
             {/* Chat Interface */}
             <ChatInterface

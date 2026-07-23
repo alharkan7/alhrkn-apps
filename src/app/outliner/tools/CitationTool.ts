@@ -10,6 +10,18 @@ export class CitationTool {
     static isInline = true;
     static title = 'Cite';
 
+    static get sanitize() {
+        return {
+            cite: {
+                class: 'inline-citation',
+                'data-paper-id': true,
+                'data-paper-json': true,
+                contenteditable: true,
+                title: true,
+            }
+        };
+    }
+
     private api: any;
     private button: HTMLButtonElement;
     private savedSelectionRange: Range | null = null;
@@ -85,20 +97,15 @@ export class CitationTool {
                     });
 
                     // Document changed → update bibliography display
+                    let debounceTimer: any = null;
                     window.addEventListener('outliner-document-changed', () => {
                         try {
-                            // Debounce rapid events
-                            const now = Date.now();
-                            if (now - CitationTool.lastEventTime < CitationTool.EVENT_DEBOUNCE_MS) {
-                                return;
-                            }
-                            CitationTool.lastEventTime = now;
-
-                            const inst = CitationTool.lastConstructedInstance;
-                            if (!inst) return;
-                            setTimeout(() => {
+                            if (debounceTimer) clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(() => {
+                                const inst = CitationTool.lastConstructedInstance;
+                                if (!inst) return;
                                 try { inst.updateBibliographyDisplay().catch(() => { }); } catch { }
-                            }, 200);
+                            }, 300);
                         } catch { /* noop */ }
                     });
 
@@ -1092,7 +1099,7 @@ export class CitationTool {
             const citationTextCore = `(${authorLastName}, ${paper.year || 'n.d.'})`;
 
             // First try DOM-level insertion at the saved selection (skip if forced block placement)
-            const insertedViaDom = this.forceBlockPlacement ? false : this.insertCitationAtSavedSelection(citationTextCore);
+            const insertedViaDom = this.forceBlockPlacement ? false : this.insertCitationAtSavedSelection(citationTextCore, paper);
 
             if (!insertedViaDom) {
                 // Fallback to block-level insertion (end of current paragraph)
@@ -1102,12 +1109,16 @@ export class CitationTool {
                     return;
                 }
 
+                const paperJson = encodeURIComponent(JSON.stringify(paper));
+                const paperId = paper.paperId || paper.title;
+                const citationHtmlCore = `<cite class="inline-citation" data-paper-id="${paperId.replace(/"/g, '&quot;')}" data-paper-json="${paperJson}" contenteditable="false" title="Double click to edit">${citationTextCore}</cite>`;
+
                 const currentBlockInfo = await this.getCurrentBlockInfo();
                 if (!currentBlockInfo) {
                     // No focused block (likely opened from toolbar). Insert a new paragraph at end with the citation.
                     try {
                         const blocksCount = typeof this.api.blocks.getBlocksCount === 'function' ? this.api.blocks.getBlocksCount() : (Array.isArray(doc.blocks) ? doc.blocks.length : 0);
-                        this.api.blocks.insert('paragraph', { text: citationTextCore }, {}, blocksCount);
+                        this.api.blocks.insert('paragraph', { text: citationHtmlCore }, {}, blocksCount);
                     } catch (e) {
                         console.error('Failed to insert citation at end of document:', e);
                         this.config.notify?.('Failed to insert citation at end of document.');
@@ -1120,7 +1131,7 @@ export class CitationTool {
                         // If not a paragraph, append a new paragraph at end instead
                         try {
                             const blocksCount = typeof this.api.blocks.getBlocksCount === 'function' ? this.api.blocks.getBlocksCount() : (Array.isArray(doc.blocks) ? doc.blocks.length : 0);
-                            this.api.blocks.insert('paragraph', { text: citationTextCore }, {}, blocksCount);
+                            this.api.blocks.insert('paragraph', { text: citationHtmlCore }, {}, blocksCount);
                         } catch (e) {
                             console.error('Failed to insert citation at end of document:', e);
                             this.config.notify?.('Failed to insert citation at end of document.');
@@ -1139,17 +1150,17 @@ export class CitationTool {
                         if (rightTrimmed.endsWith('.')) {
                             const withoutPeriod = rightTrimmed.slice(0, -1).replace(/[\s\u00A0]+$/g, '');
                             const needsSpace = withoutPeriod.endsWith(' ') ? '' : ' ';
-                            let newText = `${withoutPeriod}${needsSpace}${citationTextCore}.`;
+                            let newText = `${withoutPeriod}${needsSpace}${citationHtmlCore}.`;
                             currentText = newText; // override fully
                         } else if (rightTrimmed.endsWith(')') && rightTrimmed.includes('(')) {
                             const lastParenIndex = rightTrimmed.lastIndexOf('(');
                             const beforeCitation = rightTrimmed.substring(0, lastParenIndex).replace(/[\s\u00A0]+$/g, '');
                             const existingCitation = rightTrimmed.substring(lastParenIndex);
-                            const newText = `${beforeCitation} ${citationTextCore} ${existingCitation}`;
+                            const newText = `${beforeCitation} ${citationHtmlCore} ${existingCitation}`;
                             currentText = newText;
                         } else {
                             const needsSpace = rightTrimmed.endsWith(' ') ? '' : ' ';
-                            const newText = `${rightTrimmed}${needsSpace}${citationTextCore}`;
+                            const newText = `${rightTrimmed}${needsSpace}${citationHtmlCore}`;
                             currentText = newText;
                         }
 
@@ -1184,8 +1195,8 @@ export class CitationTool {
             // Reset force flag after operation
             this.forceBlockPlacement = false;
 
-            // Add to external bibliography display (not to EditorJS document)
-            await this.addToExternalBibliography(paper);
+            // Trigger document change so bibliography display updates automatically
+            window.dispatchEvent(new CustomEvent('outliner-document-changed'));
 
             // Close modal and notify user
             this.closeModal();
@@ -1209,7 +1220,7 @@ export class CitationTool {
         }
     }
 
-    private insertCitationAtSavedSelection(citationTextCore: string): boolean {
+    private insertCitationAtSavedSelection(citationTextCore: string, paper: any): boolean {
         try {
             if (!this.savedSelectionRange) return false;
 
@@ -1226,7 +1237,31 @@ export class CitationTool {
             let endContainer = range.endContainer;
             let endOffset = range.endOffset;
 
-            const makeTextNode = (txt: string) => document.createTextNode(txt);
+            const makeNode = (txt: string) => {
+                if (txt.includes(citationTextCore)) {
+                    const cite = document.createElement('cite');
+                    cite.className = 'inline-citation';
+                    cite.setAttribute('data-paper-id', paper.paperId || paper.title);
+                    cite.setAttribute('data-paper-json', encodeURIComponent(JSON.stringify(paper)));
+                    cite.setAttribute('contenteditable', 'false');
+                    cite.title = 'Double click to edit';
+                    
+                    const trimmed = txt.trim();
+                    const leading = txt.startsWith(' ') ? ' ' : '';
+                    const trailing = txt.endsWith(' ') ? ' ' : '';
+                    cite.textContent = trimmed;
+                    
+                    if (leading || trailing) {
+                        const frag = document.createDocumentFragment();
+                        if (leading) frag.appendChild(document.createTextNode(' '));
+                        frag.appendChild(cite);
+                        if (trailing) frag.appendChild(document.createTextNode(' '));
+                        return frag;
+                    }
+                    return cite;
+                }
+                return document.createTextNode(txt);
+            };
 
             const insertAndMoveCaretAfter = (node: Node) => {
                 // Move caret after inserted node
@@ -1263,11 +1298,11 @@ export class CitationTool {
                     textNode.data = before;
 
                     const citationText = `${before.endsWith(' ') ? '' : ' '}${citationTextCore}`;
-                    const citationNode = makeTextNode(citationText);
+                    const citationNode = makeNode(citationText);
 
                     if (textNode.parentNode) {
                         textNode.parentNode.insertBefore(citationNode, textNode.nextSibling);
-                        const afterNode = makeTextNode(after);
+                        const afterNode = document.createTextNode(after);
                         textNode.parentNode.insertBefore(afterNode, citationNode.nextSibling);
                         insertAndMoveCaretAfter(citationNode);
                     }
@@ -1281,19 +1316,19 @@ export class CitationTool {
                     textNode.data = before;
 
                     const citationText = `${needsLeadingSpace ? ' ' : ''}${citationTextCore}`;
-                    const citationNode = makeTextNode(citationText);
+                    const citationNode = makeNode(citationText);
 
                     // Insert citation then the remaining text (which begins with '.')
                     if (textNode.parentNode) {
                         textNode.parentNode.insertBefore(citationNode, textNode.nextSibling);
-                        const afterNode = makeTextNode(after);
+                        const afterNode = document.createTextNode(after);
                         textNode.parentNode.insertBefore(afterNode, citationNode.nextSibling);
                         insertAndMoveCaretAfter(citationNode);
                     }
                 } else {
                     // Insert at selection end
                     const citationText = `${needsLeadingSpace ? ' ' : ''}${citationTextCore}`;
-                    const citationNode = makeTextNode(citationText);
+                    const citationNode = makeNode(citationText);
                     range.collapse(false);
                     range.insertNode(citationNode);
                     insertAndMoveCaretAfter(citationNode);
@@ -1317,7 +1352,7 @@ export class CitationTool {
                     needsLeadingSpace = !(prevChar && /\s/.test(prevChar));
 
                     const citationText = `${needsLeadingSpace ? ' ' : ''}${citationTextCore}`;
-                    const citationNode = makeTextNode(citationText);
+                    const citationNode = makeNode(citationText);
                     if (startsWithPeriod) {
                         parent.insertBefore(citationNode, next);
                         inserted = true;
@@ -1326,7 +1361,7 @@ export class CitationTool {
                 }
                 if (!inserted) {
                     const citationText = ` ${citationTextCore}`;
-                    const citationNode = makeTextNode(citationText);
+                    const citationNode = makeNode(citationText);
                     range.collapse(false);
                     range.insertNode(citationNode);
                     insertAndMoveCaretAfter(citationNode);
@@ -1351,62 +1386,76 @@ export class CitationTool {
         }
     }
 
-    private async addToExternalBibliography(paper: any) {
+    public async updateBibliographyDisplay() {
         try {
-            // Get the bibliography container
             const container = document.getElementById('bibliography-container');
-            if (!container) {
-                console.warn('Bibliography container not found');
+            if (!container) return;
+
+            // Find all unique citations in the editor
+            const citations = Array.from(document.querySelectorAll('.editor-container .inline-citation'));
+            const paperMap = new Map<string, any>();
+            
+            citations.forEach(el => {
+                const id = el.getAttribute('data-paper-id');
+                const json = el.getAttribute('data-paper-json');
+                if (id && json && !paperMap.has(id)) {
+                    try {
+                        const decoded = decodeURIComponent(json);
+                        paperMap.set(id, JSON.parse(decoded));
+                    } catch (e) {
+                        // fallback if not url encoded
+                        try { paperMap.set(id, JSON.parse(json)); } catch {}
+                    }
+                }
+            });
+
+            // Get existing bibliography to preserve manual edits
+            const existingRefs = Array.from(container.querySelectorAll('.reference-entry'));
+            const existingMap = new Map<string, Element>();
+            existingRefs.forEach(ref => {
+                const id = ref.getAttribute('data-paper-id');
+                if (id) existingMap.set(id, ref);
+            });
+
+            container.innerHTML = '';
+            
+            if (paperMap.size === 0) {
+                const placeholder = document.createElement('p');
+                placeholder.setAttribute('data-bibliography-placeholder', 'true');
+                placeholder.className = 'italic text-center py-5 px-5 m-0 text-muted-foreground/60';
+                placeholder.textContent = 'Citations will appear here as you add them to your document using the citation tool.';
+                container.appendChild(placeholder);
                 return;
             }
 
-            // Check if this paper is already in the bibliography
-            const paperId = paper.paperId || paper.title;
-            const existingReference = this.findExistingReferenceInDisplay(container, paperId);
-
-            if (existingReference) {
-                // Paper already exists, don't add duplicate
-                this.config.notify?.('This paper is already cited in the bibliography');
-                return;
-            }
-
-            // Create reference entry
-            const referenceText = this.formatReference(paper);
-
-            // Add the new reference to the display
-            this.addReferenceToDisplay(container, referenceText);
-
-            // Sort the bibliography display
+            // For each paper in the document, add it to bibliography
+            Array.from(paperMap.values()).forEach(paper => {
+                const paperId = paper.paperId || paper.title;
+                if (existingMap.has(paperId)) {
+                    // keep existing (which might have been manually edited)
+                    container.appendChild(existingMap.get(paperId)!);
+                } else {
+                    // create new
+                    this.addReferenceToDisplay(container, this.formatReference(paper), paperId);
+                }
+            });
+            
             this.sortBibliographyDisplay(container);
 
         } catch (error) {
-            console.error('Error adding to external bibliography:', error);
+            console.error('Error updating bibliography display:', error);
         }
     }
 
-    private findExistingReferenceInDisplay(container: HTMLElement, paperId: string): boolean {
-        // Check if this paper is already in the bibliography display
-        const existingReferences = container.querySelectorAll('.reference-entry');
-        for (const ref of existingReferences) {
-            const refText = ref.textContent || '';
-            if (paperId && refText.includes(paperId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private addReferenceToDisplay(container: HTMLElement, reference: { text: string; url?: string }) {
-        // Remove any placeholder variants
-        this.removeBibliographyPlaceholders(container);
-
+    private addReferenceToDisplay(container: HTMLElement, reference: { text: string; url?: string }, paperId: string) {
         // Create new reference entry with custom CSS variables
         const referenceDiv = document.createElement('div');
-        referenceDiv.className = 'reference-entry p-4 rounded-md border-l-4 mb-2 border bg-card border-l-primary';
-
+        referenceDiv.className = 'reference-entry mb-4';
+        referenceDiv.setAttribute('data-paper-id', paperId);
 
         const referenceTextElement = document.createElement('p');
-        referenceTextElement.className = 'leading-relaxed m-0 text-sm text-card-foreground break-words';
+        referenceTextElement.className = 'm-0 text-foreground';
+        referenceTextElement.title = 'Double click to edit';
 
 
         // Add the main text portion
@@ -1525,36 +1574,7 @@ export class CitationTool {
         ].join(', ');
     }
 
-    private async updateBibliographyDisplay() {
-        try {
-            // Get the bibliography container
-            const container = document.getElementById('bibliography-container');
-            if (!container) return;
 
-            // Check if there are any existing references in the display
-            const existingReferences = container.querySelectorAll('.reference-entry');
-
-            if (existingReferences.length === 0) {
-                // No references yet, show placeholder (idempotent)
-                const already = container.querySelector('[data-bibliography-placeholder="true"]');
-                if (!already) {
-                    const placeholder = document.createElement('p');
-                    placeholder.setAttribute('data-bibliography-placeholder', 'true');
-                    placeholder.className = 'italic text-center py-5 px-5 m-0 text-muted-foreground/60';
-
-                    placeholder.textContent = 'Citations will appear here as you add them to your document using the citation tool.';
-                    container.innerHTML = '';
-                    container.appendChild(placeholder);
-                }
-            } else {
-                // References exist, ensure any placeholder is removed
-                this.removeBibliographyPlaceholders(container);
-            }
-
-        } catch (error) {
-            console.error('Error updating bibliography display:', error);
-        }
-    }
 
     private removeBibliographyPlaceholders(container: HTMLElement) {
         try {
