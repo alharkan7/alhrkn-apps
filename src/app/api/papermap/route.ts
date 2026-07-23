@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest, NextResponse } from 'next/server';
 // Import the sample text
 import { EXAMPLE_PDF_TEXT } from '@/app/papermap/data/sampleMindmap';
@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Initialize Google AI services
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // Define system prompt that explains the response format requirements
 const SYSTEM_PROMPT = `You are a specialized AI assistant that analyzes PDF documents and creates structured mindmaps.
@@ -127,9 +127,9 @@ The client will use your responses to construct and update a visual mindmap. Ens
 export async function POST(request: NextRequest) {
   try {
     // Verify Gemini API key is configured
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!process.env.GOOGLE_API_KEY) {
       return NextResponse.json(
-        { error: "GOOGLE_GENERATIVE_AI_API_KEY is not configured" },
+        { error: "GOOGLE_API_KEY is not configured" },
         { status: 500 }
       );
     }

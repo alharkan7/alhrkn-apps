@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@/lib/google-ai-proxy';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
 import { beeblioEvaluations } from '@/db/schema';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // Removed static schema
 
@@ -23,8 +23,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ evaluations: [] });
     }
 
-    if (!(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
-      throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is missing");
+    if (!(process.env.GOOGLE_API_KEY)) {
+      throw new Error("GOOGLE_API_KEY is missing");
     }
 
     const evaluationCriteria = (criteria && criteria.length === 3) ? criteria : ["Relevance", "Methodology", "Novelty"];

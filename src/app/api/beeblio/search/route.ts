@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@/lib/google-ai-proxy';
 import { Paper } from '@/app/beeblio/shared';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { beeblioSearches, beeblioPapers, beeblioSettings, beeblioFiles } from '@/db/schema';
 import { downloadFile } from '@/lib/storage';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 function invertAbstract(invertedIndex: Record<string, number[]>): string {
   if (!invertedIndex) return '';
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     // AI Query Optimization + Dynamic Criteria Generation
     // Always run for new searches to generate dynamic evaluation criteria.
     // The aiOptimize toggle controls whether queries are rewritten or passed through verbatim.
-    if (!structuredQueries && (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY)) {
+    if (!structuredQueries && (process.env.GOOGLE_API_KEY)) {
       try {
         const model = genAI.getGenerativeModel({ 
           model: process.env.BEEBLIO_SEARCH_MODEL || 'gemini-2.5-flash',

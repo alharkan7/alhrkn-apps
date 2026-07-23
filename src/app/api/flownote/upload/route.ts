@@ -5,8 +5,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { getBucket } from '@/lib/storage/client';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
+import { GoogleAIFileManager } from '@/lib/google-ai-proxy';
 
 const execAsync = promisify(exec);
 
@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
     // Check for PDF
     if (ext === '.pdf') {
       try {
-        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY for PDF conversion');
+        if (!process.env.GOOGLE_API_KEY) {
+            throw new Error('Missing GOOGLE_API_KEY for PDF conversion');
         }
         
-        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
-        const fileManager = new GoogleAIFileManager(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+        const fileManager = new GoogleAIFileManager(process.env.GOOGLE_API_KEY);
         
         // Upload the file to Gemini
         const uploadResult = await fileManager.uploadFile(inputFilePath, {

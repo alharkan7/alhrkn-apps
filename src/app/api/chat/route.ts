@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
+import { GoogleAIFileManager } from '@/lib/google-ai-proxy';
 import { NextRequest } from 'next/server';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -10,12 +10,12 @@ import { db } from '@/db';
 import { chatSessions } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
+if (!process.env.GOOGLE_API_KEY) {
+    throw new Error('Missing GOOGLE_API_KEY environment variable');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
-const fileManager = new GoogleAIFileManager(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const fileManager = new GoogleAIFileManager(process.env.GOOGLE_API_KEY);
 
 // Add system prompt configuration
 const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help with a wide range of tasks including:

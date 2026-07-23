@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest } from 'next/server';
 import { db } from '@/db';
 import { mindmaps, mindmapNodes } from '@/db/schema';
@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Initialize Google AI services
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // Zod schema for validating individual nodes
 const NodeSchema = z.object({
@@ -64,9 +64,9 @@ function createSSEMessage(data: StreamMessage): string {
  */
 export async function POST(request: NextRequest) {
     // Verify Gemini API key is configured
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!process.env.GOOGLE_API_KEY) {
         return new Response(
-            createSSEMessage({ type: 'error', error: 'GOOGLE_GENERATIVE_AI_API_KEY is not configured' }),
+            createSSEMessage({ type: 'error', error: 'GOOGLE_API_KEY is not configured' }),
             {
                 status: 500,
                 headers: {

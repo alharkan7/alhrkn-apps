@@ -1,11 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest } from 'next/server';
 import { getAuthUser, logOutlinerEvent } from '../logger';
 
 // Environment validation
-const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const googleApiKey = process.env.GOOGLE_API_KEY;
 if (!googleApiKey) {
-  throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
+  throw new Error('Missing GOOGLE_API_KEY environment variable');
 }
 
 // Initialize Gemini

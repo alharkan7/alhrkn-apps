@@ -21,9 +21,9 @@ interface ChatRequest {
 }
 
 // You'll need to set this in your environment variables
-const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
 const model = process.env.OUTLINER_CHAT_MODEL || 'gemini-2.5-flash';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY not configured');
+    if (!GOOGLE_API_KEY) {
+      console.error('GOOGLE_API_KEY not configured');
       return NextResponse.json(
         { error: 'AI service not configured' },
         { status: 500 }
@@ -102,7 +102,7 @@ Please provide helpful, accurate, and relevant responses in markdown format to h
       });
     }
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`${GOOGLE_API_URL}?key=${GOOGLE_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

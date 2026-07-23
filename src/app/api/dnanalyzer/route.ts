@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const googleApiKey = process.env.GOOGLE_API_KEY;
 
     if (!googleApiKey) {
       return NextResponse.json(

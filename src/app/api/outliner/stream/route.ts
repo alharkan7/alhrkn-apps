@@ -1,13 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@/lib/google-ai-proxy';
 import { NextRequest } from 'next/server';
 import { db } from '@/db';
 import { outlinerEvents, outlinerQueries } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { eq, and } from 'drizzle-orm';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const apiKey = process.env.GOOGLE_API_KEY;
 if (!apiKey) {
-  throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
+  throw new Error('Missing GOOGLE_API_KEY environment variable');
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);

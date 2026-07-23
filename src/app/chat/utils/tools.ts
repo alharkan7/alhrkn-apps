@@ -1,4 +1,5 @@
-import { Tool, SchemaType } from '@google/generative-ai';
+import { SchemaType } from '@/lib/google-ai-proxy';
+type Tool = any;
 
 export const tools: Tool[] = [
     {

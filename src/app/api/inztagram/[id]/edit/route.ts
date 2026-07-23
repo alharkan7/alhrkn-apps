@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@/lib/google-ai-proxy';
 import { NextRequest } from 'next/server';
 import { jsonrepair } from 'jsonrepair';
 import { db } from '@/db';
@@ -12,11 +12,11 @@ import {
 import { sanitizeSvg } from '@/app/inztagram/lib/sanitize-svg';
 import type { InztagramMessage } from '@/app/inztagram/lib/types';
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-  throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
+if (!process.env.GOOGLE_API_KEY) {
+  throw new Error('Missing GOOGLE_API_KEY environment variable');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({
   model: process.env.INZTAGRAM_EDIT_MODEL || 'gemini-2.5-flash',
   generationConfig: {

@@ -1,5 +1,5 @@
 import { streamObject } from 'ai';
-import { google } from '@ai-sdk/google';
+import { getModel } from '@/lib/ai';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
 import { db } from '@/db';
@@ -16,8 +16,8 @@ import { getFreeformLayout } from '@/app/inztagram/components/freeform-layouts';
 import { sanitizeSvg } from '@/app/inztagram/lib/sanitize-svg';
 import type { InztagramMessage } from '@/app/inztagram/lib/types';
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-  throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
+if (!process.env.GOOGLE_API_KEY) {
+  throw new Error('Missing GOOGLE_API_KEY environment variable');
 }
 
 export async function POST(
@@ -126,7 +126,7 @@ If the message includes a "Selected SVG element context" section, prioritize edi
     }
 
     const streamConfig: any = {
-      model: google(process.env.INZTAGRAM_STREAM_MODEL || 'gemini-2.5-flash'),
+      model: getModel(process.env.INZTAGRAM_STREAM_MODEL || 'gemini-2.5-flash'),
       system: systemInstruction,
       schema: z.object({
         svg: z.string().describe('The raw SVG code. Must be complete and well-formed.'),
