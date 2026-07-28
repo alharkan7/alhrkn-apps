@@ -26,20 +26,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing imageUrl' }, { status: 400 });
     }
 
-    const { object: chartData } = await generateObject({
+    const { object: responseData } = await generateObject({
       model: openrouter(process.env.ANIMACHART_MODEL || 'gemini-2.5-flash'),
       schema: z.object({
-        type: z.enum(['line', 'bar', 'pie', 'doughnut', 'radar', 'polarArea', 'mixed']),
-        orientation: z.enum(['vertical', 'horizontal']).optional(),
-        title: z.string(),
-        labels: z.array(z.string()),
-        datasets: z.array(z.object({
-          type: z.enum(['line', 'bar', 'area']).optional(),
-          label: z.string(),
-          data: z.array(z.number()),
-          backgroundColor: z.string().optional(),
-          borderColor: z.string().optional(),
-        })),
+        isSupportedChart: z.boolean().describe("True if the image is a valid chart of a supported type. False if it is not a chart, or if it is an unsupported type (e.g. 3D surface plot, map, candlestick)."),
+        errorReason: z.string().optional().describe("If isSupportedChart is false, explain why (e.g. 'Image is not a chart', 'Unsupported chart type')."),
+        chartConfig: z.object({
+          type: z.enum(['line', 'bar', 'pie', 'doughnut', 'radar', 'polarArea', 'mixed', 'bubble', 'scatter']),
+          orientation: z.enum(['vertical', 'horizontal']).optional(),
+          title: z.string(),
+          labels: z.array(z.string()),
+          datasets: z.array(z.object({
+            type: z.enum(['line', 'bar', 'area', 'bubble', 'scatter']).optional(),
+            label: z.string(),
+            data: z.array(z.union([
+              z.number(),
+              z.object({ x: z.number(), y: z.number(), r: z.number().optional() })
+            ])),
+            backgroundColor: z.string().optional(),
+            borderColor: z.string().optional(),
+          })),
+          customOptions: z.record(z.any()).optional().describe("Advanced Chart.js configuration options to override the defaults. Will be deeply merged into the chart options."),
+        }).optional(),
       }),
       messages: [
         {
@@ -47,7 +55,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: "Analyze this chart image.\n1. Identify the primary chart type ('line', 'bar', 'pie', etc.). If it's a mix (e.g. bar and line), use 'mixed'.\n2. Determine orientation: if it is a horizontal bar chart, set orientation to 'horizontal'.\n3. For 'mixed' charts, specify the 'type' for each dataset ('line', 'bar', etc.). If it's an area chart, use type 'line' and we will fill it.\n4. Extract the title, x-axis labels, and exact data points. Estimate accurately if not explicit. Return a structured JSON."
+              text: "Analyze this image.\n1. Determine if it is a valid, supported chart. We support line, bar, pie, doughnut, radar, polarArea, mixed, bubble, and scatter charts. If it is a 3D chart, candlestick, map, or not a chart at all (e.g. a selfie, screenshot of text), set isSupportedChart to false and provide an errorReason.\n2. If it is a supported chart, set isSupportedChart to true and fill out chartConfig.\n3. Identify the primary chart type and orientation.\n4. Extract the title, x-axis labels, and exact data points.\n5. ADVANCED: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Example: { animation: { duration: 5000 }, elements: { line: { borderDash: [5, 5] } } }\nReturn a structured JSON."
             },
             {
               type: 'image',
@@ -57,6 +65,12 @@ export async function POST(req: NextRequest) {
         }
       ]
     });
+
+    if (!responseData.isSupportedChart || !responseData.chartConfig) {
+      return NextResponse.json({ error: responseData.errorReason || "Image is not a supported chart." }, { status: 400 });
+    }
+
+    const chartData = responseData.chartConfig;
 
     let insertedId: string | null = null;
     try {

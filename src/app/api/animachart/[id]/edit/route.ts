@@ -60,22 +60,27 @@ User Request:
 ${message}
 
 CRITICAL INSTRUCTION: You MUST apply the changes requested by the user to the JSON data. DO NOT simply return the original JSON. 
-IMPORTANT: You MUST preserve all existing properties of the current chart (such as 'orientation', 'type', 'title', 'colors', 'datasets') EXACTLY as they are, UNLESS the user's request explicitly requires changing them. If the current chart has orientation: "horizontal", your output MUST keep orientation: "horizontal" unless the user asks to change it.`;
+IMPORTANT: You MUST preserve all existing properties of the current chart (such as 'orientation', 'type', 'title', 'colors', 'datasets', 'customOptions') EXACTLY as they are, UNLESS the user's request explicitly requires changing them. If the current chart has orientation: "horizontal", your output MUST keep orientation: "horizontal" unless the user asks to change it.
+ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Use this for advanced settings like animations, grid settings, custom point styles, dashed borders, plugins, etc. Example: { customOptions: { animation: { duration: 5000, easing: 'easeInOutBounce' }, elements: { line: { borderDash: [5, 5] } } } }`;
 
     const { object: updatedChartData } = await generateObject({
       model: openrouter(process.env.ANIMACHART_MODEL || 'google/gemini-2.5-pro'),
       schema: z.object({
-        type: z.enum(['line', 'bar', 'pie', 'doughnut', 'radar', 'polarArea', 'mixed']),
+        type: z.enum(['line', 'bar', 'pie', 'doughnut', 'radar', 'polarArea', 'mixed', 'bubble', 'scatter']),
         orientation: z.enum(['vertical', 'horizontal']).optional(),
         title: z.string(),
         labels: z.array(z.string()),
         datasets: z.array(z.object({
-          type: z.enum(['line', 'bar', 'area']).optional(),
+          type: z.enum(['line', 'bar', 'area', 'bubble', 'scatter']).optional(),
           label: z.string(),
-          data: z.array(z.number()),
+          data: z.array(z.union([
+            z.number(),
+            z.object({ x: z.number(), y: z.number(), r: z.number().optional() })
+          ])),
           backgroundColor: z.string().optional(),
           borderColor: z.string().optional(),
         })),
+        customOptions: z.record(z.any()).optional().describe("Advanced Chart.js configuration options to override the defaults. Will be deeply merged into the chart options."),
       }),
       messages: [
         {

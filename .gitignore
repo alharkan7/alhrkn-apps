@@ -49,3 +49,5 @@ next-env.d.ts
 app-key*
 
 /test
+
+/docs/test

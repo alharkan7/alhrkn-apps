@@ -16,11 +16,12 @@ import {
   Filler,
   Plugin,
 } from 'chart.js';
-import { Line, Bar, Pie, Doughnut, Radar, PolarArea } from 'react-chartjs-2';
+import { Line, Bar, Pie, Doughnut, Radar, PolarArea, Bubble, Scatter } from 'react-chartjs-2';
 import { Button } from '@/components/ui/button';
-import { Play, Download, RefreshCw, ChevronLeft, Menu, Plus, ChevronDown, Video, Image as ImageIcon, ChevronRight, Send, Loader2, MessageSquare, X, ChevronUp } from 'lucide-react';
+import { Play, Download, RefreshCw, ChevronLeft, Menu, Plus, ChevronDown, Video, Image as ImageIcon, ChevronRight, Send, Loader2, MessageSquare, X, ChevronUp, Code } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AppsHeader } from '@/components/apps-header';
+import { merge } from 'lodash';
 import AppsFooter from '@/components/apps-footer';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -30,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from 'next-themes';
+import { toast } from 'sonner';
 
 ChartJS.register(
   CategoryScale,
@@ -46,17 +48,18 @@ ChartJS.register(
 );
 
 interface ChartData {
-  type: 'line' | 'bar' | 'pie' | 'doughnut' | 'radar' | 'polarArea' | 'mixed';
+  type: 'line' | 'bar' | 'pie' | 'doughnut' | 'radar' | 'polarArea' | 'mixed' | 'bubble' | 'scatter';
   orientation?: 'vertical' | 'horizontal';
   title: string;
   labels: string[];
   datasets: {
-    type?: 'line' | 'bar' | 'area';
+    type?: 'line' | 'bar' | 'area' | 'bubble' | 'scatter';
     label: string;
-    data: number[];
+    data: any[];
     backgroundColor?: string;
     borderColor?: string;
   }[];
+  customOptions?: any;
 }
 
 interface AnimatedChartViewerProps {
@@ -173,7 +176,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
   const isRadar = ['radar', 'polarArea'].includes(currentData.type);
   const hasAxes = !isPie && !isRadar;
 
-  const chartOptions: any = {
+  const baseChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: currentData.orientation === 'horizontal' ? 'y' : 'x',
@@ -250,6 +253,14 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       }
     } : undefined
   };
+
+  // Safely sanitize customOptions to prevent null overrides that crash Chart.js
+  const safeCustomOptions = { ...(currentData.customOptions || {}) };
+  if (safeCustomOptions.plugins === null) delete safeCustomOptions.plugins;
+  if (safeCustomOptions.scales === null) delete safeCustomOptions.scales;
+  if (safeCustomOptions.animation === null) delete safeCustomOptions.animation;
+
+  const chartOptions = merge({}, baseChartOptions, safeCustomOptions);
 
   const handleReplay = () => {
     setChartKey(prev => prev + 1);
@@ -366,6 +377,68 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     }, duration + 1000);
   };
 
+  const copyHtmlSource = async () => {
+    // We recreate a simplified type string since the component handles mixed/area differently
+    const chartType = currentData.type === 'mixed' ? 'bar' : currentData.type;
+    
+    const htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${currentData.title || 'Motion Chart'}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: ${isDark ? '#020817' : '#ffffff'};
+            color: ${isDark ? '#f8fafc' : '#0f172a'};
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 1000px;
+            aspect-ratio: 21 / 9;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                aspect-ratio: 16 / 9;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const config = {
+            type: '${chartType}',
+            data: ${JSON.stringify(chartJsData, null, 4)},
+            options: ${JSON.stringify(chartOptions, null, 4)}
+        };
+
+        new Chart(ctx, config);
+    </script>
+</body>
+</html>`;
+
+    try {
+      await navigator.clipboard.writeText(htmlTemplate);
+      toast.success('HTML code copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast.error('Failed to copy source code.');
+    }
+  };
+
   const renderChart = () => {
     const props: any = {
       ref: chartRef,
@@ -381,6 +454,8 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       case 'doughnut': return <Doughnut {...props} />;
       case 'radar': return <Radar {...props} />;
       case 'polarArea': return <PolarArea {...props} />;
+      case 'bubble': return <Bubble {...props} />;
+      case 'scatter': return <Scatter {...props} />;
       case 'line':
       default:
         return <Line {...props} />;
@@ -475,6 +550,10 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
           <DropdownMenuItem onClick={() => downloadImage('jpeg')} className="cursor-pointer hover:bg-muted focus:bg-muted">
             <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
             <span>JPEG Image</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={copyHtmlSource} className="cursor-pointer hover:bg-muted focus:bg-muted">
+            <Code className="w-4 h-4 mr-2 text-muted-foreground" />
+            <span>Code (HTML)</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

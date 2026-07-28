@@ -14,6 +14,7 @@ export default function AnimaChartPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Animate Chart');
   const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,33 +54,90 @@ export default function AnimaChartPage() {
   const handleGenerate = async () => {
     if (!imageFile || !imagePreview) return;
     setLoading(true);
+    setLoadingText("Compressing image...");
     setError(null);
     
     try {
-      // For this app, we read the image as a base64 string to send to our API
-      const reader = new FileReader();
-      reader.readAsDataURL(imageFile);
+      // Client-side image resizing to save payload size and AI tokens
+      const base64data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(imageFile);
+        reader.onload = (event) => {
+          const img = document.createElement('img');
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const MAX_SIZE = 1024;
+            let { width, height } = img;
+            
+            if (width > MAX_SIZE || height > MAX_SIZE) {
+              if (width > height) {
+                height = Math.round((height * MAX_SIZE) / width);
+                width = MAX_SIZE;
+              } else {
+                width = Math.round((width * MAX_SIZE) / height);
+                height = MAX_SIZE;
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+                return;
+              }
+            }
+            resolve(event.target?.result as string);
+          };
+          img.onerror = () => reject(new Error('Failed to load image for resizing'));
+        };
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+      });
       
-      reader.onloadend = async () => {
-        const base64data = reader.result;
-        
-        const res = await fetch("/api/animachart", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: base64data }),
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok && data.id) {
-          router.push(`/animachart/${data.id}`);
-        } else {
-          setError(data.error || "Failed to generate animated chart");
+      setLoadingText("Analyzing chart type...");
+      
+      // Cycle through dummy loading states to keep user engaged during the API call
+      const loadingStates = [
+        "Validating chart structure...",
+        "Extracting data points...",
+        "Converting to structured format...",
+        "Applying motion templates...",
+        "Finalizing animation...",
+        "Almost there..."
+      ];
+      
+      let stateIndex = 0;
+      const intervalId = setInterval(() => {
+        if (stateIndex < loadingStates.length) {
+          setLoadingText(loadingStates[stateIndex]);
+          stateIndex++;
         }
-        setLoading(false);
-      };
+      }, 2500);
+      
+      const res = await fetch("/api/animachart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: base64data }),
+      });
+      
+      clearInterval(intervalId);
+      
+      const data = await res.json();
+      
+      if (res.ok && data.id) {
+        setLoadingText("Done!");
+        router.push(`/animachart/${data.id}`);
+      } else {
+        setError(data.error || "Failed to generate animated chart");
+        setLoadingText("Animate Chart");
+      }
     } catch (e: any) {
       setError(e.message || "Failed to process image");
+      setLoadingText("Animate Chart");
+    } finally {
       setLoading(false);
     }
   };
@@ -138,16 +196,20 @@ export default function AnimaChartPage() {
                         <Upload className="w-8 h-8 text-primary" />
                       </div>
                       <h3 className="text-lg font-semibold mb-2">Upload a chart image</h3>
-                      <p className="text-sm text-muted-foreground text-center max-w-xs">Drag and drop your image here, or click to browse</p>
+                      <p className="text-sm text-muted-foreground text-center max-w-xs">Drag & drop image here or click to browse</p>
                     </div>
                   ) : (
                     <div className="w-full flex flex-col items-center gap-6">
-                      <div className="relative w-full max-w-md aspect-[4/3] rounded-xl overflow-hidden border bg-black/5">
-                        <Image src={imagePreview} alt="Chart preview" fill className="object-contain" />
+                      <div className="relative inline-flex max-w-full mx-auto mt-2">
+                        <img 
+                          src={imagePreview} 
+                          alt="Chart preview" 
+                          className="max-h-[280px] md:max-h-[320px] w-auto max-w-full rounded-2xl border border-border/50 shadow-lg object-contain"
+                        />
                         <Button 
                           variant="destructive" 
                           size="icon" 
-                          className="absolute top-2 right-2 rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                          className="absolute -top-3 -right-3 w-8 h-8 rounded-full shadow-lg border-2 border-background hover:scale-110 transition-all z-10"
                           onClick={clearFile}
                           disabled={loading}
                         >
@@ -164,17 +226,28 @@ export default function AnimaChartPage() {
                       <Button 
                         onClick={handleGenerate} 
                         disabled={loading}
-                        className="w-full max-w-md rounded-full py-6 text-lg shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transition-all"
+                        className="w-full max-w-md rounded-full py-6 text-lg shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transition-all overflow-hidden"
                       >
-                        {loading ? (
-                          <>
-                            <LoaderCircle className="w-5 h-5 mr-2 animate-spin" /> Analyzing Image...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-5 h-5 mr-2" /> Animate Chart
-                          </>
-                        )}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          <motion.div
+                            key={loadingText}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center justify-center w-full"
+                          >
+                            {loading ? (
+                              <>
+                                <LoaderCircle className="w-5 h-5 mr-2 animate-spin shrink-0" /> <span className="truncate">{loadingText}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-5 h-5 mr-2 shrink-0" /> {loadingText}
+                              </>
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
                       </Button>
                     </div>
                   )}
