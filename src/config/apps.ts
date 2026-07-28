@@ -1,4 +1,4 @@
-import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen } from 'lucide-react'
+import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen, LineChart } from 'lucide-react'
 
 export interface AppConfig {
   name: string
@@ -38,6 +38,13 @@ export const apps: AppConfig[] = [
     type: 'academic'
   },
   {
+    name: 'Motion Chart',
+    icon: LineChart,
+    slug: 'animachart',
+    description: 'Turn Boring Chart into Animated One',
+    type: 'academic'
+  },
+  {
     name: 'FlowNote',
     icon: PenTool,
     slug: 'flownote',
@@ -71,5 +78,5 @@ export const apps: AppConfig[] = [
     slug: 'https://enaiblr.org',
     description: 'Free Mini AI Apps',
     type: 'general'
-  },
+  }
 ]

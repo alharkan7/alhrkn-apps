@@ -358,3 +358,27 @@ export const beeblioSettings = pgTable('beeblio_settings', {
 
 export type BeeblioSetting = typeof beeblioSettings.$inferSelect;
 export type NewBeeblioSetting = typeof beeblioSettings.$inferInsert;
+
+// --- AnimaChart Tables ---
+
+export const animacharts = pgTable('animacharts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  imageUrl: text('image_url'),
+  chartData: jsonb('chart_data'),
+  messages: jsonb('messages'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type AnimaChart = typeof animacharts.$inferSelect;
+export type NewAnimaChart = typeof animacharts.$inferInsert;
+
+export const animachartVersions = pgTable('animachart_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  chartId: uuid('chart_id').notNull().references(() => animacharts.id, { onDelete: 'cascade' }),
+  chartData: jsonb('chart_data'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+export type AnimaChartVersion = typeof animachartVersions.$inferSelect;
+export type NewAnimaChartVersion = typeof animachartVersions.$inferInsert;

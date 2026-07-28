@@ -21,10 +21,10 @@ interface ToolbarProps {
 export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: ToolbarProps) {
   const router = useRouter();
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 px-4 md:px-8 py-3 bg-background/60 backdrop-blur-xl">
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 px-4 md:px-8 py-3 bg-background/60 backdrop-blur-xl overflow-x-auto gap-4">
       
       {/* Left side - history and back button */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -41,12 +41,12 @@ export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: T
           onClick={() => router.push('/outliner')}
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="font-medium">Back</span>
+          <span className="font-medium hidden sm:inline">Back</span>
         </Button>
       </div>
 
       {/* Middle - citations and chat */}
-      <div className="flex items-center justify-center space-x-3">
+      <div className="flex items-center justify-center space-x-3 shrink-0">
         <Button
           variant="secondary"
           size="sm"
@@ -79,7 +79,7 @@ export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: T
       </div>
 
       {/* Right side - save and download */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 shrink-0">
         {onSave && (
           <Button
             variant="default"

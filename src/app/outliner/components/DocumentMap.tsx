@@ -13,7 +13,13 @@ interface HeaderItem {
 
 export function DocumentMap({ containerId }: { containerId: string }) {
     const [headers, setHeaders] = useState<HeaderItem[]>([]);
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+            setIsOpen(true);
+        }
+    }, []);
 
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;
@@ -98,7 +104,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
     if (headers.length === 0) return null;
 
     return (
-        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col items-end">
+        <div className="fixed right-4 top-20 lg:top-1/2 lg:-translate-y-1/2 z-40 flex flex-col items-end">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="bg-white dark:bg-zinc-900 border border-border shadow-sm rounded-full p-3 text-muted-foreground hover:text-foreground transition-all focus:outline-none mb-2 hover:shadow-md"
