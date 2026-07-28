@@ -58,6 +58,7 @@ interface ChartData {
     data: any[];
     backgroundColor?: string;
     borderColor?: string;
+    yAxisID?: string;
   }[];
   customOptions?: any;
 }
