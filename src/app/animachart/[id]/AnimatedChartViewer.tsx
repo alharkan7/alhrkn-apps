@@ -254,11 +254,25 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     } : undefined
   };
 
+  // Check if any dataset uses 'y1' axis
+  const usesDualAxis = currentData.datasets.some(ds => ds.yAxisID === 'y1');
+  if (usesDualAxis && baseChartOptions.scales) {
+    baseChartOptions.scales.y1 = {
+      type: 'linear',
+      position: currentData.orientation === 'horizontal' ? 'bottom' : 'right',
+      grid: { drawOnChartArea: false },
+      ticks: { 
+        color: isDark ? '#94a3b8' : '#777777',
+        font: { family: "'Helvetica Neue', Arial, sans-serif", size: 11 }
+      }
+    };
+  }
+
   // Safely sanitize customOptions to prevent null overrides that crash Chart.js
   const safeCustomOptions = { ...(currentData.customOptions || {}) };
-  if (safeCustomOptions.plugins === null) delete safeCustomOptions.plugins;
-  if (safeCustomOptions.scales === null) delete safeCustomOptions.scales;
-  if (safeCustomOptions.animation === null) delete safeCustomOptions.animation;
+  if (safeCustomOptions.plugins === null || typeof safeCustomOptions.plugins !== 'object') delete safeCustomOptions.plugins;
+  if (safeCustomOptions.scales === null || typeof safeCustomOptions.scales !== 'object') delete safeCustomOptions.scales;
+  if (safeCustomOptions.animation === null || typeof safeCustomOptions.animation !== 'object') delete safeCustomOptions.animation;
 
   const chartOptions = merge({}, baseChartOptions, safeCustomOptions);
 

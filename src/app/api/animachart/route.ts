@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
             ])),
             backgroundColor: z.string().optional(),
             borderColor: z.string().optional(),
+            yAxisID: z.string().optional().describe("If using dual axes, specify 'y' for the first dataset and 'y1' for the second dataset."),
           })),
           customOptions: z.record(z.any()).optional().describe("Advanced Chart.js configuration options to override the defaults. Will be deeply merged into the chart options."),
         }).optional(),
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: "Analyze this image.\n1. Determine if it is a valid, supported chart. We support line, bar, pie, doughnut, radar, polarArea, mixed, bubble, and scatter charts. If it is a 3D chart, candlestick, map, or not a chart at all (e.g. a selfie, screenshot of text), set isSupportedChart to false and provide an errorReason.\n2. If it is a supported chart, set isSupportedChart to true and fill out chartConfig.\n3. Identify the primary chart type and orientation.\n4. Extract the title, x-axis labels, and exact data points.\n5. ADVANCED: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Example: { animation: { duration: 5000 }, elements: { line: { borderDash: [5, 5] } } }\nReturn a structured JSON."
+              text: "Analyze this image.\n1. Determine if it is a valid, supported chart. We support line, bar, pie, doughnut, radar, polarArea, mixed, bubble, and scatter charts. If it is a 3D chart, candlestick, map, or not a chart at all (e.g. a selfie, screenshot of text), set isSupportedChart to false and provide an errorReason.\n2. If it is a supported chart, set isSupportedChart to true and fill out chartConfig.\n3. Identify the primary chart type and orientation.\n4. Extract the title, x-axis labels, and exact data points.\n5. DUAL AXIS (For Mixed Charts): If the chart is a mixed chart with completely different scales, assign `yAxisID: 'y'` to the primary dataset and `yAxisID: 'y1'` to the secondary dataset. Then output `customOptions: { scales: { y: { type: 'linear', position: 'left' }, y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }`.\n6. ADVANCED: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Example: { animation: { duration: 5000 }, elements: { line: { borderDash: [5, 5] } } }\nReturn a structured JSON."
             },
             {
               type: 'image',

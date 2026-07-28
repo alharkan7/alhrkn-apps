@@ -60,7 +60,8 @@ User Request:
 ${message}
 
 CRITICAL INSTRUCTION: You MUST apply the changes requested by the user to the JSON data. DO NOT simply return the original JSON. 
-IMPORTANT: You MUST preserve all existing properties of the current chart (such as 'orientation', 'type', 'title', 'colors', 'datasets', 'customOptions') EXACTLY as they are, UNLESS the user's request explicitly requires changing them. If the current chart has orientation: "horizontal", your output MUST keep orientation: "horizontal" unless the user asks to change it.
+IMPORTANT: You MUST perfectly copy ALL existing properties of the current chart (especially 'orientation', 'type', 'title', and ALL properties inside 'datasets' like 'backgroundColor', 'borderColor', 'yAxisID') into your output. Modify ONLY the specific parts the user explicitly asked to change. Do NOT drop existing colors! If the chart has orientation: "horizontal", keep it.
+DUAL AXIS (For Mixed Charts): If the chart is a mixed chart with completely different scales, assign \`yAxisID: 'y'\` to the primary dataset and \`yAxisID: 'y1'\` to the secondary dataset. Then output \`customOptions: { scales: { y: { type: 'linear', position: 'left' }, y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } }\`.
 ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Use this for advanced settings like animations, grid settings, custom point styles, dashed borders, plugins, etc. Example: { customOptions: { animation: { duration: 5000, easing: 'easeInOutBounce' }, elements: { line: { borderDash: [5, 5] } } } }`;
 
     const { object: updatedChartData } = await generateObject({
@@ -79,6 +80,7 @@ ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged i
           ])),
           backgroundColor: z.string().optional(),
           borderColor: z.string().optional(),
+          yAxisID: z.string().optional().describe("If using dual axes, specify 'y' for the first dataset and 'y1' for the second dataset."),
         })),
         customOptions: z.record(z.any()).optional().describe("Advanced Chart.js configuration options to override the defaults. Will be deeply merged into the chart options."),
       }),
