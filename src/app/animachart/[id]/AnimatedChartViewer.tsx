@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { Component, ReactNode, useState, useRef, useEffect, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { sanitizeAnimachartCustomOptions } from '@/lib/animachart-sanitize';
 
 ChartJS.register(
   CategoryScale,
@@ -52,6 +53,7 @@ interface ChartData {
   orientation?: 'vertical' | 'horizontal';
   title: string;
   labels: string[];
+  presentationLabels?: PresentationLabelOptions;
   datasets: {
     type?: 'line' | 'bar' | 'area' | 'bubble' | 'scatter';
     label: string;
@@ -64,10 +66,46 @@ interface ChartData {
   customOptions?: any;
 }
 
+interface PresentationLabelOptions {
+  enabled?: boolean;
+  showPercentages?: boolean;
+  showValues?: boolean;
+  showCategoryLabels?: boolean;
+  showLeaderLines?: boolean;
+  decimals?: number;
+}
+
 interface AnimatedChartViewerProps {
   id: string;
   initialData: ChartData;
   initialVersions?: { chartData: any; createdAt: Date }[];
+}
+
+class ChartRenderErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('Animachart render failed:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full min-h-[320px] w-full items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
+          <div className="max-w-md space-y-2">
+            <p className="font-semibold text-foreground">This chart could not be rendered.</p>
+            <p className="text-sm text-muted-foreground">The chart edit returned an unsupported setting. Try editing the chart again or replaying the animation.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 const EDITORIAL_COLORS = [
@@ -112,6 +150,232 @@ const withAlpha = (color: unknown, alpha: number, fallback: string) => {
   if (rgb) return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${alpha})`;
 
   return fallback;
+};
+
+const getNumericChartValue = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && Number.isFinite(Number(value))) return Number(value);
+  if (value && typeof value === 'object' && 'y' in value) {
+    const y = (value as { y?: unknown }).y;
+    if (typeof y === 'number' && Number.isFinite(y)) return y;
+  }
+  return 0;
+};
+
+const getRgbColor = (color: unknown) => {
+  if (typeof color !== 'string') return null;
+  const value = color.trim();
+  const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const expanded = hex[1].length === 3
+      ? hex[1].split('').map(channel => channel + channel).join('')
+      : hex[1];
+    return {
+      red: parseInt(expanded.slice(0, 2), 16),
+      green: parseInt(expanded.slice(2, 4), 16),
+      blue: parseInt(expanded.slice(4, 6), 16),
+    };
+  }
+
+  const rgb = value.match(/^rgba?\(\s*([^,]+),\s*([^,]+),\s*([^,)]+)(?:,\s*[^)]+)?\)$/i);
+  if (!rgb) return null;
+  const [red, green, blue] = [rgb[1], rgb[2], rgb[3]].map(Number);
+  return [red, green, blue].every(channel => Number.isFinite(channel))
+    ? { red, green, blue }
+    : null;
+};
+
+const getPresentationTextColor = (backgroundColor: unknown) => {
+  const rgb = getRgbColor(backgroundColor);
+  if (!rgb) return '#ffffff';
+  const luminance = (0.299 * rgb.red + 0.587 * rgb.green + 0.114 * rgb.blue) / 255;
+  return luminance > 0.58 ? '#111827' : '#ffffff';
+};
+
+const formatPresentationNumber = (value: number, decimals: number) =>
+  value.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
+const presentationLabelsPlugin: Plugin = {
+  id: 'presentationLabels',
+  afterDatasetsDraw(chart: any) {
+    if (!['pie', 'doughnut', 'polarArea'].includes(chart.config?.type)) return;
+
+    const options = chart.options?.plugins?.presentationLabels as PresentationLabelOptions | undefined;
+    if (!options?.enabled) return;
+
+    const dataset = chart.data?.datasets?.[0];
+    const arcs = chart.getDatasetMeta(0)?.data || [];
+    if (!dataset || arcs.length === 0) return;
+
+    const values = (dataset.data || []).map(getNumericChartValue);
+    const total = values.reduce((sum: number, value: number) => sum + Math.max(value, 0), 0);
+    if (total <= 0) return;
+
+    const labels = chart.data.labels || [];
+    const backgroundColors = Array.isArray(dataset.backgroundColor)
+      ? dataset.backgroundColor
+      : [];
+    const decimals = Math.max(0, Math.min(2, options.decimals ?? 0));
+    const showPercentages = options.showPercentages === true;
+    const showValues = options.showValues === true;
+    const showCategoryLabels = options.showCategoryLabels === true;
+    const showLeaderLines = options.showLeaderLines !== false;
+    const fontSize = 11;
+    const lineHeight = 14;
+    const chartArea = chart.chartArea;
+    const canvasWidth = chart.width;
+    if (!chartArea) return;
+
+    const legendOptions = chart.options?.plugins?.legend?.labels || {};
+    const legendFont = legendOptions.font || {};
+    const fontFamily = typeof legendFont.family === 'string'
+      ? legendFont.family
+      : "'Helvetica Neue', Arial, sans-serif";
+    const fontWeight = legendFont.weight || 500;
+
+    const callouts: {
+      anchorX: number;
+      anchorY: number;
+      side: -1 | 1;
+      lines: string[];
+      lineColor: string;
+      y: number;
+    }[] = [];
+    const insideLabels: {
+      x: number;
+      y: number;
+      text: string;
+      color: string;
+    }[] = [];
+
+    arcs.forEach((arc: any, index: number) => {
+      const value = Math.max(values[index] || 0, 0);
+      if (value <= 0) return;
+
+      const props = arc.getProps(
+        ['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius'],
+        true
+      );
+      const x = Number(props.x);
+      const y = Number(props.y);
+      const innerRadius = Number(props.innerRadius) || 0;
+      const outerRadius = Number(props.outerRadius) || 0;
+      const startAngle = Number(props.startAngle);
+      const endAngle = Number(props.endAngle);
+      const angle = (startAngle + endAngle) / 2;
+      const angleSpan = Math.abs(endAngle - startAngle);
+      if (![x, y, outerRadius, startAngle, endAngle].every(Number.isFinite) || outerRadius <= 0) return;
+
+      const percentage = (value / total) * 100;
+      const percentageText = `${formatPresentationNumber(percentage, decimals)}%`;
+      const backgroundColor = backgroundColors[index] || dataset.backgroundColor || '#1f4e79';
+      const textColor = getPresentationTextColor(backgroundColor);
+      const canFitInside = angleSpan >= 0.2 && outerRadius - innerRadius >= 16;
+
+      if (showPercentages && canFitInside) {
+        const labelRadius = innerRadius + (outerRadius - innerRadius) * 0.55;
+        insideLabels.push({
+          x: x + Math.cos(angle) * labelRadius,
+          y: y + Math.sin(angle) * labelRadius,
+          text: percentageText,
+          color: textColor,
+        });
+      }
+
+      const lines: string[] = [];
+      if (showCategoryLabels) lines.push(String(labels[index] || `Segment ${index + 1}`));
+      if (showValues) lines.push(formatPresentationNumber(value, decimals));
+      if (showPercentages && !canFitInside) lines.push(percentageText);
+      if (lines.length === 0) return;
+
+      const anchorRadius = outerRadius + 4;
+      callouts.push({
+        anchorX: x + Math.cos(angle) * anchorRadius,
+        anchorY: y + Math.sin(angle) * anchorRadius,
+        side: Math.cos(angle) >= 0 ? 1 : -1,
+        lines,
+        lineColor: withAlpha(backgroundColor, 0.72, '#64748b'),
+        y: y + Math.sin(angle) * anchorRadius,
+      });
+    });
+
+    const layoutCallouts = (side: -1 | 1) => {
+      const sideCallouts = callouts
+        .filter(callout => callout.side === side)
+        .sort((a, b) => a.y - b.y);
+      const minY = chartArea.top + lineHeight;
+      const maxY = chartArea.bottom - lineHeight;
+      const gap = lineHeight * 2 + 4;
+
+      sideCallouts.forEach((callout, index) => {
+        callout.y = Math.max(callout.y, index === 0 ? minY : sideCallouts[index - 1].y + gap);
+      });
+      for (let index = sideCallouts.length - 1; index >= 0; index -= 1) {
+        const nextY = index === sideCallouts.length - 1 ? maxY : sideCallouts[index + 1].y - gap;
+        sideCallouts[index].y = Math.min(sideCallouts[index].y, nextY);
+      }
+    };
+
+    layoutCallouts(-1);
+    layoutCallouts(1);
+
+    const legendColor = chart.options?.plugins?.legend?.labels?.color;
+    const outsideTextColor = typeof legendColor === 'string' ? legendColor : '#334155';
+    const leftLabelX = Math.max(10, chartArea.left - 12);
+    const rightLabelX = Math.min(canvasWidth - 10, chartArea.right + 12);
+
+    chart.ctx.save();
+    chart.ctx.lineWidth = 1;
+    chart.ctx.lineJoin = 'round';
+    chart.ctx.textBaseline = 'middle';
+
+    if (showLeaderLines) {
+      callouts.forEach(callout => {
+        const labelX = callout.side === 1 ? rightLabelX : leftLabelX;
+        const elbowX = callout.side === 1
+          ? Math.min(canvasWidth - 10, chartArea.right + 2)
+          : Math.max(10, chartArea.left - 2);
+        chart.ctx.strokeStyle = callout.lineColor;
+        chart.ctx.globalAlpha = 0.85;
+        chart.ctx.beginPath();
+        chart.ctx.moveTo(callout.anchorX, callout.anchorY);
+        chart.ctx.lineTo(elbowX, callout.y);
+        chart.ctx.lineTo(labelX + (callout.side === 1 ? -4 : 4), callout.y);
+        chart.ctx.stroke();
+      });
+    }
+
+    chart.ctx.globalAlpha = 1;
+    callouts.forEach(callout => {
+      const labelX = callout.side === 1 ? rightLabelX : leftLabelX;
+      chart.ctx.textAlign = callout.side === 1 ? 'right' : 'left';
+      callout.lines.forEach((line, lineIndex) => {
+        const isValueLine = callout.lines.length > 1 && lineIndex === callout.lines.length - 1;
+        chart.ctx.font = `${isValueLine ? 600 : fontWeight} ${fontSize}px ${fontFamily}`;
+        chart.ctx.fillStyle = outsideTextColor;
+        chart.ctx.fillText(
+          line,
+          labelX,
+          callout.y + (lineIndex - (callout.lines.length - 1) / 2) * lineHeight
+        );
+      });
+    });
+
+    insideLabels.forEach(label => {
+      chart.ctx.textAlign = 'center';
+      chart.ctx.font = `700 ${fontSize}px ${fontFamily}`;
+      chart.ctx.lineWidth = 3;
+      chart.ctx.strokeStyle = label.color === '#ffffff' ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.65)';
+      chart.ctx.strokeText(label.text, label.x, label.y);
+      chart.ctx.fillStyle = label.color;
+      chart.ctx.fillText(label.text, label.x, label.y);
+    });
+
+    chart.ctx.restore();
+  },
 };
 
 export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: AnimatedChartViewerProps) {
@@ -352,7 +616,8 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
         bodyFont: { family: "'Helvetica Neue', Arial, sans-serif", size: 13 },
         boxPadding: 4,
         usePointStyle: true
-      }
+      },
+      presentationLabels: currentData.presentationLabels || { enabled: false }
     },
     scales: hasAxes ? {
       x: {
@@ -404,12 +669,10 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     };
   }
 
-  // Safely sanitize customOptions to prevent null overrides that crash Chart.js
-  const safeCustomOptions = { ...(currentData.customOptions || {}) };
-  if (safeCustomOptions.plugins === null || typeof safeCustomOptions.plugins !== 'object') delete safeCustomOptions.plugins;
-  if (safeCustomOptions.scales === null || typeof safeCustomOptions.scales !== 'object') delete safeCustomOptions.scales;
-  if (safeCustomOptions.animation === null || typeof safeCustomOptions.animation !== 'object') delete safeCustomOptions.animation;
-
+  // Keep model-generated options behind a strict boundary. Chart.js ignores
+  // most unknown nested keys, but null core option objects can crash its
+  // resolver (for example, layout: null).
+  const safeCustomOptions = sanitizeAnimachartCustomOptions(currentData.customOptions);
   const chartOptions = merge({}, baseChartOptions, safeCustomOptions);
 
   // A dual-axis chart must reserve one side for each value scale. Enforce this
@@ -625,7 +888,10 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       ref: chartRef,
       data: chartJsData,
       options: chartOptions,
-      plugins: shouldRevealChart ? [lineRevealPlugin] : []
+      plugins: [
+        ...(shouldRevealChart ? [lineRevealPlugin] : []),
+        presentationLabelsPlugin,
+      ]
     };
     
     switch (currentData.type) {
@@ -842,9 +1108,11 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
             {/* Chart Container */}
             <div className="w-full bg-card border border-border rounded-xl p-4 md:p-6 lg:p-8 shadow-sm flex items-center justify-center min-h-[400px] md:h-[calc(100vh-220px)]">
               <div className="relative w-full h-full aspect-square sm:aspect-video md:aspect-auto">
-                 <div key={chartKey} className="w-full h-full relative">
-                    {renderChart()}
-                 </div>
+                  <div key={`${chartKey}-${currentVersionIndex}`} className="w-full h-full relative">
+                    <ChartRenderErrorBoundary>
+                      {renderChart()}
+                    </ChartRenderErrorBoundary>
+                  </div>
               </div>
             </div>
 

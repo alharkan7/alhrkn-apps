@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { generateObject } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
+import { sanitizeAnimachartCustomOptions } from '@/lib/animachart-sanitize';
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -68,6 +69,11 @@ MIXED CHARTS: If the chart is mixed, keep type: 'mixed' and preserve or explicit
 DUAL AXIS (For Mixed Charts): If the chart is a mixed chart with completely different scales, assign \`yAxisID: 'y'\` to every primary-range dataset and \`yAxisID: 'y1'\` to every secondary-range dataset. Use the exact axis IDs 'y' and 'y1'. Do not set animation to false or duration to 0.
 ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged into the final Chart.js options. Use this for advanced settings like animations, grid settings, custom point styles, dashed borders, plugins, etc. Example: { customOptions: { animation: { duration: 5000, easing: 'easeInOutBounce' }, elements: { line: { borderDash: [5, 5] } } } }`;
 
+    const promptWithPresentationLabels = `${prompt}
+
+STATIC PRESENTATION LABELS: When the user asks for permanent, static, always-visible, or export-safe labels, use presentationLabels rather than tooltip settings. For percentages inside radial slices, set enabled and showPercentages to true. For static values with connected lines, set enabled, showValues, showCategoryLabels, and showLeaderLines to true. If the user asks to hide or remove static labels, set presentationLabels.enabled to false. Preserve existing presentationLabels unless the user asks to change them.
+UNSUPPORTED OPTIONS: Omit uncertain or unsupported customOptions. Never return null for core option objects such as plugins, scales, layout, elements, or animation.`;
+
     const { object: updatedChartData } = await generateObject({
       model: openrouter(process.env.ANIMACHART_MODEL || 'google/gemini-2.5-pro'),
       schema: z.object({
@@ -75,6 +81,14 @@ ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged i
         orientation: z.enum(['vertical', 'horizontal']).optional(),
         title: z.string(),
         labels: z.array(z.string()),
+        presentationLabels: z.object({
+          enabled: z.boolean().optional(),
+          showPercentages: z.boolean().optional(),
+          showValues: z.boolean().optional(),
+          showCategoryLabels: z.boolean().optional(),
+          showLeaderLines: z.boolean().optional(),
+          decimals: z.number().int().min(0).max(2).optional(),
+        }).optional().describe("Static labels baked into canvas exports such as WebM."),
         datasets: z.array(z.object({
           type: z.enum(['line', 'bar', 'area', 'bubble', 'scatter']).optional(),
           label: z.string(),
@@ -93,13 +107,20 @@ ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged i
       messages: [
         {
           role: 'user',
-          content: prompt
+          content: promptWithPresentationLabels
         }
       ]
     });
     
-    console.log("OLD DATA:", JSON.stringify(chart.chartData, null, 2));
-    console.log("NEW DATA:", JSON.stringify(updatedChartData, null, 2));
+    const safeUpdatedChartData = {
+      ...updatedChartData,
+      ...(updatedChartData.customOptions === undefined
+        ? {}
+        : { customOptions: sanitizeAnimachartCustomOptions(updatedChartData.customOptions) }),
+    };
+
+//    console.log("OLD DATA:", JSON.stringify(chart.chartData, null, 2));
+//    console.log("NEW DATA:", JSON.stringify(safeUpdatedChartData, null, 2));
 
     const now = new Date().toISOString();
     const nextMessages = [
@@ -111,7 +132,7 @@ ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged i
     await db
       .update(animacharts)
       .set({
-        chartData: updatedChartData,
+        chartData: safeUpdatedChartData,
         messages: nextMessages,
         updatedAt: new Date(),
       })
@@ -120,11 +141,11 @@ ADVANCED OPTIONS: You can output a 'customOptions' object. It is deeply merged i
     // Insert new version
     await db.insert(animachartVersions).values({
       chartId: id,
-      chartData: updatedChartData,
+      chartData: safeUpdatedChartData,
     });
 
     return NextResponse.json({
-      chartData: updatedChartData,
+      chartData: safeUpdatedChartData,
       messages: nextMessages,
     });
   } catch (error: any) {

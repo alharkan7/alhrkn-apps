@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { generateObject } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
+import { sanitizeAnimachartCustomOptions } from '@/lib/animachart-sanitize';
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
           customOptions: z.record(z.any()).optional().describe("Advanced Chart.js configuration options to override the defaults. Will be deeply merged into the chart options."),
         }).optional(),
       }),
-      system: "You are an expert chart-data extraction engine. Return only data that is faithful to the uploaded chart and valid for Chart.js 4. Mixed charts are special: preserve the chart as type 'mixed', explicitly type every dataset, and use only the axis IDs 'y' and 'y1' when two value ranges are present. For pie and doughnut charts, return one dataset containing one numeric value per slice/label, not one dataset per slice. For polarArea, use one dataset for wedge/sector-style charts; if the source visibly contains multiple overlapping filled polygon layers around radial axes, preserve one numeric dataset per layer so the viewer can render that polygonal polar style. For pie, doughnut, and sector-style polarArea, return a color array when the source has multiple slice colors. For radar charts, use type 'radar' with numeric datasets across spoke/category labels; do not downgrade radar to line, and set tension to 0 so polygon corners remain sharp. For line or area charts with visibly cornered geometry, set tension to 0. Never disable animation in customOptions.",
+      system: "You are an expert chart-data extraction engine. Return only data that is faithful to the uploaded chart and valid for Chart.js 4. Mixed charts are special: preserve the chart as type 'mixed', explicitly type every dataset, and use only the axis IDs 'y' and 'y1' when two value ranges are present. For pie and doughnut charts, return one dataset containing one numeric value per slice/label, not one dataset per slice. For polarArea, use one dataset for wedge/sector-style charts; if the source visibly contains multiple overlapping filled polygon layers around radial axes, preserve one numeric dataset per layer so the viewer can render that polygonal polar style. For pie, doughnut, and sector-style polarArea, return a color array when the source has multiple slice colors. For radar charts, use type 'radar' with numeric datasets across spoke/category labels; do not downgrade radar to line, and set tension to 0 so polygon corners remain sharp. For line or area charts with visibly cornered geometry, set tension to 0. Static presentation labels are opt-in through the chart editor and must not be inferred during image extraction. Never disable animation in customOptions.",
       messages: [
         {
           role: 'user',
@@ -73,7 +74,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: responseData.errorReason || "Image is not a supported chart." }, { status: 400 });
     }
 
-    const chartData = responseData.chartConfig;
+    const chartData = {
+      ...responseData.chartConfig,
+      ...(responseData.chartConfig.customOptions === undefined
+        ? {}
+        : { customOptions: sanitizeAnimachartCustomOptions(responseData.chartConfig.customOptions) }),
+    };
 
     let insertedId: string | null = null;
     try {
