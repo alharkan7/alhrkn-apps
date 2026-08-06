@@ -1,0 +1,186 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TooltipProvider } from './tooltips/TooltipProvider';
+import { MarkdownRenderer } from './markdown/MarkdownRenderer';
+import { PrimerBreadcrumbs, type PrimerBreadcrumbItem } from './PrimerBreadcrumbs';
+import { PrimerNetworkMap } from './PrimerNetworkMap';
+import { getDisplayBody, parseMeta } from '../lib/parse';
+import type { GlossaryEntry } from '../types';
+
+export interface PrimerLessonViewProps {
+  id: string;
+  title: string | null;
+  topic: string;
+  status: 'pending' | 'generating' | 'ready' | 'error';
+  content: string | null;
+  glossary: GlossaryEntry[] | null;
+  createdAt: string | null;
+  breadcrumbs: PrimerBreadcrumbItem[];
+}
+
+type Phase = 'streaming' | 'waiting' | 'error';
+
+const GENERATION_TIMEOUT_MS = 2 * 60 * 1000;
+const POLL_INTERVAL_MS = 1500;
+
+export function PrimerLessonView(props: PrimerLessonViewProps) {
+  const { id, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, breadcrumbs } = props;
+
+  const [streamed, setStreamed] = useState('');
+  const [phase, setPhase] = useState<Phase>(initialStatus === 'error' ? 'error' : 'streaming');
+  const [retryCount, setRetryCount] = useState(0);
+  const [polledContent, setPolledContent] = useState<string | null>(null);
+  const [polledGlossary, setPolledGlossary] = useState<GlossaryEntry[] | null>(null);
+
+  useEffect(() => {
+    // Nothing to do if the lesson is already persisted. An errored lesson is
+    // intentionally idle until the user explicitly retries it.
+    if (initialContent || (initialStatus === 'error' && retryCount === 0)) return;
+
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let active = true;
+
+    const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const pollForResult = async () => {
+      const deadline = Date.now() + GENERATION_TIMEOUT_MS;
+      while (active && Date.now() < deadline) {
+        await wait(POLL_INTERVAL_MS);
+        if (!active) return;
+
+        const statusRes = await fetch(`/api/primer/${id}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        if (!statusRes.ok) throw new Error('Could not check lesson status');
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'error') throw new Error('Lesson generation failed');
+        if (statusData.status === 'ready' && statusData.content) {
+          setPolledContent(statusData.content);
+          setPolledGlossary(statusData.glossary ?? []);
+          setPhase('streaming');
+          return;
+        }
+        if (statusData.status === 'ready') throw new Error('Lesson is marked ready but has no content');
+      }
+      throw new Error('Lesson generation timed out. Please try again.');
+    };
+
+    (async () => {
+      try {
+        setPhase('streaming');
+        timeoutId = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
+        const res = await fetch(`/api/primer/${id}/generate`, {
+          method: 'POST',
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+
+        if (res.status === 409) {
+          // Another tab may own the stream. Wait for the saved result, but never
+          // leave the reader in a permanent spinner if that job has died.
+          setPhase('waiting');
+          await pollForResult();
+          return;
+        }
+        if (!res.ok || !res.body) {
+          const errorBody = await res.json().catch(() => null);
+          throw new Error(errorBody?.error || 'Generation failed');
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let acc = '';
+        let lastFlush = 0;
+        // toTextStreamResponse() emits raw text deltas: append directly, throttle renders.
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+          const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          if (now - lastFlush > 100) {
+            setStreamed(acc);
+            lastFlush = now;
+          }
+        }
+        acc += decoder.decode();
+        if (!acc.trim()) throw new Error('Lesson generation returned no content');
+        setStreamed(acc);
+      } catch (e: any) {
+        if (e?.name === 'AbortError') {
+          if (active) setPhase('error');
+          return;
+        }
+        console.error('primer stream failed', e);
+        setPhase('error');
+      }
+    })();
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [id, initialContent, initialStatus, retryCount]);
+
+  const savedContent = initialContent || polledContent;
+  const showSaved = !!savedContent;
+  const bodyText = showSaved ? savedContent! : getDisplayBody(streamed);
+  const glossary: GlossaryEntry[] = showSaved
+    ? initialContent
+      ? initialGlossary ?? []
+      : polledGlossary ?? []
+    : parseMeta(streamed).glossary;
+
+  const showGenerating = !showSaved && !streamed && phase !== 'error';
+  const [mapOpen, setMapOpen] = useState(false);
+
+  useEffect(() => {
+    const openMap = () => setMapOpen(true);
+    window.addEventListener('openPrimerNetworkMap', openMap);
+    return () => window.removeEventListener('openPrimerNetworkMap', openMap);
+  }, []);
+
+  return (
+    <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText}>
+      <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <PrimerBreadcrumbs items={breadcrumbs} />
+        {phase === 'error' ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <p className="text-sm text-muted-foreground">
+              This lesson could not be generated. Please try again.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              setStreamed('');
+              setPolledContent(null);
+              setPolledGlossary(null);
+              setPhase('streaming');
+              setRetryCount((count) => count + 1);
+            }}>
+              Try again
+            </Button>
+          </div>
+        ) : phase === 'waiting' ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Lesson is generating…</p>
+          </div>
+        ) : showGenerating ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Writing your lesson on “{topic}”…</p>
+          </div>
+        ) : (
+          <MarkdownRenderer>{bodyText}</MarkdownRenderer>
+        )}
+      </article>
+      <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />
+    </TooltipProvider>
+  );
+}

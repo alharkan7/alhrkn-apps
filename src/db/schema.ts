@@ -7,7 +7,10 @@ import {
   boolean,
   integer,
   doublePrecision,
-  jsonb
+  jsonb,
+  index,
+  AnyPgColumn,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -382,3 +385,42 @@ export const animachartVersions = pgTable('animachart_versions', {
 });
 export type AnimaChartVersion = typeof animachartVersions.$inferSelect;
 export type NewAnimaChartVersion = typeof animachartVersions.$inferInsert;
+
+// --- Primer Tables ---
+
+export const primers = pgTable('primers', {
+  id: text('id').primaryKey(), // nanoid, generated app-side on creation
+  userId: uuid('user_id').notNull(),
+  // Children point to their parent; parents do not duplicate child ids.
+  parentId: text('parent_id').references((): AnyPgColumn => primers.id, { onDelete: 'set null' }),
+  topic: text('topic').notNull(),
+  title: text('title'),
+  content: text('content'), // markdown body; null until generation completes
+  glossary: jsonb('glossary').$type<{ term: string; definition: string }[]>().default([]),
+  options: jsonb('options').$type<{ audience?: string; language?: string; context?: string }>().default({}),
+  status: text('status').$type<'pending' | 'generating' | 'ready' | 'error'>().notNull().default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  userParentCreatedIdx: index('primers_user_parent_created_idx').on(table.userId, table.parentId, table.createdAt),
+}));
+
+export const primerExplanations = pgTable('primer_explanations', {
+  id: text('id').primaryKey(),
+  primerId: text('primer_id').notNull().references(() => primers.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull(),
+  selection: text('selection').notNull(),
+  selectionKey: text('selection_key').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  status: text('status').$type<'generating' | 'ready' | 'error'>().notNull().default('generating'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  lookupIdx: uniqueIndex('primer_explanations_lookup_idx').on(table.primerId, table.selectionKey),
+}));
+
+export type Primer = typeof primers.$inferSelect;
+export type NewPrimer = typeof primers.$inferInsert;
+export type PrimerExplanation = typeof primerExplanations.$inferSelect;
+export type NewPrimerExplanation = typeof primerExplanations.$inferInsert;

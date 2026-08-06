@@ -1,0 +1,81 @@
+/* Primer concept links, tooltip cards, and widget styling.
+   Globals imported once via the primer layout. */
+
+.concept-link {
+  position: relative;
+  cursor: help;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px dotted hsl(var(--primary));
+  transition: color 120ms ease;
+}
+.concept-link:hover {
+  color: hsl(var(--primary));
+}
+.concept-link--unknown {
+  border-bottom-style: dotted;
+  border-bottom-color: hsl(var(--muted-foreground));
+  opacity: 0.85;
+}
+.concept-link--circular {
+  border-bottom: 1px dashed hsl(var(--muted-foreground));
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.concept-link__lockbar {
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: hsl(var(--primary));
+  transition: transform 0ms linear;
+}
+
+.primer-tooltip {
+  font-size: 14px;
+  line-height: 1.5;
+  will-change: transform, opacity;
+}
+.primer-tooltip--open {
+  animation: primer-fade 120ms ease-out;
+}
+.primer-tooltip--locked {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.primer-tooltip__body > *:first-child {
+  margin-top: 0;
+}
+.primer-tooltip__body > *:last-child {
+  margin-bottom: 0;
+}
+@keyframes primer-fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.primer-slider {
+  height: 6px;
+  width: 100%;
+  cursor: pointer;
+  accent-color: hsl(var(--primary));
+}
+
+/* Keep KaTeX comfortable inside the prose. */
+.primer-markdown .katex {
+  font-size: 1.05em;
+}
+.primer-markdown .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
