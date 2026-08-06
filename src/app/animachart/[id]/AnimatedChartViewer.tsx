@@ -56,8 +56,9 @@ interface ChartData {
     type?: 'line' | 'bar' | 'area' | 'bubble' | 'scatter';
     label: string;
     data: any[];
-    backgroundColor?: string;
-    borderColor?: string;
+    tension?: number;
+    backgroundColor?: string | string[];
+    borderColor?: string | string[];
     yAxisID?: string;
   }[];
   customOptions?: any;
@@ -76,6 +77,42 @@ const EDITORIAL_COLORS = [
   { border: '#607d8b', bg: 'rgba(96, 125, 139, 0.2)' }, // Slate
   { border: '#8c8c8c', bg: 'rgba(140, 140, 140, 0.2)' }, // Grey
 ];
+
+const CHART_REVEAL_DURATION = 2500;
+const RADIAL_STROKE_WIDTH = 1;
+const RADIAL_FILL_OPACITY = 0.2;
+
+const getDatasetMagnitude = (data: any[]) => data.reduce((total, point) => {
+  const value = typeof point === 'number' ? point : point?.y;
+  return total + (typeof value === 'number' && Number.isFinite(value) ? Math.abs(value) : 0);
+}, 0);
+
+const getRadialValue = (point: any) => {
+  if (typeof point === 'number' && Number.isFinite(point)) return point;
+  if (point && typeof point.y === 'number' && Number.isFinite(point.y)) return point.y;
+  if (point && typeof point.r === 'number' && Number.isFinite(point.r)) return point.r;
+  return 0;
+};
+
+const withAlpha = (color: unknown, alpha: number, fallback: string) => {
+  if (typeof color !== 'string') return fallback;
+  const value = color.trim();
+  const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const expanded = hex[1].length === 3
+      ? hex[1].split('').map(channel => channel + channel).join('')
+      : hex[1];
+    const red = parseInt(expanded.slice(0, 2), 16);
+    const green = parseInt(expanded.slice(2, 4), 16);
+    const blue = parseInt(expanded.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  const rgb = value.match(/^rgba?\(\s*([^,]+),\s*([^,]+),\s*([^,\)]+)(?:,\s*[^\)]+)?\)$/i);
+  if (rgb) return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${alpha})`;
+
+  return fallback;
+};
 
 export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: AnimatedChartViewerProps) {
   const [versions, setVersions] = useState<{ chartData: any; createdAt: Date }[]>(
@@ -100,16 +137,44 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatEndRefMobile = useRef<HTMLDivElement>(null);
 
+  const isLine = currentData.type === 'line';
+  const isPie = ['pie', 'doughnut'].includes(currentData.type);
+  const isRadar = ['radar', 'polarArea'].includes(currentData.type);
+  const isPolygonalPolarArea = currentData.type === 'polarArea' && currentData.datasets.length > 1;
+  const shouldUseRadarRenderer = currentData.type === 'radar' || isPolygonalPolarArea;
+  const isRadialChart = isPie || (currentData.type === 'polarArea' && !isPolygonalPolarArea);
+  const isHorizontal = currentData.orientation === 'horizontal';
+  const hasAxes = !isPie && !isRadar;
+  const datasetTypes = new Set(
+    currentData.datasets.map(ds => {
+      if (ds.type === 'area') return 'line';
+      return ds.type || (currentData.type === 'mixed' ? 'bar' : currentData.type);
+    })
+  );
+  const isMixedChart = currentData.type === 'mixed' || datasetTypes.size > 1;
+  const shouldRevealChart = isLine || isMixedChart;
+  const usesDualYAxis = currentData.datasets.some(ds => ds.yAxisID === 'y1');
+  const areaOrderByIndex = new Map(
+    currentData.datasets
+      .map((ds, index) => ({
+        index,
+        magnitude: getDatasetMagnitude(ds.data),
+        isArea: shouldUseRadarRenderer || ds.type === 'area' || (currentData.type === 'line' && (!ds.type || ds.type === 'line')),
+      }))
+      .filter(dataset => dataset.isArea)
+      .sort((a, b) => a.magnitude - b.magnitude || a.index - b.index)
+      .map((dataset, order) => [dataset.index, order])
+  );
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     chatEndRefMobile.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isSidebarOpen]);
   
-  // Custom Line Reveal Plugin
+  // Deterministic reveal used for line and mixed charts.
   const lineRevealPlugin: Plugin = useMemo(() => ({
-    id: 'lineReveal',
+    id: 'chartReveal',
     beforeDatasetsDraw(chart: any) {
-      if (currentData.type !== 'line') return;
       const { ctx, chartArea } = chart;
       if (!chartArea) return;
       
@@ -117,7 +182,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
         chart._revealStartTime = Date.now();
       }
       
-      const duration = 2500;
+      const duration = CHART_REVEAL_DURATION;
       const elapsed = Date.now() - chart._revealStartTime;
       const progress = Math.min(elapsed / duration, 1);
       // easeOutQuart
@@ -127,6 +192,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       ctx.beginPath();
       ctx.rect(chartArea.left, chartArea.top, chartArea.width * easeProgress, chartArea.height);
       ctx.clip();
+      chart._revealClipActive = true;
       
       if (progress < 1) {
         requestAnimationFrame(() => {
@@ -139,32 +205,107 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       }
     },
     afterDatasetsDraw(chart: any) {
-      if (currentData.type !== 'line') return;
-      chart.ctx.restore();
+      if (chart._revealClipActive) {
+        chart.ctx.restore();
+        chart._revealClipActive = false;
+      }
     }
-  }), [currentData.type]);
+  }), []);
 
   // Force reset start time on re-render
   useEffect(() => {
-    if (chartRef.current && currentData.type === 'line') {
+    if (chartRef.current && shouldRevealChart) {
        chartRef.current._revealStartTime = null;
+       chartRef.current._revealClipActive = false;
     }
-  }, [chartKey, currentData.type]);
+  }, [chartKey, shouldRevealChart]);
+
+  const radialDataset = (() => {
+    const onePointPerDataset = currentData.datasets.length > 1
+      && currentData.datasets.every(ds => ds.data.length === 1);
+    const values = onePointPerDataset
+      ? currentData.datasets.map(ds => getRadialValue(ds.data[0]))
+      : currentData.labels.map((_, labelIndex) => currentData.datasets.reduce(
+        (total, ds) => total + getRadialValue(ds.data[labelIndex]),
+        0
+      ));
+    const datasetLabels = currentData.datasets.map(ds => ds.label).filter(Boolean);
+    const labels = currentData.labels.length === values.length
+      ? currentData.labels
+      : datasetLabels.length === values.length
+        ? datasetLabels
+        : values.map((_, index) => `Segment ${index + 1}`);
+    const sourceDatasets = onePointPerDataset ? currentData.datasets : [currentData.datasets[0]];
+    const backgroundColor = values.map((_, index) => {
+      const source = sourceDatasets[index] || sourceDatasets[0];
+      const sourceColors = source?.backgroundColor;
+      return Array.isArray(sourceColors) && sourceColors.length > 0
+        ? sourceColors[index % sourceColors.length]
+        : EDITORIAL_COLORS[index % EDITORIAL_COLORS.length].border;
+    });
+
+    return {
+      labels,
+      dataset: {
+        label: datasetLabels.join(' / '),
+        data: values,
+        backgroundColor,
+        borderColor: values.map(() => isDark ? '#020817' : '#ffffff'),
+        borderWidth: 1,
+      },
+    };
+  })();
 
   const chartJsData = {
-    labels: currentData.labels,
-    datasets: currentData.datasets.map((ds, index) => {
+    labels: isRadialChart ? radialDataset.labels : currentData.labels,
+    datasets: isRadialChart ? [radialDataset.dataset] : currentData.datasets.map((ds, index) => {
       const color = EDITORIAL_COLORS[index % EDITORIAL_COLORS.length];
-      const dsType = ds.type || (currentData.type === 'mixed' ? 'bar' : currentData.type);
+      const dsType = shouldUseRadarRenderer
+        ? 'radar'
+        : ds.type || (currentData.type === 'mixed' ? 'bar' : currentData.type);
       const isLineStyle = dsType === 'line' || dsType === 'area';
+      const customLineTension = currentData.customOptions?.elements?.line?.tension;
+      const lineTension = currentData.type === 'radar'
+        ? 0
+        : typeof ds.tension === 'number'
+          ? ds.tension
+          : typeof customLineTension === 'number'
+            ? customLineTension
+            : 0;
+      const sourceBackgroundColor = Array.isArray(ds.backgroundColor)
+        ? ds.backgroundColor[0]
+        : ds.backgroundColor;
+      const sourceBorderColor = Array.isArray(ds.borderColor)
+        ? ds.borderColor[0]
+        : ds.borderColor;
+      const isFilledPolygon = isLineStyle || shouldUseRadarRenderer;
+      const fillColor = withAlpha(
+        sourceBackgroundColor || color.border,
+        shouldUseRadarRenderer ? RADIAL_FILL_OPACITY : 0.25,
+        color.bg
+      );
+      const areaOrder = areaOrderByIndex.get(index);
+      const lineOrder = -(currentData.datasets.length + 1);
+      const barOrder = currentData.datasets.length + 1;
+      // Chart.js draws higher order values first, so they sit behind lower
+      // order values. Keep lines above bars and smaller filled areas above
+      // larger ones without changing legend or dataset order.
+      const drawOrder = isMixedChart
+        ? dsType === 'line'
+          ? lineOrder
+          : dsType === 'bar'
+            ? barOrder
+            : areaOrder ?? 0
+        : areaOrder;
       return {
         ...ds,
         type: dsType === 'area' ? 'line' : dsType,
-        borderWidth: isLineStyle ? 3 : 1,
-        tension: 0.4, 
-        backgroundColor: ds.backgroundColor || (isLineStyle ? color.bg : color.border),
-        borderColor: ds.borderColor || color.border,
-        fill: dsType === 'area' ? true : (currentData.type === 'line' ? true : undefined),
+        ...(drawOrder === undefined ? {} : { order: drawOrder }),
+        borderWidth: shouldUseRadarRenderer ? RADIAL_STROKE_WIDTH : isLineStyle ? 3 : 1,
+        tension: isLineStyle ? lineTension : undefined,
+        backgroundColor: isFilledPolygon ? fillColor : (ds.backgroundColor || color.border),
+        borderColor: sourceBorderColor || color.border,
+        fill: shouldUseRadarRenderer || dsType === 'area' || currentData.type === 'line' ? true : undefined,
         borderRadius: dsType === 'bar' ? 3 : undefined,
         pointRadius: isLineStyle ? 0 : undefined,
         pointHoverRadius: isLineStyle ? 6 : undefined,
@@ -172,16 +313,11 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     })
   };
 
-  const isLine = currentData.type === 'line';
-  const isPie = ['pie', 'doughnut'].includes(currentData.type);
-  const isRadar = ['radar', 'polarArea'].includes(currentData.type);
-  const hasAxes = !isPie && !isRadar;
-
   const baseChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: currentData.orientation === 'horizontal' ? 'y' : 'x',
-    animation: isLine ? false : { // Disable native animation for line charts to use custom plugin
+    animation: shouldRevealChart ? false : {
       duration: 2000,
       easing: 'easeOutQuart' as const,
       animateScale: isPie ? false : true,
@@ -236,7 +372,8 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
         }
       },
       y: {
-        position: currentData.orientation === 'horizontal' ? 'left' : 'right',
+        type: usesDualYAxis ? 'linear' : undefined,
+        position: usesDualYAxis || isHorizontal ? 'left' : 'right',
         grid: { 
           display: currentData.orientation === 'horizontal' ? false : true,
           color: isDark ? '#334155' : '#ededed',
@@ -255,12 +392,10 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     } : undefined
   };
 
-  // Check if any dataset uses 'y1' axis
-  const usesDualAxis = currentData.datasets.some(ds => ds.yAxisID === 'y1');
-  if (usesDualAxis && baseChartOptions.scales) {
+  if (usesDualYAxis && baseChartOptions.scales) {
     baseChartOptions.scales.y1 = {
       type: 'linear',
-      position: currentData.orientation === 'horizontal' ? 'bottom' : 'right',
+      position: 'right',
       grid: { drawOnChartArea: false },
       ticks: { 
         color: isDark ? '#94a3b8' : '#777777',
@@ -276,6 +411,33 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
   if (safeCustomOptions.animation === null || typeof safeCustomOptions.animation !== 'object') delete safeCustomOptions.animation;
 
   const chartOptions = merge({}, baseChartOptions, safeCustomOptions);
+
+  // A dual-axis chart must reserve one side for each value scale. Enforce this
+  // after custom options are merged so model-generated options cannot put both
+  // sets of tick labels on the same side.
+  if (usesDualYAxis && chartOptions.scales) {
+    const yScale = chartOptions.scales.y && typeof chartOptions.scales.y === 'object'
+      ? chartOptions.scales.y
+      : {};
+    const y1Scale = chartOptions.scales.y1 && typeof chartOptions.scales.y1 === 'object'
+      ? chartOptions.scales.y1
+      : {};
+
+    chartOptions.scales.y = {
+      ...yScale,
+      type: 'linear',
+      position: 'left',
+    };
+    chartOptions.scales.y1 = {
+      ...y1Scale,
+      type: 'linear',
+      position: 'right',
+      grid: {
+        ...(y1Scale.grid && typeof y1Scale.grid === 'object' ? y1Scale.grid : {}),
+        drawOnChartArea: false,
+      },
+    };
+  }
 
   const handleReplay = () => {
     setChartKey(prev => prev + 1);
@@ -382,7 +544,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     renderLoop();
     
     // Duration
-    const duration = isLine ? 2500 : 2000;
+    const duration = shouldRevealChart ? CHART_REVEAL_DURATION : 2000;
     setTimeout(() => {
       if (recorder.state === 'recording') {
         recorder.stop();
@@ -394,7 +556,11 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
 
   const copyHtmlSource = async () => {
     // We recreate a simplified type string since the component handles mixed/area differently
-    const chartType = currentData.type === 'mixed' ? 'bar' : currentData.type;
+    const chartType = currentData.type === 'mixed'
+      ? 'bar'
+      : shouldUseRadarRenderer
+        ? 'radar'
+        : currentData.type;
     
     const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">
@@ -459,7 +625,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       ref: chartRef,
       data: chartJsData,
       options: chartOptions,
-      plugins: isLine ? [lineRevealPlugin] : []
+      plugins: shouldRevealChart ? [lineRevealPlugin] : []
     };
     
     switch (currentData.type) {
@@ -468,7 +634,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
       case 'pie': return <Pie {...props} />;
       case 'doughnut': return <Doughnut {...props} />;
       case 'radar': return <Radar {...props} />;
-      case 'polarArea': return <PolarArea {...props} />;
+      case 'polarArea': return shouldUseRadarRenderer ? <Radar {...props} /> : <PolarArea {...props} />;
       case 'bubble': return <Bubble {...props} />;
       case 'scatter': return <Scatter {...props} />;
       case 'line':
@@ -633,7 +799,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
         />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col justify-start items-center max-w-[1400px] mx-auto w-full px-4 pt-20 pb-20 md:pb-16">
+      <div className="relative z-10 flex-1 flex flex-col justify-start items-center w-full max-w-6xl px-2 md:px-4 pt-20 pb-20 md:pb-16 mx-auto">
         
         {/* MOBILE: Title & Action Buttons */}
         <div className="w-full flex md:hidden items-center justify-between gap-2 mb-4">
@@ -674,8 +840,8 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
             </div>
 
             {/* Chart Container */}
-            <div className="w-full bg-card border border-border rounded-xl p-4 md:p-12 shadow-sm flex items-center justify-center min-h-[400px]">
-              <div className="relative w-full aspect-square sm:aspect-video md:aspect-[21/9]">
+            <div className="w-full bg-card border border-border rounded-xl p-4 md:p-6 lg:p-8 shadow-sm flex items-center justify-center min-h-[400px] md:h-[calc(100vh-220px)]">
+              <div className="relative w-full h-full aspect-square sm:aspect-video md:aspect-auto">
                  <div key={chartKey} className="w-full h-full relative">
                     {renderChart()}
                  </div>
@@ -686,7 +852,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
 
           {/* RIGHT AREA: Desktop Chat Interface */}
           {isSidebarOpen && (
-            <div className="hidden md:flex w-[350px] shrink-0 flex-col h-[calc(100vh-140px)] sticky top-20 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="hidden md:flex w-[350px] shrink-0 flex-col h-[calc(100vh-160px)] sticky top-20 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
                 {versions.length > 1 ? renderVersionNav() : <span className="text-sm font-semibold text-muted-foreground px-2">Edit Chart</span>}
