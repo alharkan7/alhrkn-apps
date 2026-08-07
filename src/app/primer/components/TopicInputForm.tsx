@@ -97,7 +97,7 @@ export function TopicInputForm() {
             <div className="overflow-hidden">
               <div
                 className={cn(
-                  'flex items-center gap-2 pt-3 transition-[opacity,transform] duration-300 ease-out',
+                  'flex items-center gap-2 px-2 pb-2 pt-3 transition-[opacity,transform] duration-300 ease-out',
                   showOptions ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
                 )}
               >

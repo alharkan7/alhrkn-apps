@@ -80,11 +80,11 @@
   padding: 0.25rem 0;
 }
 
-/* The learning map uses 3d-force-graph, whose hover-tooltip wrapper (.tooltip-kap)
-   ships with its own dark background, padding, and radius. Our nodeLabel markup
-   already paints its own themed box, so strip the wrapper down to avoid a visible
-   double-box, which is most obvious in light theme. */
-.primer-graph .tooltip-kap {
+/* The learning map uses 3d-force-graph, whose hover-tooltip wrapper
+   (.float-tooltip-kap) ships with its own dark background, padding, and radius.
+   Our nodeLabel markup already paints its own themed box, so strip the wrapper
+   down to avoid a visible double-box, which is most obvious in light theme. */
+.primer-graph .float-tooltip-kap {
   background: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
