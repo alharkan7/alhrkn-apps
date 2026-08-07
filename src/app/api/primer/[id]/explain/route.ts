@@ -79,6 +79,10 @@ export async function POST(
     if (!selectionKey) return NextResponse.json({ error: 'Missing selection' }, { status: 400 });
 
     const context = typeof body?.context === 'string' ? body.context.trim().slice(0, 1600) : '';
+    const occurrenceRaw = body?.occurrence;
+    const occurrence = typeof occurrenceRaw === 'number' && Number.isInteger(occurrenceRaw) && occurrenceRaw >= 0
+      ? occurrenceRaw
+      : null;
     const staleBefore = new Date(Date.now() - STALE_EXPLANATION_MS);
     let [existing] = await db
       .select()
@@ -101,6 +105,7 @@ export async function POST(
           selection,
           selectionKey,
           title: selection,
+          occurrence,
           status: 'generating',
         })
         .onConflictDoNothing({ target: [primerExplanations.primerId, primerExplanations.selectionKey] })
@@ -139,11 +144,19 @@ export async function POST(
     try {
       const result = await generateText({
         model: getModel(process.env.PRIMER_MODEL || 'google/gemini-2.5-flash'),
-        system: 'You explain a selected passage from a learning lesson. Return only a concise, accurate 2–4 sentence explanation in plain text. Define the phrase in the lesson context, mention why it matters, and do not use a heading or preamble.',
+        system: [
+          'You are a glossary editor. A reader selected a term or short phrase while reading a lesson; write its glossary entry.',
+          'Rules:',
+          '- Output ONLY the definition, as plain text, 1 to 3 sentences. No heading, no bullet points, no Markdown, no preamble, and do not prefix it with the term or a label.',
+          '- Begin with the meaning immediately. A strong entry opens like "A measure of...", "The rate at which...", or "The principle that...".',
+          '- Do NOT describe where or how the phrase appears. Never start with "In the context of", "In this case", "Here,", "This refers to", "In the lesson,", or any restatement of the surrounding sentence or lesson topic.',
+          '- Define what it actually is first; if useful, add one short clause on why it matters.',
+          '- Keep it faithful, precise, and self-contained.',
+        ].join('\n'),
         prompt: [
           `Selected phrase: ${selection}`,
           `Lesson topic: ${primer.topic}`,
-          context ? `Nearby context:\n${context}` : '',
+          context ? `Nearby context (use only to choose the correct sense of the phrase; never quote or restate it in the answer):\n${context}` : '',
         ].filter(Boolean).join('\n\n'),
         maxOutputTokens: 320,
         abortSignal: req.signal,

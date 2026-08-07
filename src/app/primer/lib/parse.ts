@@ -89,3 +89,56 @@ export function buildGlossaryMap(glossary: GlossaryEntry[] | null | undefined): 
 export function lookupGlossary(map: Map<string, GlossaryEntry>, term: string): GlossaryEntry | undefined {
   return map.get(term.trim().toLowerCase());
 }
+
+/** A saved selection explanation in the minimal shape the merge needs. */
+export interface ExplanationRow {
+  selection: string;
+  description: string | null;
+  occurrence: number | null;
+  status: string;
+}
+
+/** A specific occurrence of an explained phrase to underline in the body. */
+export interface AutoLinkTarget {
+  term: string;
+  /** 0-based whole-word match index in document order (excluding code/links). */
+  occurrence: number;
+}
+
+export interface MergedGlossary {
+  /** AI glossary plus ready user explanations; AI definitions win on conflicts. */
+  glossary: GlossaryEntry[];
+  /** Exact occurrences of explained phrases to underline in the lesson body. */
+  autoLinkTargets: AutoLinkTarget[];
+}
+
+/**
+ * Fold a primer's saved selection explanations into its glossary so explained
+ * phrases behave like first-class glossary terms on reload. Only `ready`
+ * explanations contribute; terms already present in the AI glossary keep the AI
+ * definition. `autoLinkTargets` pins the exact occurrence each reader selected
+ * (those phrases have no `[[ ]]` markers in the markdown), so reload underlines
+ * that one occurrence rather than every match.
+ */
+export function mergeExplanations(
+  glossary: GlossaryEntry[] | null | undefined,
+  explanations: ExplanationRow[],
+): MergedGlossary {
+  const base = glossary ?? [];
+  const baseKeys = new Set(base.map((g) => g.term.trim().toLowerCase()));
+  const additions: GlossaryEntry[] = [];
+  const autoLinkTargets: AutoLinkTarget[] = [];
+
+  for (const ex of explanations) {
+    if (ex.status !== 'ready' || !ex.description) continue;
+    const term = ex.selection.trim();
+    if (!term) continue;
+    const key = term.toLowerCase();
+    if (!baseKeys.has(key)) additions.push({ term, definition: ex.description });
+    if (typeof ex.occurrence === 'number' && ex.occurrence >= 0) {
+      autoLinkTargets.push({ term, occurrence: ex.occurrence });
+    }
+  }
+
+  return { glossary: [...base, ...additions], autoLinkTargets };
+}

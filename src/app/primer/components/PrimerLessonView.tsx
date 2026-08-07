@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from './tooltips/TooltipProvider';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { PrimerBreadcrumbs, type PrimerBreadcrumbItem } from './PrimerBreadcrumbs';
 import { PrimerNetworkMap } from './PrimerNetworkMap';
-import { getDisplayBody, parseMeta } from '../lib/parse';
+import { getDisplayBody, parseMeta, type AutoLinkTarget } from '../lib/parse';
 import type { GlossaryEntry } from '../types';
 
 export interface PrimerLessonViewProps {
@@ -17,6 +17,8 @@ export interface PrimerLessonViewProps {
   status: 'pending' | 'generating' | 'ready' | 'error';
   content: string | null;
   glossary: GlossaryEntry[] | null;
+  /** Exact occurrences of user-explained phrases to underline in the body. */
+  autoLinkTargets?: AutoLinkTarget[];
   createdAt: string | null;
   breadcrumbs: PrimerBreadcrumbItem[];
 }
@@ -27,13 +29,32 @@ const GENERATION_TIMEOUT_MS = 2 * 60 * 1000;
 const POLL_INTERVAL_MS = 1500;
 
 export function PrimerLessonView(props: PrimerLessonViewProps) {
-  const { id, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, breadcrumbs } = props;
+  const { id, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs } = props;
 
   const [streamed, setStreamed] = useState('');
   const [phase, setPhase] = useState<Phase>(initialStatus === 'error' ? 'error' : 'streaming');
   const [retryCount, setRetryCount] = useState(0);
   const [polledContent, setPolledContent] = useState<string | null>(null);
   const [polledGlossary, setPolledGlossary] = useState<GlossaryEntry[] | null>(null);
+  // Occurrences underlined in the body. Seeded from the server-merged explanations
+  // and extended live when a new selection is explained in this session.
+  const [liveTargets, setLiveTargets] = useState<AutoLinkTarget[]>(initialAutoLinkTargets ?? []);
+
+  const handleExplanationSaved = useCallback((term: string, _definition: string, occurrence: number | null) => {
+    if (occurrence == null) return;
+    const key = term.trim().toLowerCase();
+    setLiveTargets((prev) => {
+      const existing = prev.findIndex((t) => t.term.trim().toLowerCase() === key);
+      if (existing >= 0) {
+        // Same term, possibly a different occurrence the reader re-selected.
+        if (prev[existing].occurrence === occurrence) return prev;
+        const next = prev.slice();
+        next[existing] = { term, occurrence };
+        return next;
+      }
+      return [...prev, { term, occurrence }];
+    });
+  }, []);
 
   useEffect(() => {
     // Nothing to do if the lesson is already persisted. An errored lesson is
@@ -147,7 +168,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
   }, []);
 
   return (
-    <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText}>
+    <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText} onExplanationSaved={handleExplanationSaved}>
       <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <PrimerBreadcrumbs items={breadcrumbs} />
         {phase === 'error' ? (
@@ -177,7 +198,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
             <p className="text-sm text-muted-foreground">Writing your lesson on “{topic}”…</p>
           </div>
         ) : (
-          <MarkdownRenderer>{bodyText}</MarkdownRenderer>
+          <MarkdownRenderer autoLinkTargets={liveTargets}>{bodyText}</MarkdownRenderer>
         )}
       </article>
       <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />

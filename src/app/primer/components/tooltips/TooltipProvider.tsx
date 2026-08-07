@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildGlossaryMap } from '../../lib/parse';
+import { computeSelectionOccurrence } from '../../lib/occurrence';
 import type { GlossaryEntry } from '../../types';
 import { TooltipLayer } from './TooltipLayer';
 import { SelectionPrompt, type SelectionPromptData } from './SelectionPrompt';
@@ -21,6 +22,8 @@ export interface ChainEntry {
   anchorRect?: DOMRect;
   source: 'glossary' | 'selection';
   context?: string;
+  /** 0-based occurrence index of the selected phrase (selection source only). */
+  occurrence?: number | null;
   /** Full term path from the lesson root down to AND including this entry's term. */
   chainPath: string[];
   locked: boolean;
@@ -36,6 +39,9 @@ interface TooltipContextValue {
   activate: (term: string, anchorEl: HTMLElement, parentChainPath: string[]) => void;
   /** Lock the topmost chain entry anchored at the given element (source-still timer). */
   lockByAnchor: (anchorEl: HTMLElement) => void;
+  /** Record a freshly generated selection explanation so it resolves instantly
+   *  on re-open and is underlined in the body (via onExplanationSaved). */
+  registerExplanation: (term: string, definition: string, occurrence: number | null) => void;
 }
 
 const TooltipContext = createContext<TooltipContextValue | null>(null);
@@ -66,14 +72,36 @@ export function TooltipProvider({
   primerId,
   glossary,
   lessonText,
+  onExplanationSaved,
   children,
 }: {
   primerId: string;
   glossary: GlossaryEntry[];
   lessonText?: string;
+  /** Notified when a selection explanation is generated so the body can underline it live. */
+  onExplanationSaved?: (term: string, definition: string, occurrence: number | null) => void;
   children: React.ReactNode;
 }) {
-  const glossaryMap = useMemo(() => buildGlossaryMap(glossary), [glossary]);
+  // Live explanations added in-session are folded into the glossary so a re-opened
+  // selection resolves instantly and the term behaves like a real glossary entry.
+  const [extraGlossary, setExtraGlossary] = useState<GlossaryEntry[]>([]);
+  const effectiveGlossary = useMemo(() => [...glossary, ...extraGlossary], [glossary, extraGlossary]);
+  const glossaryMap = useMemo(() => buildGlossaryMap(effectiveGlossary), [effectiveGlossary]);
+
+  // Keep the latest callback without forcing the context value to re-memo on parent renders.
+  const onExplanationSavedRef = useRef(onExplanationSaved);
+  onExplanationSavedRef.current = onExplanationSaved;
+
+  const registerExplanation = useCallback((term: string, definition: string, occurrence: number | null) => {
+    const key = term.trim().toLowerCase();
+    setExtraGlossary((prev) =>
+      prev.some((g) => g.term.trim().toLowerCase() === key)
+        ? prev
+        : [...prev, { term: term.trim(), definition }],
+    );
+    onExplanationSavedRef.current?.(term, definition, occurrence);
+  }, []);
+
   const [chain, setChain] = useState<ChainEntry[]>([]);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -159,11 +187,14 @@ export function TooltipProvider({
     const anchor = range.commonAncestorContainer instanceof Element
       ? range.commonAncestorContainer
       : range.commonAncestorContainer.parentElement;
-    if (!anchor?.closest('.primer-markdown')) return;
+    const markdownRoot = anchor?.closest('.primer-markdown');
+    if (!markdownRoot) return;
     const contextBlock = anchor?.closest('p, li, blockquote, td, th, h1, h2, h3, h4, h5, h6');
     const context = (contextBlock?.textContent || lessonText || '').replace(/\s+/g, ' ').trim().slice(0, 1600);
+    // Pin the exact occurrence so the body can re-underline just this phrase.
+    const occurrence = computeSelectionOccurrence(markdownRoot as HTMLElement, selectedText);
 
-    selectionTimer.current = setTimeout(() => setSelectionPrompt({ term: selectedText, rect, context }), 220);
+    selectionTimer.current = setTimeout(() => setSelectionPrompt({ term: selectedText, rect, context, occurrence }), 220);
   }, [lessonText]);
 
   useEffect(() => () => {
@@ -189,7 +220,7 @@ export function TooltipProvider({
 
   const confirmSelection = useCallback(() => {
     if (!selectionPrompt) return;
-    const { term, rect, context } = selectionPrompt;
+    const { term, rect, context, occurrence } = selectionPrompt;
     setSelectionPrompt(null);
     window.getSelection()?.removeAllRanges();
     setChain([{
@@ -198,14 +229,15 @@ export function TooltipProvider({
       anchorRect: rect,
       source: 'selection',
       context,
+      occurrence,
       chainPath: [term],
       locked: true,
     }]);
   }, [selectionPrompt]);
 
   const value = useMemo<TooltipContextValue>(
-    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor }),
-    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor],
+    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation }),
+    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation],
   );
 
   return (

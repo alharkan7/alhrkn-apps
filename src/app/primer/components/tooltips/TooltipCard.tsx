@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Loader2, Pin } from 'lucide-react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Loader2, Pin, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ChainPathContext, type ChainEntry } from './TooltipProvider';
+import { ChainPathContext, useTooltip, type ChainEntry } from './TooltipProvider';
 import { lookupGlossary } from '../../lib/parse';
 import type { GlossaryEntry } from '../../types';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
@@ -49,14 +49,17 @@ export function TooltipCard({
   version,
   reportTooltipEl,
   primerId,
+  onClose,
 }: {
   entry: ChainEntry;
   glossaryMap: Map<string, GlossaryEntry>;
   version: number;
   reportTooltipEl: (id: string, el: HTMLElement | null) => void;
   primerId: string;
+  onClose: () => void;
 }) {
   const def = lookupGlossary(glossaryMap, entry.term);
+  const { registerExplanation } = useTooltip();
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<Pos>({ top: -9999, left: -9999 });
   const [explanation, setExplanation] = useState<{ status: 'loading' | 'ready' | 'error'; description?: string }>({ status: entry.source === 'selection' && !def ? 'loading' : 'ready' });
@@ -94,7 +97,7 @@ export function TooltipCard({
           signal: controller.signal,
           cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ selection: entry.term, context: entry.context }),
+          body: JSON.stringify({ selection: entry.term, context: entry.context, occurrence: entry.occurrence ?? null }),
         });
         const data = response.status === 409
           ? await poll()
@@ -103,7 +106,10 @@ export function TooltipCard({
             : null;
         if (!response.ok && response.status !== 409) throw new Error('Explanation failed');
         if (!data) throw new Error('Explanation returned no content');
-        if (active) setExplanation({ status: 'ready', description: data });
+        if (active) {
+          setExplanation({ status: 'ready', description: data });
+          registerExplanation(entry.term, data, entry.occurrence ?? null);
+        }
       } catch (error: any) {
         if (error?.name !== 'AbortError' && active) setExplanation({ status: 'error' });
       }
@@ -113,7 +119,7 @@ export function TooltipCard({
       active = false;
       controller.abort();
     };
-  }, [def, entry.context, entry.source, entry.term, primerId, retry]);
+  }, [def, entry.context, entry.source, entry.term, primerId, retry, registerExplanation]);
 
   const handleLearnMore = async () => {
     setLearnMoreLoading(true);
@@ -137,14 +143,29 @@ export function TooltipCard({
     }
   };
 
-  useLayoutEffect(() => {
+  // Recompute the card position from the live anchor rect and the card's current
+  // size. Invoked on mount/scroll/resize (via `version`) and whenever the card
+  // resizes (e.g. when a selection explanation replaces the loading spinner),
+  // so a card that grew after being positioned never overflows the viewport.
+  const reposition = useCallback(() => {
     const el = cardRef.current;
     if (!el) return;
     const anchorRect = entry.anchorEl?.getBoundingClientRect() || entry.anchorRect;
     if (!anchorRect) return;
-    const size = { width: el.offsetWidth, height: el.offsetHeight };
-    setPos(choosePosition(anchorRect, size));
-  }, [entry.anchorEl, entry.anchorRect, entry.id, version]);
+    setPos(choosePosition(anchorRect, { width: el.offsetWidth, height: el.offsetHeight }));
+  }, [entry.anchorEl, entry.anchorRect]);
+
+  useLayoutEffect(() => {
+    reposition();
+  }, [reposition, entry.id, version]);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => reposition());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reposition]);
 
   return (
     <div
@@ -162,7 +183,16 @@ export function TooltipCard({
     >
       <div className="flex items-center gap-1.5 border-b border-border/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {entry.locked && <Pin className="h-3 w-3 text-primary" />}
-        <span className="truncate">{entry.term}</span>
+        <span className="truncate flex-1">{entry.term}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 -mr-1.5 text-muted-foreground hover:bg-muted"
+          onClick={onClose}
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
       <ChainPathContext.Provider value={entry.chainPath}>
         <div className="primer-tooltip__body px-3 py-2 text-sm">

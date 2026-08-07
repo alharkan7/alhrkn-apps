@@ -2,13 +2,14 @@
 
 import React, { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Lightbulb, X } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface SelectionPromptData {
   term: string;
   rect: DOMRect;
   context: string;
+  occurrence: number | null;
 }
 
 function getPosition(rect: DOMRect): React.CSSProperties {
@@ -54,18 +55,6 @@ export function SelectionPrompt({
       >
         <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
         Explain?
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 rounded-full text-muted-foreground"
-        title="Dismiss"
-        aria-label="Dismiss explanation prompt"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={onDismiss}
-      >
-        <X className="h-3.5 w-3.5" />
       </Button>
     </div>,
     document.body,

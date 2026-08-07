@@ -1,12 +1,13 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
-import { primers } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { primerExplanations, primers } from '@/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { isBotRequest } from '@/lib/bot';
 import { PrimerLessonView } from '../components/PrimerLessonView';
 import type { PrimerBreadcrumbItem } from '../components/PrimerBreadcrumbs';
+import { mergeExplanations } from '../lib/parse';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,22 @@ export default async function PrimerIdPage({ params }: { params: Promise<{ id: s
   if (!primer || primer.userId !== user.id) {
     return <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">Lesson not found.</div>;
   }
+
+  // Fold previously explained selections back in so they show up as underlined
+  // glossary concepts on reload (they are saved without [[ ]] markers).
+  const explanations = await db
+    .select({
+      selection: primerExplanations.selection,
+      description: primerExplanations.description,
+      occurrence: primerExplanations.occurrence,
+      status: primerExplanations.status,
+    })
+    .from(primerExplanations)
+    .where(and(
+      eq(primerExplanations.primerId, id),
+      eq(primerExplanations.userId, user.id),
+    ));
+  const { glossary, autoLinkTargets } = mergeExplanations(primer.glossary ?? [], explanations);
 
   const ancestorRows = await db.execute(sql`
     WITH RECURSIVE ancestor_rows AS (
@@ -56,7 +73,8 @@ export default async function PrimerIdPage({ params }: { params: Promise<{ id: s
         topic={primer.topic}
         status={primer.status}
         content={primer.content}
-        glossary={primer.glossary ?? []}
+        glossary={glossary}
+        autoLinkTargets={autoLinkTargets}
         createdAt={primer.createdAt ? primer.createdAt.toISOString() : null}
         breadcrumbs={breadcrumbs}
       />

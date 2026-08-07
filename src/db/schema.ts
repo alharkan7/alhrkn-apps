@@ -413,6 +413,10 @@ export const primerExplanations = pgTable('primer_explanations', {
   selectionKey: text('selection_key').notNull(),
   title: text('title').notNull(),
   description: text('description'),
+  // 0-based index of the exact whole-word occurrence the reader selected, so
+  // reload re-underlines that one occurrence rather than every match. Null when
+  // the selection could not be tied to a stable occurrence (e.g. inside code).
+  occurrence: integer('occurrence'),
   status: text('status').$type<'generating' | 'ready' | 'error'>().notNull().default('generating'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),

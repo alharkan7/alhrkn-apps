@@ -1,13 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { cn } from '@/lib/utils';
+import { formulaToLatex } from '../../lib/formula-latex';
 import { remarkConcepts } from '../../lib/remark-concepts';
+import { remarkAutoLinkTerms, type AutoLinkTarget } from '../../lib/remark-autolink-terms';
 import { ConceptLinkAnchor } from '../tooltips/ConceptLinkAnchor';
 import { WidgetBlock } from '../widgets/WidgetBlock';
 import { ExpandedReading } from '../ExpandedReading';
@@ -51,6 +54,23 @@ function CodeBlock(props: any) {
       </pre>
     );
   }
+
+  // If the inline code looks like a JS formula leaked from a widget (e.g. contains Math.),
+  // try to render it as LaTeX so it looks nice.
+  if (text.includes('Math.') && /^[0-9+\-*/%.(),\sxA-Za-z_]+$/.test(text)) {
+    const latex = formulaToLatex(text);
+    if (latex) {
+      try {
+        const html = katex.renderToString(latex, { displayMode: false, throwOnError: false });
+        if (!html.includes('katex-error')) {
+          return <span className="katex-inline-formula" dangerouslySetInnerHTML={{ __html: html }} />;
+        }
+      } catch {
+        // Fallback to plain code block
+      }
+    }
+  }
+
   return (
     <code className="rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
       {children}
@@ -61,10 +81,23 @@ function CodeBlock(props: any) {
 export function MarkdownRenderer({
   children,
   compact = false,
+  autoLinkTargets,
 }: {
   children: string;
   compact?: boolean;
+  /** Exact occurrences of explained phrases to underline as interactive concept links. */
+  autoLinkTargets?: AutoLinkTarget[];
 }) {
+  // remarkAutoLinkTerms runs after remarkConcepts so [[Term]] markers are already
+  // converted (and skipped) before we wrap plain-text occurrences. Re-memoize
+  // only when the target set changes so react-markdown does not re-parse on every
+  // render. The nested tuple is annotated so the plugins array stays assignable
+  // to react-markdown's PluggableList.
+  const remarkPlugins = useMemo(() => {
+    const autolink: [typeof remarkAutoLinkTerms, AutoLinkTarget[]] = [remarkAutoLinkTerms, autoLinkTargets ?? []];
+    return [remarkGfm, remarkMath, remarkConcepts, autolink];
+  }, [autoLinkTargets]);
+
   return (
     <div
       className={cn(
@@ -75,7 +108,7 @@ export function MarkdownRenderer({
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath, remarkConcepts]}
+        remarkPlugins={remarkPlugins}
         rehypePlugins={[rehypeKatex]}
         components={{
           a: ConceptLinkAnchor,

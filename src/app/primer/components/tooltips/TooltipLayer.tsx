@@ -176,7 +176,7 @@ export function TooltipLayer({
 
   return createPortal(
     <div className="primer-tooltip-layer pointer-events-none fixed inset-0 z-[60]" aria-hidden="true">
-      {chain.map((entry) => (
+      {chain.map((entry, index) => (
         <TooltipCard
           key={entry.id}
           entry={entry}
@@ -184,6 +184,7 @@ export function TooltipLayer({
           version={version}
           reportTooltipEl={reportTooltipEl}
           primerId={primerId}
+          onClose={() => pruneAfter(index - 1)}
         />
       ))}
     </div>,
