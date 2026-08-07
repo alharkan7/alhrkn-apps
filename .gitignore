@@ -51,3 +51,8 @@ app-key*
 /test
 
 /docs/test-charts
+
+# pnpm local workspace/build-approval artifact. This is a single-package
+# project (no workspaces), and the file has no `packages` field, which makes
+# pnpm 9 fail install with "packages field missing or empty".
+/pnpm-workspace.yaml
