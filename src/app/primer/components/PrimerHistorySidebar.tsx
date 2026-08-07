@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, ChevronRight, GraduationCap, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toTitleCase } from '../lib/title-case';
 
 interface TreeNode {
   id: string;
@@ -142,7 +143,7 @@ export function PrimerHistorySidebar() {
   const renderNode = (node: TreeNode, depth: number): React.ReactNode => {
     const childBranch = branches[branchKey(node.id)] || emptyBranch();
     const isExpanded = expanded.has(node.id);
-    const title = node.title || node.topic || 'Untitled lesson';
+    const title = toTitleCase(node.title || node.topic) || 'Untitled lesson';
     let relativeTime = '';
     try {
       relativeTime = formatDistanceToNow(new Date(node.createdAt), { addSuffix: true });
@@ -203,10 +204,7 @@ export function PrimerHistorySidebar() {
         )}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-          <div>
-            <h2 className="font-semibold">Learning path</h2>
-            <p className="text-[10px] text-muted-foreground">Root lessons and their branches</p>
-          </div>
+          <h2 className="font-semibold">Learning Shelf</h2>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8" title="Close">
             <ChevronLeft size={16} />
           </Button>

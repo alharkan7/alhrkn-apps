@@ -3,8 +3,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as THREE from 'three';
-import { Loader2, Network } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Waypoints, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/components/theme-provider';
+import { toTitleCase } from '../lib/title-case';
 
 interface GraphItem {
   id: string;
@@ -17,6 +20,11 @@ interface GraphData {
   currentId: string;
   nodes: GraphItem[];
   truncated?: boolean;
+}
+
+interface SelectedNode {
+  id: string;
+  label: string;
 }
 
 interface PrimerNetworkMapProps {
@@ -42,6 +50,9 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== 'light';
 
   useEffect(() => {
     if (!open) return;
@@ -51,19 +62,47 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
     fetch(`/api/primer/graph?id=${encodeURIComponent(primerId)}`, { signal: controller.signal, cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.error || 'Could not load learning network');
+        if (!response.ok) throw new Error(data?.error || 'Could not load learning map');
         setGraphData(data);
       })
       .catch((reason) => {
-        if (reason?.name !== 'AbortError') setError(reason?.message || 'Could not load learning network');
+        if (reason?.name !== 'AbortError') setError(reason?.message || 'Could not load learning map');
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
   }, [open, primerId]);
 
   useEffect(() => {
+    if (!open) setSelectedNode(null);
+  }, [open]);
+
+  useEffect(() => {
     if (!open || !graphData || !containerRef.current) return;
     let active = true;
+
+    const palette = isDark
+      ? {
+          background: '#020617',
+          nodeCurrent: '#f59e0b',
+          nodeRoot: '#10b981',
+          nodeOther: '#6366f1',
+          nodeOtherOpacity: 0.88,
+          link: '#818cf8',
+          linkOpacity: 0.72,
+          labelBackground: 'rgba(15,23,42,.92)',
+          labelColor: '#ffffff',
+        }
+      : {
+          background: '#f8fafc',
+          nodeCurrent: '#d97706',
+          nodeRoot: '#059669',
+          nodeOther: '#4f46e5',
+          nodeOtherOpacity: 0.9,
+          link: '#6366f1',
+          linkOpacity: 0.55,
+          labelBackground: 'rgba(255,255,255,.96)',
+          labelColor: '#0f172a',
+        };
 
     (async () => {
       const { default: ForceGraph3D } = await import('3d-force-graph');
@@ -72,35 +111,64 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
       const nodeById = new Map(graphData.nodes.map((node) => [node.id, node]));
       const nodes = graphData.nodes.map((node) => ({
         ...node,
-        label: node.title || node.topic,
+        label: toTitleCase(node.title || node.topic),
         isCurrent: node.id === graphData.currentId,
       }));
+
+      // Walk parent pointers up from the current page to find the origin lesson
+      // (the root of this lineage). On child/grandchild pages this is the node a
+      // learner wants to spot; when already on the root it coincides with the
+      // current page and gets no extra treatment.
+      let rootId: string = graphData.currentId;
+      let cursor = nodeById.get(rootId);
+      let guard = 0;
+      while (cursor?.parentId && nodeById.has(cursor.parentId) && guard++ < 1000) {
+        rootId = cursor.parentId;
+        cursor = nodeById.get(rootId);
+      }
+
       const links = graphData.nodes
         .filter((node) => node.parentId && nodeById.has(node.parentId))
         .map((node) => ({ source: node.parentId!, target: node.id }));
 
       const graph = new ForceGraph3D(containerRef.current)
-        .backgroundColor('#020617')
+        .backgroundColor(palette.background)
         .showNavInfo(false)
         .enableNodeDrag(true)
-        .nodeLabel((node: any) => `<div style="max-width:260px;padding:7px 10px;border-radius:8px;background:rgba(15,23,42,.92);color:white;font:500 12px/1.35 system-ui,sans-serif">${escapeHtml(node.label)}</div>`)
+        .nodeLabel((node: any) => `<div style="max-width:260px;padding:7px 10px;border-radius:8px;background:${palette.labelBackground};color:${palette.labelColor};box-shadow:0 4px 14px rgba(2,6,23,.25);font:500 12px/1.35 system-ui,sans-serif">${escapeHtml(node.label)}</div>`)
         .nodeThreeObject((node: any) => {
+          if (node.id === rootId && !node.isCurrent) {
+            const group = new THREE.Group();
+            const core = new THREE.Mesh(
+              new THREE.SphereGeometry(6, 24, 24),
+              new THREE.MeshBasicMaterial({ color: palette.nodeRoot, transparent: true, opacity: 1 })
+            );
+            const halo = new THREE.Mesh(
+              new THREE.SphereGeometry(9.5, 20, 20),
+              new THREE.MeshBasicMaterial({ color: palette.nodeRoot, transparent: true, opacity: 0.16 })
+            );
+            group.add(core, halo);
+            return group;
+          }
           const material = new THREE.MeshBasicMaterial({
-            color: node.isCurrent ? '#f59e0b' : '#6366f1',
+            color: node.isCurrent ? palette.nodeCurrent : palette.nodeOther,
             transparent: true,
-            opacity: node.isCurrent ? 1 : 0.88,
+            opacity: node.isCurrent ? 1 : palette.nodeOtherOpacity,
           });
           return new THREE.Mesh(new THREE.SphereGeometry(node.isCurrent ? 7 : 5, 20, 20), material);
         })
-        .linkColor(() => '#818cf8')
+        .linkColor(() => palette.link)
         .linkWidth((link: any) => link.source === graphData.currentId || link.target === graphData.currentId ? 1.8 : 0.9)
-        .linkOpacity(0.72)
+        .linkOpacity(palette.linkOpacity)
         .linkCurvature(0.22)
         .linkCurveRotation(() => Math.PI / 5)
         .onNodeClick((node: any) => {
-          onOpenChange(false);
-          router.push(`/primer/${node.id}`);
+          // Touch devices cannot hover. A tap selects the node and shows its label
+          // in the bottom card; it does not navigate or close the map. The card's
+          // Open button performs the navigation.
+          setSelectedNode({ id: node.id, label: node.label });
         })
+        .onBackgroundClick(() => setSelectedNode(null))
         .graphData({ nodes, links });
 
       graph.d3Force('charge')?.strength(-105);
@@ -108,7 +176,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
       graph.d3Force('center')?.strength(0.45);
       graphRef.current = graph;
     })().catch((reason) => {
-      if (active) setError(reason?.message || 'Could not render learning network');
+      if (active) setError(reason?.message || 'Could not render learning map');
     });
 
     return () => {
@@ -117,24 +185,54 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
       graphRef.current = null;
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
-  }, [graphData, open, onOpenChange, router]);
+  }, [graphData, open, isDark]);
+
+  const surfaceClass = isDark ? 'bg-slate-950/95' : 'bg-slate-50';
+  const loadingTextClass = isDark ? 'text-slate-300' : 'text-slate-600';
+  const spinnerClass = isDark ? 'text-amber-400' : 'text-amber-500';
+  const errorTextClass = isDark ? 'text-red-300' : 'text-red-600';
+  const hintClass = isDark
+    ? 'bg-black/40 text-slate-300'
+    : 'border border-slate-200 bg-white/70 text-slate-600';
+  const cardClass = isDark
+    ? 'border-slate-700 bg-slate-900/90 text-slate-100'
+    : 'border-slate-200 bg-white/95 text-slate-900';
+  const closeClass = isDark ? 'text-slate-400 hover:text-slate-100' : 'text-slate-400 hover:text-slate-700';
+
+  const openLesson = (id: string) => {
+    onOpenChange(false);
+    router.push(`/primer/${id}`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(96vw,1100px)] max-w-none overflow-hidden p-0" aria-describedby={undefined}>
+      <DialogContent className="flex h-[92vh] w-[96vw] max-w-none flex-col overflow-hidden p-0" aria-describedby={undefined}>
         <DialogHeader className="border-b px-5 py-4 pr-12">
-          <DialogTitle className="flex items-center gap-2"><Network className="h-4 w-4 text-primary" />Learning network</DialogTitle>
-          <DialogDescription>Drag nodes to explore how your lessons attract and connect. Hover over a node for its title.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><Waypoints className="h-4 w-4 text-primary" />Learning Map</DialogTitle>
         </DialogHeader>
-        <div className="relative h-[min(72vh,720px)] w-full overflow-hidden bg-slate-950/95">
+        <div className={`relative w-full flex-1 overflow-hidden ${surfaceClass}`}>
           {loading ? (
-            <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-300"><Loader2 className="h-5 w-5 animate-spin text-amber-400" />Loading network…</div>
+            <div className={`flex h-full items-center justify-center gap-2 text-sm ${loadingTextClass}`}><Loader2 className={`h-5 w-5 animate-spin ${spinnerClass}`} />Loading map…</div>
           ) : error ? (
-            <div className="flex h-full items-center justify-center text-sm text-red-300">{error}</div>
+            <div className={`flex h-full items-center justify-center text-sm ${errorTextClass}`}>{error}</div>
           ) : (
-            <div ref={containerRef} className="h-full w-full" />
+            <div ref={containerRef} className="primer-graph h-full w-full" />
           )}
-          {!loading && !error && graphData && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-[11px] text-slate-300 backdrop-blur">Drag · orbit · scroll to zoom · hover for title</div>}
+          {!loading && !error && graphData && (
+            selectedNode ? (
+              <div className={`pointer-events-auto absolute bottom-3 left-1/2 flex max-w-[92%] -translate-x-1/2 items-center gap-2 rounded-xl border px-3 py-2 shadow-lg backdrop-blur ${cardClass}`}>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{selectedNode.label}</span>
+                <Button size="sm" className="h-8 shrink-0" onClick={() => openLesson(selectedNode.id)}>
+                  Open
+                </Button>
+                <button type="button" aria-label="Dismiss" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${closeClass}`} onClick={() => setSelectedNode(null)}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className={`pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] backdrop-blur ${hintClass}`}>Tap a node for its title, then Open to jump there · drag · orbit · scroll to zoom</div>
+            )
+          )}
         </div>
         {graphData?.truncated && <p className="border-t px-5 py-2 text-xs text-muted-foreground">Showing the nearest 200 pages. Expand branches in the sidebar to explore the rest.</p>}
       </DialogContent>

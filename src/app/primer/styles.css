@@ -79,3 +79,32 @@
   overflow-y: hidden;
   padding: 0.25rem 0;
 }
+
+/* The learning map uses 3d-force-graph, whose hover-tooltip wrapper (.tooltip-kap)
+   ships with its own dark background, padding, and radius. Our nodeLabel markup
+   already paints its own themed box, so strip the wrapper down to avoid a visible
+   double-box, which is most obvious in light theme. */
+.primer-graph .tooltip-kap {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  max-width: none !important;
+}
+
+/* Reading-font cycling for the lesson body. The usePrimerFont hook sets
+   data-primer-font on <html>; each key swaps the typeface to shift the reading
+   vibe. The default (no attribute) keeps the app's Space Grotesk. Scoped to
+   .primer-markdown so only the lesson text changes, not the surrounding UI.
+   Inline/code keeps its own mono family. */
+[data-primer-font="serif"] .primer-markdown {
+  font-family: Georgia, Cambria, 'Times New Roman', Times, serif;
+}
+[data-primer-font="rounded"] .primer-markdown {
+  font-family: var(--font-primer-rounded), ui-rounded, 'Segoe UI', system-ui, sans-serif;
+}
+[data-primer-font="lexend"] .primer-markdown {
+  font-family: var(--font-primer-lexend), system-ui, -apple-system, sans-serif;
+}
+[data-primer-font="mono"] .primer-markdown {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}

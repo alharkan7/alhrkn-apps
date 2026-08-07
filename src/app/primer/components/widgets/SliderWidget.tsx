@@ -1,8 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import { cn } from '@/lib/utils';
 import type { SliderWidgetProps } from '../../types';
+import { formulaToLatex } from '../../lib/formula-latex';
 
 /**
  * Compiles a trusted-LLM formula string ("x*x", "Math.sin(x)") into a numeric
@@ -38,6 +41,21 @@ export function SliderWidget({ label, min, max, step, default: def, unit, formul
   const compute = useMemo(() => (formula ? compileFormula(formula) : null), [formula]);
   const result = compute ? compute(value) : null;
 
+  // Render the symbolic formula as LaTeX once (it does not change with the
+  // slider). The live numeric evaluation below stays as plain text so dragging
+  // stays cheap.
+  const formulaHtml = useMemo(() => {
+    if (!formula) return null;
+    const latex = formulaToLatex(formula);
+    if (!latex) return null;
+    try {
+      const html = katex.renderToString(`f(x) = ${latex}`, { displayMode: false, throwOnError: false });
+      return html.includes('katex-error') ? null : html;
+    } catch {
+      return null;
+    }
+  }, [formula]);
+
   const safeMin = Number.isFinite(min) ? min : 0;
   const safeMax = Number.isFinite(max) ? max : 100;
   const safeStep = step > 0 ? step : 1;
@@ -65,13 +83,19 @@ export function SliderWidget({ label, min, max, step, default: def, unit, formul
         <span>{formatNum(safeMin)}{unit ? ` ${unit}` : ''}</span>
         <span>{formatNum(safeMax)}{unit ? ` ${unit}` : ''}</span>
       </div>
-      {compute && (
-        <div className="mt-3 rounded-lg bg-background/60 px-3 py-2 text-sm">
-          <span className="text-muted-foreground">f({formatNum(clamped)}) = </span>
-          <span className="font-mono font-medium text-foreground">
-            {result === null ? '—' : formatNum(result)}
-          </span>
-          {formula && <span className="ml-2 font-mono text-[11px] text-muted-foreground">({formula})</span>}
+      {(formula || compute) && (
+        <div className="mt-3 space-y-1 rounded-lg bg-background/60 px-3 py-2 text-sm">
+          {formulaHtml ? (
+            <div className="overflow-x-auto text-foreground" dangerouslySetInnerHTML={{ __html: formulaHtml }} />
+          ) : (
+            formula && <div className="font-mono text-xs text-muted-foreground">f(x) = {formula}</div>
+          )}
+          {compute && (
+            <div className="text-muted-foreground">
+              <span className="font-mono">f({formatNum(clamped)})</span> ={' '}
+              <span className="font-mono font-medium text-foreground">{result === null ? '—' : formatNum(result)}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
