@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Eraser, MessageSquare, Paperclip, Send, Square, X } from 'lucide-react';
+import { MessageCircle, Paperclip, RotateCcw, Send, Square, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -119,7 +119,7 @@ function ChatFab({ onOpen }: { onOpen: () => void }) {
         dragging ? 'cursor-grabbing transition-none' : 'cursor-pointer transition-[left,top,transform] duration-200',
       )}
     >
-      <MessageSquare className="h-5 w-5" />
+      <MessageCircle className="h-5 w-5" />
     </button>
   );
 }
@@ -222,10 +222,10 @@ function ChatPanel({ open, title, attachment, messages, isStreaming, input, setI
       )}
     >
       <div className="flex items-center gap-2 border-b px-4 py-3">
-        <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
+        <MessageCircle className="h-4 w-4 shrink-0 text-primary" />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClear} title="Clear chat" disabled={isStreaming || messages.length === 0}>
-          <Eraser className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClear} title="Reset chat" disabled={isStreaming || messages.length === 0}>
+          <RotateCcw className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose} title="Close chat">
           <X className="h-4 w-4" />
@@ -271,15 +271,15 @@ function ChatPanel({ open, title, attachment, messages, isStreaming, input, setI
             onKeyDown={onKeyDown}
             placeholder={attachment ? `Ask about “${attachment.term}”…` : 'Ask a question…'}
             rows={1}
-            className="max-h-32 min-h-[40px] resize-none"
+            className="max-h-32 min-h-[40px] resize-none rounded-2xl px-4"
           />
           {isStreaming ? (
-            <Button size="icon" className="h-9 w-9 shrink-0" onClick={onStop} title="Stop generating" aria-label="Stop generating">
-              <Square className="h-4 w-4" />
+            <Button size="icon" className="h-11 w-11 shrink-0 rounded-full" onClick={onStop} title="Stop generating" aria-label="Stop generating">
+              <Square className="h-5 w-5" />
             </Button>
           ) : (
-            <Button size="icon" className="h-9 w-9 shrink-0" onClick={onSend} disabled={!input.trim()} title="Send" aria-label="Send message">
-              <Send className="h-4 w-4" />
+            <Button size="icon" className="h-11 w-11 shrink-0 rounded-full" onClick={onSend} disabled={!input.trim()} title="Send" aria-label="Send message">
+              <Send className="h-5 w-5" />
             </Button>
           )}
         </div>
