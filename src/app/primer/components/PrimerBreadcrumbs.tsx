@@ -12,9 +12,8 @@ export interface PrimerBreadcrumbItem {
 export function PrimerBreadcrumbs({ items }: { items: PrimerBreadcrumbItem[] }) {
   return (
     <nav aria-label="Learning path" className="mb-5 flex min-w-0 items-center gap-1.5 overflow-x-auto text-xs text-muted-foreground">
-      <Link href="/primer" className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground">
+      <Link href="/primer" className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground" aria-label="Primer home">
         <GraduationCap className="h-3.5 w-3.5" />
-        <span>Primer</span>
       </Link>
       {items.map((item) => {
         const title = toTitleCase(item.title);

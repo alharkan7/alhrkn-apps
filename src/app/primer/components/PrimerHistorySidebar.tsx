@@ -151,7 +151,7 @@ export function PrimerHistorySidebar() {
 
     return (
       <React.Fragment key={node.id}>
-        <div className="group flex min-w-max items-start gap-1 rounded-md py-1 pr-2 hover:bg-muted/70" style={{ paddingLeft: 8 + depth * 16 }}>
+        <div className="group flex w-full items-start gap-1 rounded-md py-1 pr-2 hover:bg-muted/70" style={{ paddingLeft: 8 + depth * 16 }}>
           <Link
             href={`/primer/${node.id}`}
             onClick={() => setIsOpen(false)}
@@ -211,7 +211,7 @@ export function PrimerHistorySidebar() {
         </div>
 
         <div className="flex-1 overflow-auto p-2 scrollbar-thin">
-          <div className="min-w-max">
+          <div className="w-full">
             {rootBranch.loading && rootBranch.items.length === 0 ? (
               <div className="flex items-center justify-center p-8 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>
             ) : rootBranch.items.length === 0 ? (

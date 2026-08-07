@@ -51,6 +51,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
+  const [hintDismissed, setHintDismissed] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== 'light';
 
@@ -74,6 +75,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
 
   useEffect(() => {
     if (!open) setSelectedNode(null);
+    else setHintDismissed(false);
   }, [open]);
 
   useEffect(() => {
@@ -192,7 +194,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
   const spinnerClass = isDark ? 'text-amber-400' : 'text-amber-500';
   const errorTextClass = isDark ? 'text-red-300' : 'text-red-600';
   const hintClass = isDark
-    ? 'bg-black/40 text-slate-300'
+    ? 'border border-white/10 bg-black/50 text-slate-300'
     : 'border border-slate-200 bg-white/70 text-slate-600';
   const cardClass = isDark
     ? 'border-slate-700 bg-slate-900/90 text-slate-100'
@@ -206,7 +208,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92vh] w-[96vw] max-w-none flex-col overflow-hidden p-0" aria-describedby={undefined}>
+      <DialogContent className="flex h-[92vh] w-[96vw] max-w-none flex-col overflow-hidden rounded-2xl p-0 sm:rounded-2xl" aria-describedby={undefined}>
         <DialogHeader className="border-b px-5 py-4 pr-12">
           <DialogTitle className="flex items-center gap-2"><Waypoints className="h-4 w-4 text-primary" />Learning Map</DialogTitle>
         </DialogHeader>
@@ -230,7 +232,19 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
                 </button>
               </div>
             ) : (
-              <div className={`pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] backdrop-blur ${hintClass}`}>Tap a node for its title, then Open to jump there · drag · orbit · scroll to zoom</div>
+              !hintDismissed ? (
+                <div className={`pointer-events-none absolute bottom-3 left-1/2 flex w-[min(92vw,24rem)] -translate-x-1/2 items-center gap-2 rounded-lg px-3 py-1 text-[11px] backdrop-blur ${hintClass}`}>
+                  <span>Tap a node for its title · drag to orbit · two-finger or right-drag to pan · scroll to zoom</span>
+                  <button
+                    type="button"
+                    aria-label="Dismiss hint"
+                    className={`pointer-events-auto -mr-1 flex h-4 w-4 items-center justify-center rounded ${closeClass}`}
+                    onClick={() => setHintDismissed(true)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null
             )
           )}
         </div>
