@@ -7,6 +7,7 @@ import { TooltipProvider } from './tooltips/TooltipProvider';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { PrimerBreadcrumbs, type PrimerBreadcrumbItem } from './PrimerBreadcrumbs';
 import { PrimerNetworkMap } from './PrimerNetworkMap';
+import { PrimerChat } from './chat/PrimerChat';
 import { getDisplayBody, parseMeta, type AutoLinkTarget } from '../lib/parse';
 import type { GlossaryEntry } from '../types';
 
@@ -29,7 +30,7 @@ const GENERATION_TIMEOUT_MS = 2 * 60 * 1000;
 const POLL_INTERVAL_MS = 1500;
 
 export function PrimerLessonView(props: PrimerLessonViewProps) {
-  const { id, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs } = props;
+  const { id, title, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs } = props;
 
   const [streamed, setStreamed] = useState('');
   const [phase, setPhase] = useState<Phase>(initialStatus === 'error' ? 'error' : 'streaming');
@@ -158,6 +159,13 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
       : polledGlossary ?? []
     : parseMeta(streamed).glossary;
 
+  // Context for the in-lesson chat: the lesson title plus a compact excerpt of
+  // the body (concept-link markers stripped to their bare term).
+  const chatTitle = title || topic;
+  const chatExcerpt = bodyText
+    ? bodyText.slice(0, 1000).replace(/\[\[([^\]]+)\]\]/g, '$1').replace(/\s+/g, ' ').trim().slice(0, 700)
+    : undefined;
+
   const showGenerating = !showSaved && !streamed && phase !== 'error';
   const [mapOpen, setMapOpen] = useState(false);
 
@@ -202,6 +210,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
         )}
       </article>
       <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />
+      <PrimerChat title={chatTitle} topic={topic} excerpt={chatExcerpt} />
     </TooltipProvider>
   );
 }

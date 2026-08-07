@@ -42,6 +42,8 @@ interface TooltipContextValue {
   /** Record a freshly generated selection explanation so it resolves instantly
    *  on re-open and is underlined in the body (via onExplanationSaved). */
   registerExplanation: (term: string, definition: string, occurrence: number | null) => void;
+  /** Close the entire tooltip chain (used when handing focus to the chat). */
+  dismissAll: () => void;
 }
 
 const TooltipContext = createContext<TooltipContextValue | null>(null);
@@ -236,8 +238,8 @@ export function TooltipProvider({
   }, [selectionPrompt]);
 
   const value = useMemo<TooltipContextValue>(
-    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation }),
-    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation],
+    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll }),
+    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll],
   );
 
   return (

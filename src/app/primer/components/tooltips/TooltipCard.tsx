@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Loader2, Pin, X } from 'lucide-react';
+import { Loader2, MessageSquare, Pin, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export function TooltipCard({
   onClose: () => void;
 }) {
   const def = lookupGlossary(glossaryMap, entry.term);
-  const { registerExplanation } = useTooltip();
+  const { registerExplanation, dismissAll } = useTooltip();
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<Pos>({ top: -9999, left: -9999 });
   const [explanation, setExplanation] = useState<{ status: 'loading' | 'ready' | 'error'; description?: string }>({ status: entry.source === 'selection' && !def ? 'loading' : 'ready' });
@@ -143,6 +143,23 @@ export function TooltipCard({
     }
   };
 
+  // The definition currently shown in the card body: the glossary entry for a
+  // [[Term]], or the generated explanation for a reader selection. The Chat
+  // button stays disabled while a selection explanation is still loading so the
+  // launched chat always has concrete context to anchor on.
+  const displayedDefinition = def?.definition ?? (explanation.status === 'ready' ? explanation.description : undefined);
+  const canChat = !!displayedDefinition;
+
+  const handleChat = () => {
+    if (!canChat) return;
+    dismissAll();
+    window.dispatchEvent(
+      new CustomEvent('openPrimerChat', {
+        detail: { term: entry.term, definition: displayedDefinition },
+      }),
+    );
+  };
+
   // Recompute the card position from the live anchor rect and the card's current
   // size. Invoked on mount/scroll/resize (via `version`) and whenever the card
   // resizes (e.g. when a selection explanation replaces the loading spinner),
@@ -217,18 +234,32 @@ export function TooltipCard({
             <MarkdownRenderer compact>{explanation.description || 'No definition available.'}</MarkdownRenderer>
           )}
         </div>
-        <div className="flex flex-col gap-1 border-t border-border/50 px-3 py-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="w-full justify-center gap-1.5"
-            disabled={learnMoreLoading}
-            onClick={handleLearnMore}
-          >
-            {learnMoreLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {learnMoreLoading ? 'Preparing lesson…' : 'Learn more'}
-          </Button>
+        <div className="flex flex-col gap-1.5 border-t border-border/50 px-3 py-2">
+          <div className="flex gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="flex-1 justify-center gap-1.5"
+              disabled={learnMoreLoading}
+              onClick={handleLearnMore}
+            >
+              {learnMoreLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {learnMoreLoading ? 'Preparing…' : 'Learn more'}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="flex-1 justify-center gap-1.5"
+              disabled={!canChat}
+              onClick={handleChat}
+              title={canChat ? `Chat about “${entry.term}”` : 'Definition is still loading'}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Chat
+            </Button>
+          </div>
           {learnMoreError && <span className="text-xs text-destructive">{learnMoreError}</span>}
         </div>
       </ChainPathContext.Provider>
