@@ -137,6 +137,13 @@ function removeScripts(value: string): string {
     .replace(/javascript:/gi, '');
 }
 
+/** Remove editor-only attributes and unsafe executable markup before persistence. */
+export function sanitizePosterHtml(value: string): string {
+  return removeScripts(value)
+    .replace(/\s+(?:contenteditable|data-posterly-editing)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/<style\b[^>]*data-posterly-editor[^>]*>[\s\S]*?<\/style>/gi, '');
+}
+
 const LAYOUT_FIX = `<style data-posterly-layout-fix="v4">
 * {
   box-sizing: border-box;
