@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { posterlyPosters } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getSignedUrl } from '@/lib/storage';
+import { normalizePosterHtml } from '@/app/posterly/lib/generator';
 import { PosterViewer } from '../components/PosterViewer';
 import type { PosterStatus } from '../types';
 
@@ -35,9 +36,8 @@ export default async function PosterlyIdPage({ params }: { params: Promise<{ id:
     <PosterViewer
       id={poster.id}
       title={poster.title}
-      style={poster.style}
       status={poster.status as PosterStatus}
-      sourceFileName={poster.sourceFileName}
+      initialHtml={poster.html ? normalizePosterHtml(poster.html) : null}
       initialUrls={urls}
       errorMessage={poster.errorMessage}
     />

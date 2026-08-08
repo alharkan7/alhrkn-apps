@@ -2,16 +2,36 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 export interface PosterRenderResult {
-  htmlPath: string;
-  pdfPath: string;
-  pngPath: string;
+  path: string;
+  contentType: 'application/pdf' | 'image/png';
+  fileName: string;
 }
 
-export async function renderPoster(html: string, workDir: string): Promise<PosterRenderResult> {
-  const htmlPath = path.join(workDir, 'poster.html');
-  const pdfPath = path.join(workDir, 'poster.pdf');
-  const pngPath = path.join(workDir, 'poster.png');
-  await fs.writeFile(htmlPath, html, 'utf8');
+export type PosterExportFormat = 'pdf' | 'png';
+
+async function measurePosterSize(page: any): Promise<{ width: number; height: number }> {
+  return page.evaluate(() => {
+    const root = document.querySelector('[data-poster-root], .poster, .poster-container') as HTMLElement | null;
+    const rootRect = root?.getBoundingClientRect();
+    const documentElement = document.documentElement;
+    const body = document.body;
+    const width = Math.ceil(rootRect?.width || documentElement.scrollWidth || body?.scrollWidth || 1600);
+    const height = Math.ceil(Math.max(
+      rootRect?.height || 0,
+      root?.scrollHeight || 0,
+      documentElement.scrollHeight || 0,
+      body?.scrollHeight || 0,
+      960,
+    ));
+
+    return { width: Math.max(1, width), height: Math.max(1, height) };
+  });
+}
+
+export async function renderPoster(html: string, workDir: string, format: PosterExportFormat): Promise<PosterRenderResult> {
+  const fileName = `poster.${format}`;
+  const outputPath = path.join(workDir, fileName);
+  await fs.mkdir(workDir, { recursive: true });
 
   const puppeteerModule = await import('puppeteer');
   const puppeteer = (puppeteerModule as any).default || puppeteerModule;
@@ -28,12 +48,27 @@ export async function renderPoster(html: string, workDir: string): Promise<Poste
     await page.evaluate(async () => {
       if (document.fonts?.ready) await document.fonts.ready;
     });
-    await page.pdf({ path: pdfPath, printBackground: true, preferCSSPageSize: true });
-    await page.screenshot({ path: pngPath, type: 'png', fullPage: true, captureBeyondViewport: true });
+    if (format === 'pdf') {
+      const { width, height } = await measurePosterSize(page);
+      await page.pdf({
+        path: outputPath,
+        printBackground: true,
+        width: `${width}px`,
+        height: `${height}px`,
+        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
+        preferCSSPageSize: false,
+      });
+    } else {
+      await page.screenshot({ path: outputPath, type: 'png', fullPage: true, captureBeyondViewport: true });
+    }
     await page.close();
   } finally {
     await browser.close();
   }
 
-  return { htmlPath, pdfPath, pngPath };
+  return {
+    path: outputPath,
+    contentType: format === 'pdf' ? 'application/pdf' : 'image/png',
+    fileName,
+  };
 }

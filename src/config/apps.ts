@@ -45,17 +45,17 @@ export const apps: AppConfig[] = [
     type: 'academic'
   },
   {
-    name: 'Motion Chart',
-    icon: LineChart,
-    slug: 'animachart',
-    description: 'Turn Boring Chart into Animated One',
-    type: 'academic'
-  },
-  {
     name: 'Posterly',
     icon: Presentation,
     slug: 'posterly',
     description: 'Turn Scientific Papers into Conference Posters',
+    type: 'academic'
+  },
+  {
+    name: 'Motion Chart',
+    icon: LineChart,
+    slug: 'animachart',
+    description: 'Turn Boring Chart into Animated One',
     type: 'academic'
   },
   {

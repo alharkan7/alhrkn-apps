@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { posterlyPosters } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getSignedUrl } from '@/lib/storage';
+import { normalizePosterHtml } from '@/app/posterly/lib/generator';
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       style: poster.style,
       status: poster.status,
       errorMessage: poster.errorMessage,
-      html: poster.html,
+      html: poster.html ? normalizePosterHtml(poster.html) : null,
       createdAt: poster.createdAt,
       updatedAt: poster.updatedAt,
       urls,

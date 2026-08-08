@@ -1,6 +1,3 @@
-import { promises as fs } from 'fs';
-import os from 'os';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
@@ -9,7 +6,6 @@ import { posterlyPosters } from '@/db/schema';
 import { getBucket } from '@/lib/storage/client';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { extractInputText, deriveSourceTitle, generatePosterHtml, titleFromPosterHtml } from '@/app/posterly/lib/generator';
-import { renderPoster } from '@/app/posterly/lib/render';
 import type { PosterStyle } from '@/app/posterly/types';
 
 export const runtime = 'nodejs';
@@ -29,17 +25,8 @@ function contentTypeFor(fileName: string, fallback: string): string {
   return fallback || 'text/markdown; charset=utf-8';
 }
 
-async function uploadArtifact(localPath: string, destination: string, contentType: string): Promise<void> {
-  await getBucket().upload(localPath, {
-    destination,
-    resumable: false,
-    metadata: { contentType },
-  });
-}
-
 export async function POST(request: NextRequest) {
   let posterId: string | null = null;
-  let workDir: string | null = null;
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -94,27 +81,11 @@ export async function POST(request: NextRequest) {
     });
 
     const html = await generatePosterHtml(sourceText, sourceFileName, style);
-    workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'posterly-'));
-    const rendered = await renderPoster(html, workDir);
-    const artifactPrefix = `posterly/${user.id}/${posterId}`;
-    const htmlPath = `${artifactPrefix}/poster.html`;
-    const pdfPath = `${artifactPrefix}/poster.pdf`;
-    const pngPath = `${artifactPrefix}/poster.png`;
-
-    await Promise.all([
-      uploadArtifact(rendered.htmlPath, htmlPath, 'text/html; charset=utf-8'),
-      uploadArtifact(rendered.pdfPath, pdfPath, 'application/pdf'),
-      uploadArtifact(rendered.pngPath, pngPath, 'image/png'),
-    ]);
-
     const title = titleFromPosterHtml(html, sourceTitle);
     await db.update(posterlyPosters).set({
       title,
       style,
       html,
-      htmlPath,
-      pdfPath,
-      pngPath,
       status: 'ready',
       errorMessage: null,
       updatedAt: new Date(),
@@ -133,7 +104,5 @@ export async function POST(request: NextRequest) {
       });
     }
     return NextResponse.json({ error: error?.message || 'Failed to generate poster', id: posterId }, { status: 500 });
-  } finally {
-    if (workDir) await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
