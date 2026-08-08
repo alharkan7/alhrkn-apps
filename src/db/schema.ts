@@ -386,6 +386,30 @@ export const animachartVersions = pgTable('animachart_versions', {
 export type AnimaChartVersion = typeof animachartVersions.$inferSelect;
 export type NewAnimaChartVersion = typeof animachartVersions.$inferInsert;
 
+// --- Posterly Tables ---
+
+export const posterlyPosters = pgTable('posterly_posters', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  title: text('title').notNull(),
+  sourceFileName: text('source_file_name').notNull(),
+  sourceFilePath: text('source_file_path'),
+  style: text('style').$type<'minimal' | 'editorial' | 'dark' | 'blueprint'>().notNull().default('minimal'),
+  html: text('html'),
+  status: text('status').$type<'pending' | 'processing' | 'ready' | 'error'>().notNull().default('pending'),
+  htmlPath: text('html_path'),
+  pdfPath: text('pdf_path'),
+  pngPath: text('png_path'),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  userCreatedIdx: index('posterly_posters_user_created_idx').on(table.userId, table.createdAt),
+}));
+
+export type PosterlyPoster = typeof posterlyPosters.$inferSelect;
+export type NewPosterlyPoster = typeof posterlyPosters.$inferInsert;
+
 // --- Primer Tables ---
 
 export const primers = pgTable('primers', {
