@@ -50,9 +50,40 @@ export function deriveSourceTitle(sourceText: string, fileName: string): string 
   return truncate(firstUsefulLine || fileTitle(fileName), MAX_TITLE_LENGTH);
 }
 
+/**
+ * PDF.js v5 initializes a DOMMatrix while its Node build is imported. The
+ * native canvas package that normally supplies it is optional and may not be
+ * included in a serverless deployment. Posterly only extracts text, so a
+ * small 2D-compatible fallback is enough and avoids making PDF extraction
+ * depend on native canvas binaries.
+ */
+function ensurePdfJsDomMatrix(): void {
+  const runtime = globalThis as unknown as Record<string, unknown>;
+
+  if (runtime.DOMMatrix) return;
+
+  class PdfJsDomMatrix {
+    a = 1;
+    b = 0;
+    c = 0;
+    d = 1;
+    e = 0;
+    f = 0;
+
+    constructor(init?: number[] | string) {
+      if (Array.isArray(init) && init.length >= 6) {
+        [this.a, this.b, this.c, this.d, this.e, this.f] = init;
+      }
+    }
+  }
+
+  runtime.DOMMatrix = PdfJsDomMatrix;
+}
+
 export async function extractInputText(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
   const isPdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
   if (isPdf) {
+    ensurePdfJsDomMatrix();
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs') as any;
     // PDF.js disables real workers in Node and falls back to importing its
     // worker module. Next's server bundler otherwise resolves that relative
