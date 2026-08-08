@@ -96,15 +96,36 @@
    vibe. The default (no attribute) keeps the app's Space Grotesk. Scoped to
    .primer-markdown so only the lesson text changes, not the surrounding UI.
    Inline/code keeps its own mono family. */
-[data-primer-font="serif"] .primer-markdown {
+[data-primer-font="serif"] .primer-markdown,
+[data-primer-font="serif"] .primer-bibliography {
   font-family: Georgia, Cambria, 'Times New Roman', Times, serif;
 }
-[data-primer-font="rounded"] .primer-markdown {
+[data-primer-font="rounded"] .primer-markdown,
+[data-primer-font="rounded"] .primer-bibliography {
   font-family: var(--font-primer-rounded), ui-rounded, 'Segoe UI', system-ui, sans-serif;
 }
-[data-primer-font="lexend"] .primer-markdown {
+[data-primer-font="lexend"] .primer-markdown,
+[data-primer-font="lexend"] .primer-bibliography {
   font-family: var(--font-primer-lexend), system-ui, -apple-system, sans-serif;
 }
-[data-primer-font="mono"] .primer-markdown {
+[data-primer-font="mono"] .primer-markdown,
+[data-primer-font="mono"] .primer-bibliography {
   font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+/* Inline citation markers ([n]) appended after cited passages, and the brief
+   flash that plays on a References entry when jumped to from a marker/verdict. */
+.primer-citation-marker {
+  font-size: 0.72em;
+}
+.primer-citation-marker > a {
+  text-decoration: none;
+}
+.citation-ref--flash {
+  border-radius: 0.375rem;
+  animation: primer-cite-flash 1.6s ease-out;
+}
+@keyframes primer-cite-flash {
+  0% { background-color: hsl(var(--primary) / 0.28); }
+  100% { background-color: transparent; }
 }

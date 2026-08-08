@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildGlossaryMap } from '../../lib/parse';
-import { computeSelectionOccurrence } from '../../lib/occurrence';
+import { computePassageOccurrence, computeSelectionOccurrence } from '../../lib/occurrence';
 import type { GlossaryEntry } from '../../types';
 import { TooltipLayer } from './TooltipLayer';
 import { SelectionPrompt, type SelectionPromptData } from './SelectionPrompt';
@@ -195,8 +195,11 @@ export function TooltipProvider({
     const context = (contextBlock?.textContent || lessonText || '').replace(/\s+/g, ' ').trim().slice(0, 1600);
     // Pin the exact occurrence so the body can re-underline just this phrase.
     const occurrence = computeSelectionOccurrence(markdownRoot as HTMLElement, selectedText);
+    // Citation occurrence matches the flattened, link-inclusive run so a passage
+    // spanning [[concept]] links still pins correctly.
+    const citeOccurrence = computePassageOccurrence(markdownRoot as HTMLElement, selectedText);
 
-    selectionTimer.current = setTimeout(() => setSelectionPrompt({ term: selectedText, rect, context, occurrence }), 220);
+    selectionTimer.current = setTimeout(() => setSelectionPrompt({ term: selectedText, rect, context, occurrence, citeOccurrence }), 220);
   }, [lessonText]);
 
   useEffect(() => () => {
@@ -237,6 +240,17 @@ export function TooltipProvider({
     }]);
   }, [selectionPrompt]);
 
+  // Hand the selection to the citation flow (PrimerCitations listens for this).
+  const requestCitation = useCallback(() => {
+    if (!selectionPrompt) return;
+    const { term, rect, context, citeOccurrence } = selectionPrompt;
+    setSelectionPrompt(null);
+    window.getSelection()?.removeAllRanges();
+    window.dispatchEvent(
+      new CustomEvent('openPrimerCite', { detail: { selection: term, rect, context, occurrence: citeOccurrence } }),
+    );
+  }, [selectionPrompt]);
+
   const value = useMemo<TooltipContextValue>(
     () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll }),
     [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll],
@@ -248,7 +262,7 @@ export function TooltipProvider({
         {children}
       </div>
       {mounted && selectionPrompt && (
-        <SelectionPrompt selection={selectionPrompt} onConfirm={confirmSelection} onDismiss={() => setSelectionPrompt(null)} />
+        <SelectionPrompt selection={selectionPrompt} onConfirm={confirmSelection} onCite={requestCitation} onDismiss={() => setSelectionPrompt(null)} />
       )}
       {mounted && (
         <TooltipLayer

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from './tooltips/TooltipProvider';
@@ -8,8 +8,11 @@ import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { PrimerBreadcrumbs, type PrimerBreadcrumbItem } from './PrimerBreadcrumbs';
 import { PrimerNetworkMap } from './PrimerNetworkMap';
 import { PrimerChat } from './chat/PrimerChat';
+import { PrimerBibliography } from './PrimerBibliography';
+import { PrimerCitations } from './citations/PrimerCitations';
+import { buildCitations, dedupeKey } from '../lib/citation-merge';
 import { getDisplayBody, parseMeta, type AutoLinkTarget } from '../lib/parse';
-import type { GlossaryEntry } from '../types';
+import type { GlossaryEntry, PrimerCitation } from '../types';
 
 export interface PrimerLessonViewProps {
   id: string;
@@ -22,6 +25,7 @@ export interface PrimerLessonViewProps {
   autoLinkTargets?: AutoLinkTarget[];
   createdAt: string | null;
   breadcrumbs: PrimerBreadcrumbItem[];
+  initialCitations?: PrimerCitation[];
 }
 
 type Phase = 'streaming' | 'waiting' | 'error';
@@ -30,7 +34,7 @@ const GENERATION_TIMEOUT_MS = 2 * 60 * 1000;
 const POLL_INTERVAL_MS = 1500;
 
 export function PrimerLessonView(props: PrimerLessonViewProps) {
-  const { id, title, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs } = props;
+  const { id, title, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs, initialCitations } = props;
 
   const [streamed, setStreamed] = useState('');
   const [phase, setPhase] = useState<Phase>(initialStatus === 'error' ? 'error' : 'streaming');
@@ -40,6 +44,8 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
   // Occurrences underlined in the body. Seeded from the server-merged explanations
   // and extended live when a new selection is explained in this session.
   const [liveTargets, setLiveTargets] = useState<AutoLinkTarget[]>(initialAutoLinkTargets ?? []);
+  // Cited passages: seeded from the server, extended live when a passage is cited.
+  const [citations, setCitations] = useState<PrimerCitation[]>(initialCitations ?? []);
 
   const handleExplanationSaved = useCallback((term: string, _definition: string, occurrence: number | null) => {
     if (occurrence == null) return;
@@ -56,6 +62,22 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
       return [...prev, { term, occurrence }];
     });
   }, []);
+
+  const handleCitationSaved = useCallback((citation: PrimerCitation) => {
+    const key = citation.selection.replace(/\s+/g, ' ').trim().toLowerCase();
+    setCitations((prev) => {
+      const filtered = prev.filter((c) => c.selection.replace(/\s+/g, ' ').trim().toLowerCase() !== key);
+      return [...filtered, citation];
+    });
+  }, []);
+
+  // Number/dedupe references and derive inline-marker targets + a ref->entry map
+  // (the map lets the verdict popover label its [n] anchors correctly).
+  const builtCitations = useMemo(() => buildCitations(citations), [citations]);
+  const refMap = useMemo(
+    () => new Map(builtCitations.bibliography.map((entry) => [dedupeKey(entry.ref), entry])),
+    [builtCitations],
+  );
 
   useEffect(() => {
     // Nothing to do if the lesson is already persisted. An errored lesson is
@@ -166,6 +188,13 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
     ? bodyText.slice(0, 1000).replace(/\[\[([^\]]+)\]\]/g, '$1').replace(/\s+/g, ' ').trim().slice(0, 700)
     : undefined;
 
+  // Body for rendering: drop a trailing thematic break (the model often emits
+  // "---" before the primer:meta block, which survives getDisplayBody and would
+  // duplicate the bibliography's own separator).
+  const renderBody = bodyText
+    ? bodyText.replace(/\s+$/, '').replace(/\n+(-{3,}|\*{3,}|_{3,})$/, '').replace(/\s+$/, '\n')
+    : bodyText;
+
   const showGenerating = !showSaved && !streamed && phase !== 'error';
   const [mapOpen, setMapOpen] = useState(false);
 
@@ -206,11 +235,13 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
             <p className="text-sm text-muted-foreground">Writing your lesson on “{topic}”…</p>
           </div>
         ) : (
-          <MarkdownRenderer autoLinkTargets={liveTargets}>{bodyText}</MarkdownRenderer>
+          <MarkdownRenderer autoLinkTargets={liveTargets} citationTargets={builtCitations.citationTargets}>{renderBody}</MarkdownRenderer>
         )}
       </article>
+      <PrimerBibliography entries={builtCitations.bibliography} />
       <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />
       <PrimerChat title={chatTitle} topic={topic} excerpt={chatExcerpt} />
+      <PrimerCitations primerId={id} refMap={refMap} onCitationSaved={handleCitationSaved} />
     </TooltipProvider>
   );
 }

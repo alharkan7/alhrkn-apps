@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { formulaToLatex } from '../../lib/formula-latex';
 import { remarkConcepts } from '../../lib/remark-concepts';
 import { remarkAutoLinkTerms, type AutoLinkTarget } from '../../lib/remark-autolink-terms';
+import { remarkCitationMarkers } from '../../lib/remark-citation-markers';
+import type { CitationTarget } from '../../lib/citation-merge';
 import { ConceptLinkAnchor } from '../tooltips/ConceptLinkAnchor';
 import { WidgetBlock } from '../widgets/WidgetBlock';
 import { ExpandedReading } from '../ExpandedReading';
@@ -82,21 +84,26 @@ export function MarkdownRenderer({
   children,
   compact = false,
   autoLinkTargets,
+  citationTargets,
 }: {
   children: string;
   compact?: boolean;
   /** Exact occurrences of explained phrases to underline as interactive concept links. */
   autoLinkTargets?: AutoLinkTarget[];
+  /** Cited passages to mark with a superscript scroll-link to References. */
+  citationTargets?: CitationTarget[];
 }) {
   // remarkAutoLinkTerms runs after remarkConcepts so [[Term]] markers are already
-  // converted (and skipped) before we wrap plain-text occurrences. Re-memoize
-  // only when the target set changes so react-markdown does not re-parse on every
-  // render. The nested tuple is annotated so the plugins array stays assignable
-  // to react-markdown's PluggableList.
+  // converted (and skipped) before we wrap plain-text occurrences. remarkCitation
+  // Markers runs last so it sees the autolink-modified tree. Re-memoize only when
+  // a target set changes so react-markdown does not re-parse on every render. The
+  // nested tuples are annotated so the plugins array stays assignable to
+  // react-markdown's PluggableList.
   const remarkPlugins = useMemo(() => {
     const autolink: [typeof remarkAutoLinkTerms, AutoLinkTarget[]] = [remarkAutoLinkTerms, autoLinkTargets ?? []];
-    return [remarkGfm, remarkMath, remarkConcepts, autolink];
-  }, [autoLinkTargets]);
+    const cite: [typeof remarkCitationMarkers, CitationTarget[]] = [remarkCitationMarkers, citationTargets ?? []];
+    return [remarkGfm, remarkMath, remarkConcepts, autolink, cite];
+  }, [autoLinkTargets, citationTargets]);
 
   return (
     <div

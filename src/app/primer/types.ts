@@ -19,6 +19,28 @@ export interface PrimerOptions {
 
 export type PrimerStatus = 'pending' | 'generating' | 'ready' | 'error';
 
+// --- Citations (Cite feature) ---
+
+/** A single academic source backing a cited passage. */
+export interface PrimerReference {
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue?: string;
+  doi?: string;
+  url?: string;
+  citationCount?: number;
+}
+
+/** A persisted citation: one passage + the LLM verdict + the 1-3 sources it picked. */
+export interface PrimerCitation {
+  id: string;
+  selection: string;
+  occurrence: number | null;
+  verdict: string;
+  references: PrimerReference[];
+}
+
 // --- Widget props (emitted by the LLM inside fenced blocks) ---
 
 export interface SliderWidgetProps {

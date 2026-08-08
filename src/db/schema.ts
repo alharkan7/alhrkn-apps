@@ -424,7 +424,36 @@ export const primerExplanations = pgTable('primer_explanations', {
   lookupIdx: uniqueIndex('primer_explanations_lookup_idx').on(table.primerId, table.selectionKey),
 }));
 
+export const primerCitations = pgTable('primer_citations', {
+  id: text('id').primaryKey(),
+  primerId: text('primer_id').notNull().references(() => primers.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull(),
+  selection: text('selection').notNull(),
+  selectionKey: text('selection_key').notNull(),
+  // 0-based whole-word occurrence of the cited passage so reload can re-pin the
+  // inline [n] marker to the exact phrase (mirrors primerExplanations.occurrence).
+  occurrence: integer('occurrence'),
+  // The 1-3 academic sources the verifier chose to back this passage.
+  references: jsonb('references').$type<{
+    title: string;
+    authors: string[];
+    year: number | null;
+    venue?: string;
+    doi?: string;
+    url?: string;
+    citationCount?: number;
+  }[]>().notNull().default([]),
+  verdict: text('verdict').notNull(),
+  status: text('status').$type<'generating' | 'ready' | 'error'>().notNull().default('generating'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  lookupIdx: uniqueIndex('primer_citations_lookup_idx').on(table.primerId, table.selectionKey),
+}));
+
 export type Primer = typeof primers.$inferSelect;
 export type NewPrimer = typeof primers.$inferInsert;
 export type PrimerExplanation = typeof primerExplanations.$inferSelect;
 export type NewPrimerExplanation = typeof primerExplanations.$inferInsert;
+export type PrimerCitationRow = typeof primerCitations.$inferSelect;
+export type NewPrimerCitation = typeof primerCitations.$inferInsert;

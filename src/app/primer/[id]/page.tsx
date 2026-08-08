@@ -1,13 +1,14 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
-import { primerExplanations, primers } from '@/db/schema';
+import { primerCitations, primerExplanations, primers } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { isBotRequest } from '@/lib/bot';
 import { PrimerLessonView } from '../components/PrimerLessonView';
 import type { PrimerBreadcrumbItem } from '../components/PrimerBreadcrumbs';
 import { mergeExplanations } from '../lib/parse';
+import type { PrimerCitation, PrimerReference } from '../types';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,28 @@ export default async function PrimerIdPage({ params }: { params: Promise<{ id: s
     ));
   const { glossary, autoLinkTargets } = mergeExplanations(primer.glossary ?? [], explanations);
 
+  const citationRows = await db
+    .select({
+      id: primerCitations.id,
+      selection: primerCitations.selection,
+      occurrence: primerCitations.occurrence,
+      verdict: primerCitations.verdict,
+      references: primerCitations.references,
+    })
+    .from(primerCitations)
+    .where(and(
+      eq(primerCitations.primerId, id),
+      eq(primerCitations.userId, user.id),
+      eq(primerCitations.status, 'ready'),
+    ));
+  const initialCitations: PrimerCitation[] = citationRows.map((row) => ({
+    id: row.id,
+    selection: row.selection,
+    occurrence: row.occurrence,
+    verdict: row.verdict,
+    references: (Array.isArray(row.references) ? row.references : []) as PrimerReference[],
+  }));
+
   const ancestorRows = await db.execute(sql`
     WITH RECURSIVE ancestor_rows AS (
       SELECT id, parent_id, title, topic, 0 AS depth
@@ -77,6 +100,7 @@ export default async function PrimerIdPage({ params }: { params: Promise<{ id: s
         autoLinkTargets={autoLinkTargets}
         createdAt={primer.createdAt ? primer.createdAt.toISOString() : null}
         breadcrumbs={breadcrumbs}
+        initialCitations={initialCitations}
       />
     </Suspense>
   );

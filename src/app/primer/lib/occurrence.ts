@@ -68,3 +68,81 @@ export function computeSelectionOccurrence(root: HTMLElement, term: string): num
   }
   return null;
 }
+
+/**
+ * Citation variant of occurrence pinning. Unlike computeSelectionOccurrence:
+ *  - includes text inside <a> (concept links), excluding only <code>, so a
+ *    passage spanning inline links still matches;
+ *  - normalizes whitespace in both the body and the passage, then does a literal
+ *    substring match (no \b), so passages with punctuation at the edges match;
+ *  - resolves the occurrence by OVERLAP of the selection range with the match
+ *    range, which tolerates leading/trailing whitespace in the selection.
+ *
+ * The count is over the whole flattened body, so the remark plugin must count
+ * occurrences globally across blocks in document order to stay consistent.
+ */
+export function computePassageOccurrence(root: HTMLElement, passage: string): number | null {
+  const normPassage = passage.replace(/\s+/g, ' ').trim();
+  if (!normPassage) return null;
+
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  const range = selection.getRangeAt(0);
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      if (parent.closest('code')) return NodeFilter.FILTER_REJECT;
+      return parent.closest('.primer-markdown') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    },
+  });
+
+  const segments: { node: Text; base: number }[] = [];
+  let raw = '';
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    segments.push({ node, base: raw.length });
+    raw += node.nodeValue ?? '';
+  }
+
+  const segOf = (container: Node) =>
+    container.nodeType === Node.TEXT_NODE ? segments.find((s) => s.node === container) : undefined;
+  const startSeg = segOf(range.startContainer);
+  const endSeg = segOf(range.endContainer);
+  if (!startSeg || !endSeg) return null;
+  const startRaw = Math.min(startSeg.base + range.startOffset, raw.length);
+  const endRaw = Math.min(endSeg.base + range.endOffset, raw.length);
+
+  // Build a whitespace-normalized copy of the body with a raw->normalized index
+  // map so we can translate the selection range into normalized coordinates.
+  let norm = '';
+  const rawToNorm: number[] = new Array(raw.length + 1);
+  rawToNorm[0] = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    const isWs = /\s/.test(ch);
+    const prevWs = norm.length > 0 && /\s/.test(norm[norm.length - 1]);
+    if (isWs && prevWs) {
+      rawToNorm[i + 1] = norm.length;
+    } else {
+      norm += isWs ? ' ' : ch;
+      rawToNorm[i + 1] = norm.length;
+    }
+  }
+  const normStart = rawToNorm[startRaw] ?? norm.length;
+  const normEnd = rawToNorm[endRaw] ?? norm.length;
+
+  const re = new RegExp(escapeRegExp(normPassage), 'gi');
+  let occurrence = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(norm)) !== null) {
+    const matchEnd = m.index + normPassage.length;
+    if (m.index < normEnd && matchEnd > normStart) {
+      return occurrence;
+    }
+    if (m.index >= normEnd) return null;
+    occurrence++;
+  }
+  return null;
+}
