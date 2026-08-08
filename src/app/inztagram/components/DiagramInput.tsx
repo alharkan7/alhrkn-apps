@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sparkles, LoaderCircle, Paperclip, Dices, ChevronDown } from 'lucide-react';
+import { ArrowUp, Dices, ChevronDown, LoaderCircle, Sparkles } from 'lucide-react';
 import { DIAGRAM_TYPES, DIAGRAM_THEMES } from './diagram-types';
 import { FREEFORM_LAYOUTS } from './freeform-layouts';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import styles from './DiagramInput.module.css';
 import type { InztagramMode } from '../lib/types';
+import { motion } from 'framer-motion';
 
 interface DiagramInputProps {
   value: string;
@@ -84,10 +85,6 @@ export function DiagramInput({
     onFocusChange?.(false);
   };
 
-  const handleFileButtonClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
   const freeformLayoutLabel = freeformLayout
     ? FREEFORM_LAYOUTS.find((l) => l.id === freeformLayout)?.label
     : undefined;
@@ -107,38 +104,54 @@ export function DiagramInput({
           );
         }
       }}
-      className={`relative flex flex-col bg-background/80 backdrop-blur-2xl transition-all duration-200 max-w-2xl mx-auto w-full rounded-[2rem] border shadow-xl p-4 sm:p-6 pb-4 focus:outline-none 
-        ${isFocused ? 'ring-2 ring-primary border-primary' : ''}`}
+      className={cn(
+        'relative mx-auto flex w-full max-w-2xl flex-col rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] outline-none transition-[box-shadow,transform] duration-300 dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] sm:p-4',
+        isFocused && 'shadow-[0_18px_54px_rgba(25,25,24,0.13),0_0_0_3px_rgba(59,130,246,0.11)] dark:shadow-[0_22px_60px_rgba(0,0,0,0.45),0_0_0_3px_rgba(96,165,250,0.12)]'
+      )}
     >
-      <div className="flex flex-col gap-2 w-full">
+      <div className="flex w-full flex-col gap-2">
         {/* Mode toggle */}
-        <div className="flex justify-center sm:justify-start">
-          <div className="inline-flex rounded-full border bg-muted/60 p-1 gap-0.5">
+        <div className="flex items-center px-1">
+          <div className="inline-flex gap-0.5 rounded-xl border border-black/[0.065] bg-black/[0.035] p-1 dark:border-white/[0.08] dark:bg-white/[0.045]">
             <button
               type="button"
               disabled={disabled || loading}
               onClick={() => onModeChange?.('freeform')}
               className={cn(
-                'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors',
+                'relative rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 sm:px-3.5',
                 mode === 'freeform'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-white dark:text-[#191918]'
+                  : 'text-black/42 hover:text-black/70 dark:text-white/40 dark:hover:text-white/70'
               )}
             >
-              Freeform
+              {mode === 'freeform' && (
+                <motion.span
+                  layoutId="inztagram-mode-selection"
+                  className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                />
+              )}
+              <span className="relative z-10">Freeform</span>
             </button>
             <button
               type="button"
               disabled={disabled || loading}
               onClick={() => onModeChange?.('mermaid')}
               className={cn(
-                'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors',
+                'relative rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 sm:px-3.5',
                 mode === 'mermaid'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-white dark:text-[#191918]'
+                  : 'text-black/42 hover:text-black/70 dark:text-white/40 dark:hover:text-white/70'
               )}
             >
-              Mermaid
+              {mode === 'mermaid' && (
+                <motion.span
+                  layoutId="inztagram-mode-selection"
+                  className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                />
+              )}
+              <span className="relative z-10">Mermaid</span>
             </button>
           </div>
         </div>
@@ -148,12 +161,18 @@ export function DiagramInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full mt-2 mb-2 bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[80px] max-h-[150px] overflow-y-auto py-2 outline-none resize-none break-words whitespace-pre-wrap"
+          className="my-1 min-h-[88px] max-h-[180px] w-full resize-none overflow-y-auto whitespace-pre-wrap break-words border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none outline-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:min-h-[92px] sm:px-3 sm:text-lg"
           onFocus={handleFocus}
           onBlur={handleBlur}
           rows={1}
           style={{ height: 'auto', maxHeight: '150px', overflowY: 'auto' }}
           disabled={disabled || loading}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
           onInput={(e) => {
             const target = e.target as HTMLTextAreaElement;
             target.style.height = 'auto';
@@ -178,16 +197,16 @@ export function DiagramInput({
           accept="application/pdf"
           onChange={onFileSelect}
         />
-        <div className="flex flex-row md:flex-row gap-2 mb-2 items-center md:justify-between w-full">
-          <div className="flex flex-row flex-wrap gap-2 flex-1 min-w-0">
+        <div className="flex w-full flex-row items-center justify-between gap-2 border-t border-black/[0.055] pt-3 dark:border-white/[0.07]">
+          <div className="flex min-w-0 flex-1 flex-row flex-wrap gap-2">
             {/* Freeform layout picker (replaces randomize in freeform mode) */}
             {mode === 'freeform' && (
               <Popover open={layoutOpen} onOpenChange={setLayoutOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
-                    variant="default"
-                    className="w-auto max-w-[200px] md:max-w-[120px] sm:max-w-[100px] flex items-center gap-2 justify-between px-3 min-w-0 rounded-full"
+                    variant="ghost"
+                    className="h-9 w-auto min-w-0 max-w-[180px] justify-between gap-2 rounded-xl border border-black/[0.07] bg-black/[0.025] px-3 text-xs font-medium text-black/60 shadow-none hover:bg-black/[0.05] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/60 dark:hover:bg-white/[0.07] dark:hover:text-white"
                     disabled={disabled || loading}
                     aria-label="Select freeform layout"
                   >
@@ -261,8 +280,8 @@ export function DiagramInput({
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
-                    variant="default"
-                    className="w-auto max-w-[200px] md:max-w-[100px] sm:max-w-[80px] flex items-center gap-2 justify-between px-3 min-w-0 rounded-full"
+                    variant="ghost"
+                    className="h-9 w-auto min-w-0 max-w-[180px] justify-between gap-2 rounded-xl border border-black/[0.07] bg-black/[0.025] px-3 text-xs font-medium text-black/60 shadow-none hover:bg-black/[0.05] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/60 dark:hover:bg-white/[0.07] dark:hover:text-white"
                     disabled={disabled || loading}
                     aria-label="Select diagram type"
                   >
@@ -341,7 +360,7 @@ export function DiagramInput({
               <Button
                 variant="outline"
                 size="icon"
-                className="shrink-0 p-2 transition-colors disabled:opacity-50 rounded-full"
+                className="size-9 shrink-0 rounded-xl border-black/[0.07] bg-transparent p-2 text-black/55 shadow-none transition-colors hover:bg-black/[0.05] dark:border-white/[0.08] dark:text-white/55 dark:hover:bg-white/[0.07]"
                 disabled={disabled || loading || !!pdfFile}
                 aria-label="Randomize Diagram"
                 type="button"
@@ -351,29 +370,20 @@ export function DiagramInput({
               </Button>
             )}
           </div>
-          {/* <Button
-            type="button"
-            variant="outline"
-            onClick={handleFileButtonClick}
-            className="shrink-0 p-2 transition-colors disabled:opacity-50 rounded-full"
-            disabled={disabled || loading || !!pdfFile}
-            aria-label="Attach PDF"
-          >
-            <Paperclip className="size-5" />
-          </Button> */}
           <Button
             type="submit"
-            className="shrink-0 grow-0 transition-colors disabled:opacity-50 w-auto rounded-full font-semibold px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+            className="group h-10 shrink-0 grow-0 rounded-xl bg-[#191918] px-3.5 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white sm:px-4"
             disabled={disabled || loading || uploading || (!value.trim() && !pdfFile)}
             aria-label="Send diagram"
           >
             {loading ? (
               <>
-                <LoaderCircle className="size-5 animate-spin" /> Creating
+                <LoaderCircle className="size-4 animate-spin" /> Creating
               </>
             ) : (
               <>
-                <Sparkles className="size-5" /> Create
+                <span>Create</span>
+                <ArrowUp className="size-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />
               </>
             )}
           </Button>

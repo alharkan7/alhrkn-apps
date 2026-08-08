@@ -95,20 +95,20 @@ export function OutlinerHistorySidebar() {
       <div 
         ref={sidebarRef}
         className={cn(
-          "fixed top-0 left-0 h-full w-72 bg-background/95 backdrop-blur-xl border-r z-[55] shadow-2xl transition-transform duration-300 flex flex-col",
+          "fixed left-0 top-0 z-[55] flex h-full w-72 flex-col border-r border-black/[0.07] bg-[#f7f7f5]/95 shadow-[8px_0_32px_rgba(25,25,24,0.08)] backdrop-blur-xl transition-transform duration-300 dark:border-white/[0.08] dark:bg-[#141413]/95 dark:shadow-[8px_0_36px_rgba(0,0,0,0.32)]",
           !isOpen && "-translate-x-full"
         )}
       >
-        <div className="h-14 px-4 border-b flex items-center justify-between shrink-0">
-          <h2 className="font-semibold text-lg">
-            History
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/[0.06] px-4 dark:border-white/[0.07]">
+          <h2 className="text-sm font-semibold tracking-[-0.01em]">
+            Recent outlines
           </h2>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 -mr-2" title="Close">
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="-mr-2 size-8 rounded-lg text-black/45 hover:bg-black/[0.06] dark:text-white/45 dark:hover:bg-white/[0.07]" title="Close">
             <ChevronLeft size={16} />
           </Button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-2 space-y-4 scrollbar-thin">
+        <div className="flex-1 space-y-3 overflow-y-auto p-2 scrollbar-thin">
           {loading && history.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-muted-foreground">
               <Loader2 className="animate-spin w-6 h-6" />
@@ -128,16 +128,16 @@ export function OutlinerHistorySidebar() {
                     <Link 
                       href={query.id}
                       className={cn(
-                        "flex flex-col gap-1 p-2 rounded-lg text-sm transition-colors group",
+                        "group flex flex-col gap-1 rounded-xl p-2.5 text-sm transition-colors",
                         isQueryActive 
-                          ? "bg-primary/10 text-primary font-medium" 
-                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                          ? "bg-black/[0.075] font-medium text-black dark:bg-white/[0.1] dark:text-white"
+                          : "text-black/52 hover:bg-black/[0.045] hover:text-black dark:text-white/52 dark:hover:bg-white/[0.06] dark:hover:text-white"
                       )}
                       onClick={() => setIsOpen(false)}
                     >
                       <div className="flex items-start gap-2">
                         <div className="mt-0.5 shrink-0">
-                          <Search size={14} className="text-primary/70" />
+                          <Search size={14} className="text-black/35 dark:text-white/35" />
                         </div>
                         <span className="line-clamp-2 leading-tight font-medium">
                           {query.title}
@@ -150,7 +150,7 @@ export function OutlinerHistorySidebar() {
 
                     {/* Render Drafts */}
                     {query.drafts && query.drafts.length > 0 && (
-                      <div className="space-y-1 border-l border-border/50 ml-[15px] pl-[6px]">
+                      <div className="ml-[15px] space-y-1 border-l border-black/[0.09] pl-[6px] dark:border-white/[0.1]">
                         {query.drafts.map((draft: any) => {
                           const isDraftActive = pathname === draft.id;
                           return (
@@ -158,16 +158,16 @@ export function OutlinerHistorySidebar() {
                               key={draft.id}
                               href={draft.id}
                               className={cn(
-                                "flex flex-col gap-1 p-2 rounded-lg text-xs transition-colors group",
+                                "group flex flex-col gap-1 rounded-lg p-2 text-xs transition-colors",
                                 isDraftActive 
-                                  ? "bg-primary/10 text-primary font-medium" 
-                                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                                  ? "bg-black/[0.075] font-medium text-black dark:bg-white/[0.1] dark:text-white"
+                                  : "text-black/48 hover:bg-black/[0.045] hover:text-black dark:text-white/48 dark:hover:bg-white/[0.06] dark:hover:text-white"
                               )}
                               onClick={() => setIsOpen(false)}
                             >
                               <div className="flex items-start gap-2">
                                 <div className="mt-0.5 shrink-0">
-                                  <FileText size={12} className="text-blue-500" />
+                                  <FileText size={12} className="text-black/32 dark:text-white/32" />
                                 </div>
                                 <span className="line-clamp-2 leading-tight">
                                   {draft.title}
@@ -194,7 +194,7 @@ export function OutlinerHistorySidebar() {
       {/* Backdrop for mobile */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[50] md:hidden"
+          className="fixed inset-0 z-[50] bg-black/18 backdrop-blur-[2px] md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

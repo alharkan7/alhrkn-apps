@@ -151,16 +151,18 @@ export function PrimerHistorySidebar() {
 
     return (
       <React.Fragment key={node.id}>
-        <div className="group flex w-full items-start gap-1 rounded-md py-1 pr-2 hover:bg-muted/70" style={{ paddingLeft: 8 + depth * 16 }}>
+        <div className="group flex w-full items-start gap-1 rounded-xl py-1 pr-2 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.045]" style={{ paddingLeft: 8 + depth * 16 }}>
           <Link
             href={`/primer/${node.id}`}
             onClick={() => setIsOpen(false)}
             className={cn(
-              'flex min-w-0 flex-1 items-start gap-2 rounded px-1.5 py-1 text-sm',
-              currentId === node.id ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground hover:text-foreground',
+              'flex min-w-0 flex-1 items-start gap-2 rounded-lg px-1.5 py-1.5 text-sm',
+              currentId === node.id
+                ? 'bg-black/[0.075] font-medium text-black dark:bg-white/[0.1] dark:text-white'
+                : 'text-black/52 hover:text-black dark:text-white/52 dark:hover:text-white',
             )}
           >
-            <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <GraduationCap className="mt-0.5 size-4 shrink-0 text-black/35 dark:text-white/35" />
             <span className="min-w-0">
               <span className="block max-w-[230px] truncate leading-tight">{title}</span>
               <span className="mt-0.5 block text-[10px] opacity-70">{relativeTime}{node.childCount > 0 ? ` · ${node.childCount} ${node.childCount === 1 ? 'child' : 'children'}` : ''}</span>
@@ -169,7 +171,7 @@ export function PrimerHistorySidebar() {
           {node.hasChildren && (
             <button
               type="button"
-              className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-background"
+              className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-lg text-black/38 hover:bg-black/[0.06] hover:text-black dark:text-white/38 dark:hover:bg-white/[0.07] dark:hover:text-white"
               onClick={() => toggleBranch(node)}
               aria-label={isExpanded ? `Collapse ${title}` : `Expand ${title}`}
             >
@@ -181,7 +183,7 @@ export function PrimerHistorySidebar() {
         {isExpanded && childBranch.hasMore && !childBranch.loading && (
           <button
             type="button"
-            className="block whitespace-nowrap px-2 py-1 text-xs text-primary hover:underline"
+            className="block whitespace-nowrap px-2 py-1 text-xs text-black/45 hover:text-black dark:text-white/45 dark:hover:text-white"
             style={{ marginLeft: 16 + (depth + 1) * 16 }}
             onClick={() => fetchBranch(node.id, childBranch.items.length, true)}
           >
@@ -199,13 +201,13 @@ export function PrimerHistorySidebar() {
       <div
         ref={sidebarRef}
         className={cn(
-          'fixed left-0 top-0 z-[55] flex h-full w-72 -translate-x-full flex-col border-r bg-background/95 shadow-2xl backdrop-blur-xl transition-transform duration-300',
+          'fixed left-0 top-0 z-[55] flex h-full w-72 -translate-x-full flex-col border-r border-black/[0.07] bg-[#f7f7f5]/95 shadow-[8px_0_32px_rgba(25,25,24,0.08)] backdrop-blur-xl transition-transform duration-300 dark:border-white/[0.08] dark:bg-[#141413]/95 dark:shadow-[8px_0_36px_rgba(0,0,0,0.32)]',
           isOpen && 'translate-x-0',
         )}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-          <h2 className="font-semibold">Learning Shelf</h2>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8" title="Close">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/[0.06] px-4 dark:border-white/[0.07]">
+          <h2 className="text-sm font-semibold tracking-[-0.01em]">Recent lessons</h2>
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="size-8 rounded-lg text-black/45 hover:bg-black/[0.06] dark:text-white/45 dark:hover:bg-white/[0.07]" title="Close">
             <ChevronLeft size={16} />
           </Button>
         </div>
@@ -220,7 +222,7 @@ export function PrimerHistorySidebar() {
               rootBranch.items.map((node) => renderNode(node, 0))
             )}
             {rootBranch.hasMore && !rootBranch.loading && rootBranch.items.length > 0 && (
-              <button type="button" className="px-2 py-2 text-xs text-primary hover:underline" onClick={() => fetchBranch(null, rootBranch.items.length, true)}>
+              <button type="button" className="px-2 py-2 text-xs text-black/45 hover:text-black dark:text-white/45 dark:hover:text-white" onClick={() => fetchBranch(null, rootBranch.items.length, true)}>
                 Load more root lessons
               </button>
             )}
@@ -228,7 +230,7 @@ export function PrimerHistorySidebar() {
           </div>
         </div>
       </div>
-      {isOpen && <div className="fixed inset-0 z-[50] bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="fixed inset-0 z-[50] bg-black/18 backdrop-blur-[2px] md:hidden" onClick={() => setIsOpen(false)} />}
     </>
   );
 }

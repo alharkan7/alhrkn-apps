@@ -125,7 +125,7 @@ function HighlightedText({ text, statements, selectionRange, onStatementClick }:
       parts.push(
         <span
           key={`selection-${index}`}
-          className="bg-blue-200 px-1 rounded"
+          className="rounded bg-blue-200 px-1 dark:bg-blue-400/30"
         >
           {highlightedText}
         </span>
@@ -136,15 +136,17 @@ function HighlightedText({ text, statements, selectionRange, onStatementClick }:
       parts.push(
         <span
           key={`highlight-${index}`}
-          className="bg-yellow-200 px-1 rounded cursor-pointer relative group hover:bg-yellow-300 transition-colors"
+          className="rounded bg-amber-200 px-1 cursor-pointer relative group transition-colors hover:bg-amber-300 dark:bg-amber-500/35 dark:hover:bg-amber-500/40"
           title={`${stmt.actor} (${stmt.organization || 'No organization'}): ${stmt.agree ? 'Agrees' : 'Disagrees'} about ${stmt.concept}`}
           onClick={() => onStatementClick && highlight.statementIndex !== undefined && onStatementClick(stmt, highlight.statementIndex)}
         >
           {highlightedText}
           <Badge
             variant="default"
-            className={`absolute -top-6 left-0 text-xs opacity-0 group-hover:opacity-100 transition-opacity ${
-              stmt.agree ? 'bg-green-500' : 'bg-red-500'
+            className={`absolute bottom-full left-0 z-10 mb-1.5 inline-block max-w-[14rem] select-none rounded-md px-2 py-1 text-left text-xs font-medium leading-tight shadow-md pointer-events-none opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${
+              stmt.agree
+                ? 'border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900 dark:text-emerald-100'
+                : 'border-red-300 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-900 dark:text-red-100'
             }`}
           >
             {stmt.actor}
@@ -418,19 +420,20 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
   }, [showManualDialog, showDeleteDialog])
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>
-            {selectedFile ? `Full Text: ${selectedFile.title}` : 'Select a Text File'}
+    <Card className="h-full rounded-2xl border-black/[0.07] bg-white/82 shadow-[0_8px_28px_rgba(25,25,24,0.055)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#191917]/84 dark:shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
+      <CardHeader className="border-b border-black/[0.055] px-4 py-4 dark:border-white/[0.07] sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="min-w-0 truncate text-base font-semibold tracking-[-0.02em]">
+            {selectedFile ? selectedFile.title : 'Document workspace'}
           </CardTitle>
           {selectedFile && (
-            <div className="flex gap-1">
+            <div className="flex shrink-0 gap-1">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => onToggleFilteredResults(selectedFile.id)}
                 title={isFilteredForFile ? 'Hide filtered data' : 'Show data for this file'}
+                className={`h-9 rounded-xl border shadow-none ${isFilteredForFile ? 'border-black/[0.09] bg-black/[0.075] text-black dark:border-white/[0.1] dark:bg-white/[0.1] dark:text-white' : 'border-black/[0.06] bg-black/[0.025] text-black/55 hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/55 dark:hover:bg-white/[0.07] dark:hover:text-white'}`}
               >
                 {isFilteredForFile ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 Data
@@ -441,7 +444,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
                     variant="secondary"
                     size="sm"
                     onClick={handleEditClick}
-                    className="bg-green-100 hover:bg-green-200"
+                    className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-700 shadow-none hover:bg-emerald-500/[0.11] dark:text-emerald-400"
                   >
                     <Check className="h-4 w-4 text-green-600" /> Save
                   </Button>
@@ -449,7 +452,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
                     variant="secondary"
                     size="sm"
                     onClick={handleCancelEdit}
-                    className="bg-red-100 hover:bg-red-200"
+                    className="rounded-xl border border-red-500/15 bg-red-500/[0.06] text-red-700 shadow-none hover:bg-red-500/[0.1] dark:text-red-400"
                   >
                     <X className="h-4 w-4 text-red-600" /> Cancel
                   </Button>
@@ -460,6 +463,7 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
                   size="sm"
                   onClick={handleEditClick}
                   title="Edit text content"
+                  className="h-9 rounded-xl border border-black/[0.06] bg-black/[0.025] text-black/55 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/55 dark:hover:bg-white/[0.07] dark:hover:text-white"
                 >
                   <Pencil className="h-4 w-4" /> Edit
                 </Button>
@@ -467,23 +471,23 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
             </div>
           )}
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs">
           {selectedFile
             ? 'Review the full content and analyze its discourse network'
             : 'Select a text from the list to view its content'
           }
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-5">
         {selectedFile ? (
           <div className="space-y-4">
-            <div className="min-h-[300px] border border-border rounded-md p-4 bg-muted">
+            <div className="min-h-[360px] max-h-[calc(100dvh-18rem)] overflow-y-auto rounded-xl border border-black/[0.065] bg-black/[0.025] p-4 scrollbar-thin dark:border-white/[0.08] dark:bg-white/[0.03] sm:p-5">
               {isEditing ? (
                 <Textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
                   onDoubleClick={handleTextDoubleClick}
-                  className="min-h-[280px] resize-none font-sans text-base leading-normal"
+                  className="min-h-[340px] resize-none rounded-xl border-black/[0.07] bg-white/70 font-sans text-base leading-relaxed shadow-none focus-visible:ring-black/10 dark:border-white/[0.08] dark:bg-black/10 dark:focus-visible:ring-white/10"
                   placeholder="Edit text content..."
                 />
               ) : (
@@ -503,8 +507,8 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
               )}
             </div>
 
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-black/42 dark:text-white/42">
                 {(isEditing ? editedContent : selectedFile.content).split(' ').filter(word => word.length > 0).length} words • {statements.filter(stmt => stmt.sourceFile === selectedFile.title).length} highlighted statements
               </div>
 
@@ -512,17 +516,18 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
                 onClick={handleAnalyze}
                 disabled={loading || selectedFile.processed}
                 size="lg"
-                variant="secondary"
+                variant="default"
+                className="h-10 rounded-xl bg-[#191918] px-4 text-white shadow-none hover:bg-black disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
               >
                 {loading ? 'Analyzing...' : selectedFile.processed ? 'Already Processed' : 'Analyze Text'}
               </Button>
             </div>
           </div>
         ) : (
-          <div className="min-h-[200px] border-2 border-dashed border-border rounded-lg p-8 flex items-center justify-center">
+          <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-black/12 p-8 dark:border-white/12">
             <div className="text-center">
-              <p className="text-lg mb-2">No file selected</p>
-              <p className="text-sm">Click on a file from the list above to view its content</p>
+              <p className="font-medium">No source selected</p>
+              <p className="mt-1 text-sm text-black/42 dark:text-white/42">Choose a source from the left to inspect its content.</p>
             </div>
           </div>
         )}
@@ -643,4 +648,3 @@ export default function TextDisplay({ selectedFile, statements, onAnalyze, onUpd
     </Card>
   )
 }
-

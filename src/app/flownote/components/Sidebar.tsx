@@ -108,7 +108,7 @@ const SidebarSection = ({
             <button
               onClick={() => onAddChild(node.id)}
               title="Add Sub-section"
-              className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+              className="rounded-lg p-1.5 text-black/35 hover:bg-black/[0.05] hover:text-black dark:text-white/35 dark:hover:bg-white/[0.07] dark:hover:text-white"
             >
               <Plus size={18} />
             </button>
@@ -247,20 +247,20 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
       {/* Backdrop overlay - blocks clicks on mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] md:hidden"
+          className="fixed inset-0 z-[100] bg-black/15 backdrop-blur-[2px] md:hidden"
           onClick={onClose}
         />
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[500px] md:w-[600px] lg:w-[800px] max-w-[100vw] bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-[110] border-l border-slate-200 dark:border-slate-800 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed right-0 top-0 z-[110] flex h-full w-full max-w-[100vw] transform flex-col border-l border-black/[0.07] bg-[#f7f7f5] shadow-2xl transition-transform duration-300 ease-in-out dark:border-white/[0.08] dark:bg-[#151513] sm:w-[500px] md:w-[600px] lg:w-[800px] ${isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-            FlowNote Editor
+        <div className="flex items-center justify-between border-b border-black/[0.06] bg-[#f7f7f5]/90 px-6 py-4 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#151513]/90">
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-black/70 dark:text-white/70">
+            Document editor
           </h2>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -268,7 +268,7 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors h-auto"
+                  className="h-auto rounded-lg p-2 text-black/40 hover:bg-black/[0.05] hover:text-black dark:text-white/40 dark:hover:bg-white/[0.07] dark:hover:text-white"
                   title="Download"
                   onClick={(e) => {
                     e.preventDefault();
@@ -308,7 +308,7 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
                 e.stopPropagation();
                 onClose();
               }}
-              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="rounded-lg p-2 text-black/40 transition-colors hover:bg-black/[0.05] hover:text-black dark:text-white/40 dark:hover:bg-white/[0.07] dark:hover:text-white"
             >
               <X size={18} />
             </button>
@@ -316,11 +316,11 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
         </div>
 
         {selectedNode ? (
-          <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-[#111]">
+          <div className="flex h-full flex-1 flex-col overflow-hidden bg-[#efefec] dark:bg-[#10100f]">
 
             {/* Scrollable Document Area */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-              <div className="bg-white dark:bg-[#1a1a1a] shadow-2xl rounded-sm border border-black/10 dark:border-white/5 px-6 py-12 md:px-16 md:py-20 mx-auto w-full max-w-[850px] min-h-full font-serif transition-colors duration-200 pb-32">
+              <div className="mx-auto min-h-full w-full max-w-[850px] rounded-md border border-black/[0.08] bg-white px-6 py-12 pb-32 font-serif shadow-[0_14px_44px_rgba(25,25,24,0.08)] transition-colors duration-200 dark:border-white/[0.07] dark:bg-[#1b1b19] md:px-16 md:py-20">
 
                 {documentStructure.map(({ node, depth }) => (
                   <SidebarSection
@@ -339,7 +339,7 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
                   <div className="mt-16 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800 text-center">
                     <button
                       onClick={() => selectedNode && onAddChild(documentStructure[documentStructure.length - 1]?.node.id || selectedNode.id)}
-                      className="flex items-center gap-2 mx-auto text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-3 px-6 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800"
+                      className="mx-auto flex items-center gap-2 rounded-xl px-6 py-3 text-black/40 transition-colors hover:bg-black/[0.04] hover:text-black dark:text-white/40 dark:hover:bg-white/[0.06] dark:hover:text-white"
                     >
                       <Plus size={20} />
                       <span className="font-medium">Append Section</span>
@@ -351,7 +351,7 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-600 p-8 text-center bg-slate-50 dark:bg-slate-950/50">
+          <div className="flex flex-1 items-center justify-center bg-[#efefec] p-8 text-center text-black/40 dark:bg-[#10100f] dark:text-white/40">
             <div>
               <p className="mb-2 font-medium">No active document.</p>
               <p className="text-xs opacity-70">Select a note on the canvas to open the Document Editor.</p>

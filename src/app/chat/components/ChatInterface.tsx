@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { RefreshCcw, Menu, Plus } from 'lucide-react'
+import { Menu, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
@@ -11,6 +11,7 @@ import { AppsHeader } from '@/components/apps-header'
 import { useFileUpload } from '../hooks/useFileUpload';
 import { usePathname } from 'next/navigation'
 import { Message } from '../types/types'
+import { motion, useReducedMotion } from 'framer-motion'
 
 import { toast } from 'sonner'
 
@@ -21,12 +22,12 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ initialMessages = [], initialSessionId, isOwner = true }: ChatInterfaceProps) {
+    const prefersReducedMotion = useReducedMotion();
     const { messages, isLoading, isStreaming, sendMessage, clearMessages, sessionId } = useChatMessages(initialMessages, initialSessionId);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [input, setInput] = useState('');
     const [hasUserSentMessage, setHasUserSentMessage] = useState(initialMessages.length > 0);
-    const [isInputFocused, setIsInputFocused] = useState(false);
     const { file, handleFileSelect, clearFile } = useFileUpload();
     const pathname = usePathname();
 
@@ -131,42 +132,41 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
     };
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-background text-foreground overflow-hidden relative font-sans">
-            {/* --- Ambient Background --- */}
-            <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-                {/* Animated Orbs */}
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-                
-                {/* Subtle Grid overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+            <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_38%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+                <div className="absolute inset-0 opacity-[0.24] [background-image:radial-gradient(rgba(25,25,24,0.16)_0.7px,transparent_0.7px)] [background-size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_76%)] dark:opacity-[0.1] dark:[background-image:radial-gradient(rgba(255,255,255,0.35)_0.7px,transparent_0.7px)]" />
+                <motion.div
+                    className="absolute left-1/2 top-[38%] size-72 -translate-x-1/2 rounded-full bg-blue-400/[0.045] blur-3xl dark:bg-blue-500/[0.055]"
+                    animate={prefersReducedMotion ? undefined : { scale: [1, 1.06, 1], opacity: [0.3, 0.5, 0.3] }}
+                    transition={prefersReducedMotion ? undefined : { duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+                />
             </div>
 
-            {/* --- Top Navigation --- */}
-            <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
+            <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
                 <AppsHeader 
-                    title={hasUserSentMessage ? <><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x font-bold">Ask</span> <span className="font-bold">Al</span></> : undefined}
+                    title={<span className="text-sm font-semibold tracking-[-0.01em]">Disposable Chat</span>}
                     leftButton={
-                        <div className="flex items-center gap-2 pl-2">
+                        <div className="flex items-center gap-2">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => window.dispatchEvent(new CustomEvent('toggleChatHistorySidebar'))}
-                                className="sidebar-toggle"
+                                className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                                aria-label="Open chat history"
                             >
-                                <Menu className="h-5 w-5" />
+                                <Menu size={18} />
                             </Button>
                             {hasUserSentMessage && (
                                 <Button
                                     onClick={(e) => {
                                         if (handleInteract(e)) handleClearChat();
                                     }}
-                                    className="p-2 rounded-lg"
-                                    title="Clear chat history"
-                                    variant="secondary"
+                                    className="size-9 rounded-xl border border-black/[0.06] bg-black/[0.025] p-2 text-black/55 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                                    title="New chat"
+                                    variant="ghost"
                                 >
-                                    <Plus size={14} />
+                                    <Plus size={16} />
                                 </Button>
                             )}
                         </div>
@@ -174,24 +174,23 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
                 />
                 {!isOwner && (
                     <div 
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50 whitespace-nowrap" 
+                        className="absolute left-1/2 top-1/2 z-50 flex -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-full border border-black/[0.08] bg-white px-3 py-1 font-sans text-xs font-medium text-black/60 shadow-sm transition-colors hover:text-black dark:border-white/[0.1] dark:bg-[#252523] dark:text-white/60 dark:hover:text-white"
                         onClick={handleMakeCopy}
                     >
                         <span>View Only</span>
                     </div>
                 )}
             </div>
-            <div className={`relative z-10 flex-1 overflow-hidden flex flex-col justify-start max-w-4xl mx-auto w-full px-1 md:px-4 pt-16 ${!hasUserSentMessage ? 'pb-12' : 'pb-0'}`}>
+            <div className={`relative z-10 mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden px-1 pt-14 md:px-4 ${!hasUserSentMessage ? 'justify-center pb-14' : 'pb-0'}`}>
                 {!hasUserSentMessage && (
-                    <div className="flex-none mt-[20vh] text-center py-4">
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-2">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x whitespace-nowrap">Ask</span>{' '}
-                            <span className="whitespace-nowrap">Al</span>
+                    <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }} className="flex-none px-4 pb-6 text-center sm:pb-7">
+                        <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+                            What can I help with?
                         </h1>
-                    </div>
+                    </motion.div>
                 )}
                 {hasUserSentMessage && (
-                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-600/50 hover:scrollbar-thumb-zinc-600/70 overflow-x-hidden">
+                    <div className="flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-black/15 hover:scrollbar-thumb-black/25 dark:scrollbar-thumb-white/15 dark:hover:scrollbar-thumb-white/25">
                         <MessageList
                             messages={messages}
                             messagesEndRef={messagesEndRef}
@@ -201,7 +200,7 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
                         />
                     </div>
                 )}
-                <div className="flex-none py-4 px-2">
+                <motion.div initial={prefersReducedMotion || hasUserSentMessage ? false : { opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }} className="flex-none px-2 py-4">
                     <ChatInput
                         input={input}
                         setInput={setInput}
@@ -211,14 +210,13 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
                         file={file}
                         clearFile={clearFile}
                         sendMessage={handleSendMessage}
-                        onFocusChange={setIsInputFocused}
                         onInteract={handleInteract}
                     />
-                </div>
+                </motion.div>
 
             </div>
             {!hasUserSentMessage && (
-                <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+                <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-black/[0.045] bg-[#f7f7f5]/70 py-1 text-center text-xs text-black/45 backdrop-blur-lg dark:border-white/[0.06] dark:bg-[#10100f]/70 dark:text-white/40">
                     <div className="flex-none">
                         <AppsFooter />
                     </div>

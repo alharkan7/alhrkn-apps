@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AppsHeader } from '@/components/apps-header'
 import AppsFooter from '@/components/apps-footer'
+import { cn } from '@/lib/utils'
 
 import { Paper } from '../shared'
 import { BeeblioHistorySidebar } from './BeeblioHistorySidebar'
@@ -60,6 +61,7 @@ interface BeeblioClientProps {
 
 export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientProps) {
   const router = useRouter()
+  const prefersReducedMotion = useReducedMotion()
   const searchParams = useSearchParams()
   const initialQuery = searchParams?.get('q') || ''
 
@@ -570,18 +572,21 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
   if (!mounted) return null
 
   const renderSettingsContent = () => (
-    <PopoverContent className="w-80 p-0 rounded-2xl border bg-card/95 backdrop-blur-xl shadow-2xl" align="end">
+    <PopoverContent
+      className="w-80 overflow-hidden rounded-2xl border border-black/[0.07] bg-[#fbfbf9]/95 p-0 shadow-[0_16px_44px_rgba(25,25,24,0.12)] backdrop-blur-xl dark:border-white/[0.09] dark:bg-[#1b1b19]/95 dark:shadow-[0_18px_50px_rgba(0,0,0,0.4)]"
+      align="end"
+    >
       <div className="p-5 space-y-6">
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+          <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-black/42 dark:text-white/40">
+            <Sparkles className="h-3.5 w-3.5" />
             AI Pipeline
           </h4>
           <div className="space-y-4">
             <div className="flex items-center justify-between group">
               <div className="space-y-1">
-                <label className={`text-sm font-medium transition-colors ${activeTab === 'context' ? 'text-muted-foreground' : 'group-hover:text-indigo-500'}`}>Query Optimizer</label>
-                <p className="text-[11px] text-muted-foreground">
+                <label className={cn('text-sm font-medium text-black/75 dark:text-white/75', activeTab === 'context' && 'text-black/40 dark:text-white/38')}>Query Optimizer</label>
+                <p className="text-[11px] leading-4 text-black/42 dark:text-white/40">
                   {activeTab === 'context' ? 'Required for Context Search' : 'Rewrite input to strict Boolean logic'}
                 </p>
               </div>
@@ -589,24 +594,28 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                 checked={activeTab === 'context' ? true : aiOptimize} 
                 disabled={activeTab === 'context'} 
                 onCheckedChange={setAiOptimize} 
-                className="data-[state=checked]:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+                className="data-[state=unchecked]:bg-black/10 data-[state=checked]:bg-[#191918] disabled:cursor-not-allowed disabled:opacity-40 dark:data-[state=unchecked]:bg-white/12 dark:data-[state=checked]:bg-[#f2f2ef]"
               />
             </div>
             <div className="flex items-center justify-between group">
               <div className="space-y-1">
-                <label className="text-sm font-medium group-hover:text-amber-500 transition-colors">AI Reviewer</label>
-                <p className="text-[11px] text-muted-foreground">Evaluate and rank fetched papers</p>
+                <label className="text-sm font-medium text-black/75 dark:text-white/75">AI Reviewer</label>
+                <p className="text-[11px] leading-4 text-black/42 dark:text-white/40">Evaluate and rank fetched papers</p>
               </div>
-              <Switch checked={aiReview} onCheckedChange={setAiReview} className="data-[state=checked]:bg-amber-500" />
+              <Switch
+                checked={aiReview}
+                onCheckedChange={setAiReview}
+                className="data-[state=unchecked]:bg-black/10 data-[state=checked]:bg-[#191918] dark:data-[state=unchecked]:bg-white/12 dark:data-[state=checked]:bg-[#f2f2ef]"
+              />
             </div>
           </div>
         </div>
 
-        <div className="h-px w-full bg-border"></div>
+        <div className="h-px w-full bg-black/[0.06] dark:bg-white/[0.08]"></div>
 
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-            <Database className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+          <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-black/42 dark:text-white/40">
+            <Database className="h-3.5 w-3.5" />
             Databases
           </h4>
           <div className="space-y-3">
@@ -616,9 +625,9 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                   id={`db-${key}`} 
                   checked={value} 
                   onCheckedChange={(c) => setDatabases(prev => ({...prev, [key]: !!c}))} 
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="border-black/20 data-[state=checked]:border-[#191918] data-[state=checked]:bg-[#191918] dark:border-white/20 dark:data-[state=checked]:border-[#f2f2ef] dark:data-[state=checked]:bg-[#f2f2ef] dark:data-[state=checked]:text-[#191918]"
                 />
-                <label htmlFor={`db-${key}`} className="text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer">
+                <label htmlFor={`db-${key}`} className="cursor-pointer text-sm font-medium text-black/65 transition-colors hover:text-black dark:text-white/62 dark:hover:text-white">
                   {key === 'semanticScholar' ? 'Semantic Scholar' : key === 'openalex' ? 'OpenAlex' : 'Crossref'}
                 </label>
               </div>
@@ -632,28 +641,35 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
   const uniqueSources = Array.from(new Set(results.map(r => r.source))).filter(Boolean)
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden relative font-sans flex flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
       
-      {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-        {/* Animated Orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-        
-        {/* Subtle Grid overlay - Matches the root page */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_35%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+        <div className="absolute inset-0 opacity-[0.3] [background-image:radial-gradient(rgba(25,25,24,0.18)_0.7px,transparent_0.7px)] [background-size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)] dark:opacity-[0.13] dark:[background-image:radial-gradient(rgba(255,255,255,0.35)_0.7px,transparent_0.7px)]" />
+        {!pageId && (
+          <motion.div
+            className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 rounded-full bg-blue-400/[0.065] blur-3xl dark:bg-blue-500/[0.075]"
+            animate={prefersReducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.4, 0.65, 0.4] }}
+            transition={prefersReducedMotion ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
       </div>
 
       <BeeblioHistorySidebar />
 
       {/* --- Top Navigation --- */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
+      <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
         <AppsHeader 
           leftButton={
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon" className="sidebar-toggle hover:bg-black/5 dark:hover:bg-white/10" onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}>
-                <Menu size={20} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}
+                aria-label="Open search history"
+              >
+                <Menu size={18} />
               </Button>
               {pageId && (
                 <Link href="/beeblio" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
@@ -662,6 +678,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               )}
             </div>
           }
+          title={<span className="text-sm font-semibold tracking-[-0.01em]">Beeblio</span>}
         />
         {!isOwner && (
             <div 
@@ -673,40 +690,36 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
         )}
       </div>
 
-      <main className={`relative z-10 flex-1 container mx-auto max-w-5xl px-4 md:px-8 pt-20 pb-20 ${pageId ? 'space-y-6' : 'space-y-12'}`}>
+      <main className={`relative z-10 container mx-auto flex-1 max-w-5xl px-4 pb-20 md:px-8 ${pageId ? 'space-y-6 pt-20' : 'flex flex-col justify-center pt-24 sm:pt-28'}`}>
         
         {/* --- Hero Section (Only show on main landing page) --- */}
         {!pageId && (
-          <section className="text-center space-y-6 max-w-3xl mx-auto mt-4">
+          <section className="mx-auto mb-6 max-w-3xl text-center sm:mb-7">
             <motion.div
-               initial={{ opacity: 0, y: 20 }}
+               initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
                animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+               transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x">Beeblio</span>
+              <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+                Search Scientific Literature
               </h1>
             </motion.div>
-            <motion.p 
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-               className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed"
-            >
-              Beeblio sifts through millions of papers to find exactly what matters to you.
-            </motion.p>
           </section>
         )}
 
         {/* --- Search Interface --- */}
         <motion.section 
-          initial={{ opacity: 0, y: 30 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: pageId ? 12 : 18, scale: pageId ? 1 : 0.985 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: pageId ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className={`mx-auto relative group ${pageId ? 'w-full' : 'max-w-4xl mt-4'}`}
+          transition={{ duration: 0.52, delay: pageId ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className={`group relative mx-auto ${pageId ? 'w-full' : 'w-full max-w-2xl'}`}
         >
-          {/* Glowing aura behind the search box */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200"></div>
+          {!pageId && (
+            <>
+              <div className="absolute -inset-px rounded-[25px] bg-gradient-to-b from-black/[0.09] to-black/[0.03] dark:from-white/[0.13] dark:to-white/[0.04]" />
+              <div className="absolute inset-x-8 -bottom-5 h-14 rounded-full bg-black/[0.08] blur-2xl dark:bg-black/40" />
+            </>
+          )}
           
           <input 
             type="file" 
@@ -830,7 +843,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
           ) : (
             /* --- LARGE SEARCH INTERFACE (Landing Page) --- */
             <div 
-              className={`relative rounded-[2rem] border bg-background/80 backdrop-blur-2xl shadow-xl overflow-hidden transition-all duration-200 ${isDragging && activeTab === 'context' ? 'ring-2 ring-primary border-primary' : ''}`}
+              className={`relative overflow-hidden rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] transition-[box-shadow,transform] duration-300 dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] sm:p-4 ${isDragging && activeTab === 'context' ? 'ring-2 ring-blue-500/40' : ''}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -847,38 +860,38 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               )}
               
               {/* Top Bar inside Search: Tabs & Settings */}
-              <div className="flex flex-row justify-between items-center px-4 pt-4 sm:px-6 sm:pt-6 gap-2">
+              <div className="flex flex-row items-center justify-between gap-2 px-1">
                 
                 {/* Segmented Control for Tabs */}
-                <div className="flex p-1 space-x-1 bg-muted/50 rounded-full border backdrop-blur-md w-full sm:w-auto">
+                <div className="flex w-auto gap-0.5 rounded-xl border border-black/[0.065] bg-black/[0.035] p-1 dark:border-white/[0.08] dark:bg-white/[0.045]">
                   <button
                     onClick={() => setActiveTab('keywords')}
-                    className={`relative px-4 sm:px-6 py-2 flex-1 sm:flex-none text-xs sm:text-sm font-medium rounded-full transition-all duration-300 ${
-                      activeTab === 'keywords' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    className={`relative rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 sm:px-3.5 ${
+                      activeTab === 'keywords' ? 'text-white dark:text-[#191918]' : 'text-black/42 hover:text-black/70 dark:text-white/40 dark:hover:text-white/70'
                     }`}
                   >
                     {activeTab === 'keywords' && (
-                      <motion.div layoutId="activeTab" className="absolute inset-0 bg-background rounded-full border shadow-sm" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                      <motion.div layoutId="activeTab" className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]" transition={{ type: 'spring', stiffness: 440, damping: 34 }} />
                     )}
-                    <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2"><Search className="w-3.5 h-3.5 sm:w-4 sm:h-4"/> Keywords</span>
+                    <span className="relative z-10">Keywords</span>
                   </button>
                   <button
                     onClick={() => setActiveTab('context')}
-                    className={`relative px-4 sm:px-6 py-2 flex-1 sm:flex-none text-xs sm:text-sm font-medium rounded-full transition-all duration-300 ${
-                      activeTab === 'context' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    className={`relative rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 sm:px-3.5 ${
+                      activeTab === 'context' ? 'text-white dark:text-[#191918]' : 'text-black/42 hover:text-black/70 dark:text-white/40 dark:hover:text-white/70'
                     }`}
                   >
                     {activeTab === 'context' && (
-                      <motion.div layoutId="activeTab" className="absolute inset-0 bg-background rounded-full border shadow-sm" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                      <motion.div layoutId="activeTab" className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]" transition={{ type: 'spring', stiffness: 440, damping: 34 }} />
                     )}
-                    <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2"><Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4"/> Context</span>
+                    <span className="relative z-10">Context</span>
                   </button>
                 </div>
 
                 {/* Settings Popover */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted gap-2 p-0 w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 border border-transparent hover:border-border transition-all flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="size-9 flex-shrink-0 rounded-xl border border-transparent text-black/42 shadow-none transition-colors hover:border-black/[0.06] hover:bg-black/[0.045] hover:text-black dark:text-white/42 dark:hover:border-white/[0.08] dark:hover:bg-white/[0.06] dark:hover:text-white">
                       <Settings className="h-4 w-4" />
                       {/* <span className="hidden sm:inline">Settings</span> */}
                     </Button>
@@ -888,7 +901,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               </div>
 
               {/* Main Input Area */}
-              <div className="p-4 sm:p-6 pb-2">
+              <div className="px-1 py-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -900,7 +913,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                     {activeTab === 'keywords' ? (
                       <Input 
                         placeholder="e.g. attention mechanism, transformers, neuroscience..." 
-                        className="bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none py-8"
+                        className="h-auto min-h-[92px] border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3 sm:text-lg"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onFocus={handleInteract}
@@ -913,7 +926,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                         {/* <Quote className="absolute left-2 top-2 h-6 w-6 text-muted-foreground/20" /> */}
                         <Textarea 
                           placeholder="Paste your abstract, research proposal, or brain dump here."
-                          className="min-h-[140px] bg-transparent border-none text-lg md:text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none py-2 resize-none scrollbar-thin scrollbar-thumb-muted"
+                          className="min-h-[92px] max-h-[180px] resize-none border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3 sm:text-lg"
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
                           onFocus={handleInteract}
@@ -928,7 +941,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               </div>
 
               {/* Action Bar */}
-              <div className="p-4 sm:p-6 pt-2 flex justify-between items-center">
+              <div className="flex items-center justify-between border-t border-black/[0.055] px-1 pt-3 dark:border-white/[0.07]">
                 <div className="flex items-center">
                   {/* <AnimatePresence>
                     {activeTab === 'context' && (
@@ -971,7 +984,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                   onClick={handleSearch} 
                   disabled={isSearching || (!query.trim() && !attachment)} 
                   size="lg"
-                  className="rounded-full font-semibold shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                  className="group h-10 rounded-xl bg-[#191918] px-4 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
                 >
                   {isSearching ? (
                     <span className="flex items-center gap-3">
@@ -983,7 +996,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                   ) : (
                     <span className="flex items-center gap-3">
                       Search
-                      <ArrowRight className="h-5 w-5 rotate-135 opacity-70" />
+                      <ArrowRight className="size-4 rotate-[-45deg] opacity-80 transition-transform group-hover:-translate-y-0.5" />
                     </span>
                   )}
                 </Button>
@@ -1254,7 +1267,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
         </AnimatePresence>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/[0.045] bg-[#f7f7f5]/70 py-1 text-center text-xs text-black/45 backdrop-blur-lg dark:border-white/[0.06] dark:bg-[#10100f]/70 dark:text-white/40">
         <div className="flex-none">
           <AppsFooter />
         </div>

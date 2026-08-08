@@ -19,20 +19,20 @@ function AppCard({ app }: { app: AppConfig }) {
       rel={isExternal ? 'noopener noreferrer' : undefined}
       className="group relative block h-[8.25rem] sm:h-auto"
     >
-      <SpotlightCard className="h-full overflow-hidden p-3 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:border-blue-500/50 hover:-translate-y-1">
+      <SpotlightCard spotlightColor="rgba(25, 25, 24, 0.055)" className="h-full overflow-hidden rounded-2xl border-black/[0.07] bg-white/76 p-3 shadow-[0_6px_24px_rgba(25,25,24,0.045)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-black/[0.12] hover:bg-white hover:shadow-[0_12px_34px_rgba(25,25,24,0.08)] dark:border-white/[0.08] dark:bg-[#191917]/76 dark:shadow-[0_8px_26px_rgba(0,0,0,0.2)] dark:hover:border-white/[0.13] dark:hover:bg-[#1d1d1b] dark:hover:shadow-[0_14px_38px_rgba(0,0,0,0.3)] sm:p-6">
         {/* Mobile: left text + right icon, fixed height. Desktop: stacked layout. */}
         <div className="flex flex-row-reverse sm:flex-col items-start gap-2 sm:gap-0 h-full">
           <div className="flex items-center justify-between w-auto sm:w-full shrink-0 mb-0 sm:mb-4">
-            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-500 group-hover:text-white">
-              <IconComponent className="h-4 w-4 sm:h-6 sm:w-6" />
+            <div className="flex size-9 items-center justify-center rounded-xl border border-black/[0.055] bg-black/[0.04] text-black/48 transition-colors group-hover:bg-black/[0.075] group-hover:text-black/75 dark:border-white/[0.065] dark:bg-white/[0.055] dark:text-white/48 dark:group-hover:bg-white/[0.09] dark:group-hover:text-white/75 sm:size-12">
+              <IconComponent className="size-4 sm:size-5" />
             </div>
-            <ArrowRight className="hidden sm:block h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+            <ArrowRight className="hidden size-5 -translate-x-2 text-black/30 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-black/60 group-hover:opacity-100 dark:text-white/30 dark:group-hover:text-white/60 sm:block" />
           </div>
           <div className="min-w-0 flex-1 flex flex-col overflow-hidden h-full sm:h-auto">
-            <h3 className="text-base sm:text-xl font-bold tracking-tight mb-1 sm:mb-2 leading-snug line-clamp-2 sm:line-clamp-none shrink-0 group-hover:text-primary transition-colors">
+            <h3 className="mb-1 line-clamp-2 shrink-0 text-base font-semibold leading-snug tracking-[-0.02em] transition-colors sm:mb-2 sm:text-xl sm:line-clamp-none">
               {app.name}
             </h3>
-            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed overflow-y-auto sm:overflow-visible max-h-[4.875em] sm:max-h-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <p className="max-h-[4.875em] overflow-y-auto text-xs leading-relaxed text-black/45 [scrollbar-width:none] [-ms-overflow-style:none] dark:text-white/45 sm:max-h-none sm:overflow-visible sm:text-sm [&::-webkit-scrollbar]:hidden">
               {app.description}
             </p>
           </div>
@@ -44,7 +44,7 @@ function AppCard({ app }: { app: AppConfig }) {
 
 function AppsGrid({ items }: { items: AppConfig[] }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
       {items.map((app) => (
         <AppCard key={app.slug} app={app} />
       ))}
@@ -58,135 +58,46 @@ export default function HomePage() {
   const otherApps = apps.filter((app) => app.type !== 'academic')
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
-      {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#f3f3f0] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.98),rgba(243,243,240,0.76)_48%,rgba(235,235,231,0.84)_100%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(38,38,35,0.74),rgba(16,16,15,1)_56%)]" />
+        <div className="absolute inset-0 opacity-[0.22] [background-image:radial-gradient(rgba(25,25,24,0.18)_0.7px,transparent_0.7px)] [background-size:19px_19px] [mask-image:linear-gradient(to_bottom,black,transparent_78%)] dark:opacity-[0.09] dark:[background-image:radial-gradient(rgba(255,255,255,0.36)_0.7px,transparent_0.7px)]" />
+        <div className="absolute left-1/2 top-4 h-64 w-[42rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-white/45 blur-3xl dark:bg-white/[0.025]" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center w-full pt-16 pb-0 px-4 text-center overflow-hidden z-10">
-        <div className="space-y-4 max-w-3xl mx-auto relative z-10">
-          <a 
+      <section className="relative z-10 flex w-full flex-col items-center justify-center overflow-hidden px-4 pb-0 pt-20 text-center sm:pt-24">
+        <div className="relative z-10 mx-auto max-w-3xl space-y-5">
+          {/* <a 
             href="https://raihankalla.id" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="shiny-link inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80" 
+            className="inline-flex items-center rounded-full border border-black/[0.07] bg-white/65 px-3 py-1 text-xs font-medium text-black/50 shadow-sm backdrop-blur-lg transition-colors hover:bg-white hover:text-black dark:border-white/[0.08] dark:bg-white/[0.055] dark:text-white/50 dark:hover:bg-white/[0.09] dark:hover:text-white"
             aria-label="Visit raihankalla.id (opens in new tab)" 
           > 
             raihankalla.id 
-          </a> 
+          </a>  */}
  
-          <style jsx>{`
-            .shiny-link {
-              position: relative;
-              overflow: hidden;
-              isolation: isolate;
-              border-radius: 9999px;
-              box-shadow: inset 0 0 0 1px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.10);
-            }
-            .shiny-link::before {
-              content: "";
-              position: absolute;
-              top: -80%;
-              left: -85%;
-              width: 55%;
-              height: 260%;
-              background: linear-gradient(
-                90deg,
-                rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0.82) 42%,
-                rgba(255,255,255,1) 50%,
-                rgba(255,255,255,0.82) 58%,
-                rgba(255,255,255,0) 100%
-              );
-              box-shadow: 0 0 14px rgba(255,255,255,0.55);
-              transform: rotate(24deg);
-              opacity: 0;
-              pointer-events: none;
-              z-index: 2;
-              will-change: left, opacity;
-            }
-            .shiny-link::after {
-              content: "";
-              position: absolute;
-              inset: 0;
-              border-radius: inherit;
-              background-image:
-                linear-gradient(
-                  120deg,
-                  rgba(255,255,255,0.22) 0%,
-                  rgba(255,255,255,0) 48%,
-                  rgba(0,0,0,0.14) 100%
-                ),
-                repeating-linear-gradient(
-                  135deg,
-                  rgba(255,255,255,0.15) 0px,
-                  rgba(255,255,255,0.15) 1px,
-                  rgba(255,255,255,0) 1px,
-                  rgba(255,255,255,0) 4px
-                );
-              opacity: 0;
-              transition: opacity 180ms ease-out;
-              pointer-events: none;
-              z-index: 1;
-            }
-            .shiny-link:hover::after,
-            .shiny-link:focus-visible::after {
-              opacity: 0.34;
-            }
-            @keyframes shiny-sweep {
-              0% {
-                left: -85%;
-                opacity: 0;
-              }
-              12% {
-                opacity: 0.98;
-              }
-              100% {
-                left: 155%;
-                opacity: 0;
-              }
-            }
-            .shiny-link:hover::before,
-            .shiny-link:focus-visible::before {
-              animation: shiny-sweep 1100ms cubic-bezier(.2,.9,.3,1) 1 both;
-            }
-            :global(.dark) .shiny-link::before {
-              box-shadow: 0 0 18px rgba(255,255,255,0.72);
-            }
-            :global(.dark) .shiny-link {
-              box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 2px 10px rgba(0,0,0,0.42);
-            }
-            :global(.dark) .shiny-link:hover::after,
-            :global(.dark) .shiny-link:focus-visible::after {
-              opacity: 0.26;
-            }
-          `}</style>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Mini <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Apps</span> Gallery
+          <h1 className="text-balance text-4xl font-semibold leading-[1.2] tracking-[-0.055em] sm:text-5xl sm:leading-[1] md:text-6xl">
+            Research &amp; Learning Apps
           </h1>
-          <p className="mx-auto max-w-[700px] text-muted-foreground md:text-base">
-            A collection of experimental apps by <a href="https://raihankalla.id" target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4 hover:text-primary">@alhrkn</a>.
+          <p className="mx-auto max-w-[620px] text-sm leading-relaxed text-black/48 dark:text-white/48 sm:text-base">
+            Experimental tools by <a href="https://raihankalla.id" target="_blank" rel="noopener noreferrer" className="font-medium text-black/70 underline decoration-black/20 underline-offset-4 hover:text-black dark:text-white/70 dark:decoration-white/20 dark:hover:text-white">@alhrkn</a>.
           </p>
         </div>
       </section>
 
       {/* Apps Grid */}
-      <section id="apps" className="mx-auto w-full max-w-5xl px-6 md:px-8 py-12 md:py-16 relative z-10 space-y-12">
+      <section id="apps" className="relative z-10 mx-auto w-full max-w-5xl space-y-12 px-4 py-12 sm:px-6 md:py-16">
         <AppsGrid items={academicApps} />
 
         {otherApps.length > 0 && (
           <>
             <div className="flex items-center gap-4" role="separator" aria-label="More apps">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="h-px flex-1 bg-black/[0.07] dark:bg-white/[0.08]" />
+              <span className="text-xs font-medium uppercase tracking-[0.14em] text-black/38 dark:text-white/38">
                 More apps
               </span>
-              <div className="h-px flex-1 bg-border" />
+              <div className="h-px flex-1 bg-black/[0.07] dark:bg-white/[0.08]" />
             </div>
 
             <AppsGrid items={otherApps} />
@@ -195,7 +106,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-border/50 bg-background/40 backdrop-blur-xl relative z-10">
+      <footer className="relative z-10 mt-auto border-t border-black/[0.055] bg-[#f3f3f0]/55 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#10100f]/55">
         <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground text-center md:text-left">
             © {new Date().getFullYear()} Al Harkan. All rights reserved.

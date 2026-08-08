@@ -17,8 +17,10 @@ export function BeeblioHistorySidebar() {
       apiEndpoint="/api/beeblio/history"
       itemUrlPrefix="/beeblio/"
       eventName="toggleBeeblioHistorySidebar"
+      title="Recent searches"
+      variant="quiet"
       emptyMessage="No search history found."
-      onRenderIcon={(item) => <Search size={16} className="text-purple-500" />}
+      onRenderIcon={() => <Search size={15} />}
       onRenderTitle={(item) => item.originalQuery?.trim() || item.fileName || item.contextText?.trim().substring(0, 50) || 'Untitled Search'}
     />
   );

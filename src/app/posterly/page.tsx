@@ -6,8 +6,10 @@ import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { Button } from '@/components/ui/button';
 import { PosterUploader, type PosterInput } from './components/PosterUploader';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export default function PosterlyPage() {
+  const prefersReducedMotion = useReducedMotion();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,14 +34,42 @@ export default function PosterlyPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden"><div className="absolute -left-[12%] -top-[20%] h-[55%] w-[55%] rounded-full bg-cyan-500/10 blur-[120px] dark:bg-cyan-900/20" /><div className="absolute -bottom-[20%] -right-[12%] h-[60%] w-[60%] rounded-full bg-indigo-500/10 blur-[150px] dark:bg-indigo-900/20" /><div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" /></div>
-      <div className="fixed left-0 right-0 top-0 z-50 border-b bg-background/60 backdrop-blur-xl"><AppsHeader leftButton={<Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('togglePosterlyHistorySidebar'))}><Menu className="h-5 w-5" /></Button>} /></div>
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-12 pt-16 sm:px-8">
-        <div className="mb-6 max-w-4xl text-center"><h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">Poster<span className="bg-gradient-to-r from-cyan-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent">ly</span></h1><p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Turn scientific papers into professional posters.</p></div>
-        <PosterUploader loading={loading} loadingText="Reading paper and composing poster…" error={error} onGenerate={handleGenerate} />
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_38%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+        <div className="absolute inset-0 opacity-[0.3] [background-image:radial-gradient(rgba(25,25,24,0.18)_0.7px,transparent_0.7px)] [background-size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)] dark:opacity-[0.13] dark:[background-image:radial-gradient(rgba(255,255,255,0.35)_0.7px,transparent_0.7px)]" />
+        <motion.div
+          className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/[0.05] blur-3xl dark:bg-cyan-500/[0.06]"
+          animate={prefersReducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.35, 0.6, 0.35] }}
+          transition={prefersReducedMotion ? undefined : { duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+      <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
+        <AppsHeader
+          leftButton={
+            <Button variant="ghost" size="icon" className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white" onClick={() => window.dispatchEvent(new Event('togglePosterlyHistorySidebar'))} aria-label="Open poster history">
+              <Menu size={18} />
+            </Button>
+          }
+          title={<span className="text-sm font-semibold tracking-[-0.01em]">Posterly</span>}
+        />
+      </div>
+      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pb-20 pt-24 sm:px-6 sm:pt-28">
+        <motion.section
+          initial={prefersReducedMotion ? false : 'hidden'}
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } }}
+          className="my-auto w-full py-4 sm:py-6"
+        >
+          <motion.div variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }} className="mx-auto mb-6 max-w-3xl text-center sm:mb-7">
+            <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">Create Research Poster</h1>
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 18, scale: 0.985 }, visible: { opacity: 1, y: 0, scale: 1 } }} transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}>
+            <PosterUploader loading={loading} loadingText="Reading paper and composing poster…" error={error} onGenerate={handleGenerate} />
+          </motion.div>
+        </motion.section>
       </main>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/60 py-1 text-center text-xs text-muted-foreground backdrop-blur-md"><AppsFooter /></div>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/[0.045] bg-[#f7f7f5]/70 py-1 text-center text-xs text-black/45 backdrop-blur-lg dark:border-white/[0.06] dark:bg-[#10100f]/70 dark:text-white/40"><AppsFooter /></div>
     </div>
   );
 }

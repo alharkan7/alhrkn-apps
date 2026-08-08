@@ -13,9 +13,9 @@ export function FlownoteHistorySidebar() {
   };
 
   const renderIcon = (item: any) => {
-    if (item.aiPrompt) return <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />;
-    if (item.originalFileName) return <FileText className="w-4 h-4 text-emerald-500 shrink-0" />;
-    return <GitCommitHorizontal className="w-4 h-4 text-blue-500 shrink-0" />;
+    if (item.aiPrompt) return <Sparkles className="size-4 shrink-0" />;
+    if (item.originalFileName) return <FileText className="size-4 shrink-0" />;
+    return <GitCommitHorizontal className="size-4 shrink-0" />;
   };
 
   const renderTitle = (item: any) => {
@@ -28,6 +28,8 @@ export function FlownoteHistorySidebar() {
       fetchItems={fetchFlownoteHistory}
       itemUrlPrefix="/flownote/"
       eventName="toggleHistorySidebar"
+      title="Recent flownotes"
+      variant="quiet"
       emptyMessage="No flownotes yet. Create a new document to get started."
       onRenderTitle={renderTitle}
       onRenderIcon={renderIcon}

@@ -14,15 +14,16 @@ export function PrimerTopBar() {
 
   return (
     <AppsHeader
-      className="z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl"
+      className="z-40 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80"
       leftButton={
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            className="sidebar-toggle h-9 w-9"
+            className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
             onClick={() => window.dispatchEvent(new CustomEvent('togglePrimerHistorySidebar'))}
             title="History"
+            aria-label="Open lesson history"
           >
             <Menu className="h-4 w-4" />
           </Button>
@@ -39,6 +40,7 @@ export function PrimerTopBar() {
           )}
         </div>
       }
+      title={<span className="text-sm font-semibold tracking-[-0.01em]">Primer</span>}
       rightContent={!isInputPage ? (
         <Button
           type="button"

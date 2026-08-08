@@ -53,13 +53,13 @@ export default function SettingsDialog({
             <DialogTrigger asChild>
                 <Button
                     variant="secondary"
-                    className="flex items-center gap-0 sm:gap-2 ml-auto"
+                    className="ml-auto flex h-9 items-center gap-0 rounded-xl border border-transparent bg-transparent px-3 text-black/55 shadow-none hover:bg-black/[0.055] hover:text-black dark:text-white/55 dark:hover:bg-white/[0.07] dark:hover:text-white sm:gap-2"
                 >
                     <Settings className="w-4 h-4" />
                     <span className="hidden sm:inline">Settings</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="rounded-2xl border-black/[0.08] bg-[#fafaf8] shadow-2xl dark:border-white/[0.09] dark:bg-[#1a1a18] sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5" />
@@ -71,7 +71,7 @@ export default function SettingsDialog({
                 </DialogHeader>
                 <div className="space-y-4">
                     {/* MySQL Configuration */}
-                    <div className="border border-gray-400 rounded-lg p-4 space-y-4">
+                    <div className="space-y-4 rounded-xl border border-black/[0.07] bg-black/[0.02] p-4 dark:border-white/[0.08] dark:bg-white/[0.025]">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="host">Host</Label>
@@ -138,24 +138,24 @@ export default function SettingsDialog({
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-black/45 dark:text-white/45">
                                 Use the same MySQL database as the one used in {' '}
                                 <a
                                     href="https://dnanalyzer.org"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-500 hover:underline"
+                                    className="font-medium text-black/65 underline decoration-black/20 underline-offset-2 hover:text-black dark:text-white/65 dark:decoration-white/20 dark:hover:text-white"
                                 >
                                     DNAnalyzer
                                 </a>
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-black/45 dark:text-white/45">
                                 You can get a free MySQL database from{' '}
                                 <a
                                     href="https://www.freesqldatabase.com/register/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-500 hover:underline"
+                                    className="font-medium text-black/65 underline decoration-black/20 underline-offset-2 hover:text-black dark:text-white/65 dark:decoration-white/20 dark:hover:text-white"
                                 >
                                     FreeSQLDatabase
                                 </a>
@@ -187,13 +187,13 @@ export default function SettingsDialog({
                                 )}
                             </button>
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-black/45 dark:text-white/45">
                             Get your free API key from{' '}
                             <a
                                 href="https://aistudio.google.com/api-keys"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline"
+                                className="font-medium text-black/65 underline decoration-black/20 underline-offset-2 hover:text-black dark:text-white/65 dark:decoration-white/20 dark:hover:text-white"
                             >
                                 Google AI Studio
                             </a>
@@ -211,7 +211,7 @@ export default function SettingsDialog({
                         <Button
                             onClick={onSaveConfig}
                             disabled={savingConfig}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 rounded-xl bg-[#191918] text-white hover:bg-black dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
                         >
                             {savingConfig ? 'Saving...' : 'Save Configuration'}
                         </Button>

@@ -30,7 +30,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Sun, Moon, Sparkles, Loader2, X, LayoutGrid, FileText, Menu } from 'lucide-react';
+import { Plus, Sun, Moon, Sparkles, Loader2, X, FileText, Menu } from 'lucide-react';
 import dagre from '@dagrejs/dagre';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -39,9 +39,8 @@ import CustomNode from './CustomNode';
 import Sidebar from './Sidebar';
 import ContextMenu from './ContextMenu';
 import { INITIAL_NODES, NoteNode, ContextMenuProps } from '../types';
-import { AppsGrid } from '@/components/ui/apps-grid';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AppsHeader } from '@/components/apps-header';
 
 
 const nodeTypes = Object.freeze({
@@ -886,10 +885,38 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
   );
 
   return (
-    <div className={`w-screen min-h-dvh flex overflow-hidden ${isDarkMode ? 'dark' : ''}`} ref={ref} style={{ height: '100dvh' }}>
+    <div className={`relative flex min-h-dvh w-screen overflow-hidden bg-[#f7f7f5] text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef] ${isDarkMode ? 'dark' : ''}`} ref={ref} style={{ height: '100dvh' }}>
+      <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/82 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/82">
+        <AppsHeader
+          leftButton={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.dispatchEvent(new CustomEvent('toggleHistorySidebar'))}
+              className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              aria-label="Open FlowNote history"
+            >
+              <Menu size={18} />
+            </Button>
+          }
+          title={<span className="text-sm font-semibold tracking-[-0.01em]">FlowNote</span>}
+          rightContent={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="size-9 rounded-xl border border-black/[0.06] bg-black/[0.025] text-black/55 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </Button>
+          }
+        />
+      </div>
       {!isOwner && (
         <div 
-          className="absolute top-4 right-[250px] bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50" 
+          className="absolute right-4 top-[4.25rem] z-40 flex cursor-pointer select-none items-center gap-1 rounded-full border border-black/[0.08] bg-white/90 px-3 py-1.5 font-sans text-xs font-medium text-black/60 shadow-sm backdrop-blur-lg transition-colors hover:text-black dark:border-white/[0.1] dark:bg-[#252523]/90 dark:text-white/60 dark:hover:text-white"
           onClick={handleMakeCopy}
         >
           <span>View Only - Make a Copy</span>
@@ -912,11 +939,11 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
         fitView
         minZoom={0.1}
         proOptions={{ hideAttribution: true }}
-        style={{ backgroundColor: isDarkMode ? '#020617' : '#f8fafc' }}
+        style={{ backgroundColor: isDarkMode ? '#10100f' : '#f7f7f5' }}
         onInit={(instance) => { (window as any).reactFlowInstance = instance; }}
       >
         <Background
-          color={isDarkMode ? '#334155' : '#cbd5e1'}
+          color={isDarkMode ? '#3a3a36' : '#cfcec8'}
           gap={24}
           size={1}
         />
@@ -924,25 +951,11 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
         <Controls position="bottom-left" showInteractive={false} style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom))' }} />
 
         {/* Top Left Panel */}
-        <Panel position="top-left" className="ml-4 mt-4 flex gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('toggleHistorySidebar'))}
-                className="sidebar-toggle group p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center"
-              >
-                <Menu size={20} className="transition-transform group-hover:scale-110" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={8}>
-              <p>Toggle History Sidebar</p>
-            </TooltipContent>
-          </Tooltip>
-
+        <Panel position="top-left" className="ml-2 mt-16 flex gap-2 md:ml-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="group px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 flex items-center justify-center gap-2 font-medium text-sm">
-                <Plus size={18} className="transition-transform group-hover:scale-110" />
+              <button className="group flex items-center justify-center gap-2 rounded-xl border border-black/[0.07] bg-white/90 px-3 py-2 text-sm font-medium text-black/65 shadow-[0_2px_8px_rgba(25,25,24,0.07)] backdrop-blur-lg transition-colors hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-black/10 dark:border-white/[0.09] dark:bg-[#232321]/90 dark:text-white/65 dark:hover:bg-[#292927] dark:hover:text-white dark:focus:ring-white/10">
+                <Plus size={17} className="transition-transform group-hover:rotate-90" />
                 New
               </button>
             </DropdownMenuTrigger>
@@ -1010,56 +1023,32 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
           </AlertDialog>
         </Panel>
 
-        <Panel position="top-right" className={`mr-4 mt-4 flex gap-3${isSidebarOpen ? ' invisible md:visible' : ''}`}>
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
-          <AppsGrid
-            trigger={
-              <Button
-                variant="default"
-                className="flex items-center gap-1.5 px-3 py-2 h-auto bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm"
-              >
-                <LayoutGrid size={16} />
-                <span className="hidden sm:inline text-sm font-medium">Apps</span>
-              </Button>
-            }
-            useHardReload={false}
-          />
-        </Panel>
-
-
       </ReactFlow>
 
       {/* AI Dialog Modal */}
       {isAIDialogOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[120] flex animate-in items-center justify-center bg-black/20 backdrop-blur-[3px] duration-200 fade-in"
           onClick={() => setIsAIDialogOpen(false)}
         >
           <div
-            className="bg-white dark:bg-slate-900 w-full max-w-lg mx-4 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden transform transition-all scale-100 p-6"
+            className="mx-4 w-full max-w-lg scale-100 overflow-hidden rounded-2xl border border-black/[0.08] bg-[#fafaf8] p-6 shadow-2xl transition-all dark:border-white/[0.09] dark:bg-[#1a1a18]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-lg font-semibold tracking-[-0.02em] text-[#191918] dark:text-[#f2f2ef]">
                 What do you want to draft?
               </h3>
               <button
                 onClick={() => setIsAIDialogOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="rounded-lg p-1 text-black/35 transition-colors hover:bg-black/[0.05] hover:text-black dark:text-white/35 dark:hover:bg-white/[0.07] dark:hover:text-white"
               >
                 <X size={20} />
               </button>
             </div>
 
             <textarea
-              className="w-full h-32 p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none mb-4 custom-scrollbar"
+              className="custom-scrollbar mb-4 h-36 w-full resize-none rounded-xl border border-black/[0.08] bg-white p-4 text-[#191918] outline-none transition-shadow placeholder:text-black/30 focus:border-black/15 focus:ring-2 focus:ring-black/[0.05] dark:border-white/[0.09] dark:bg-[#111110] dark:text-[#f2f2ef] dark:placeholder:text-white/28 dark:focus:border-white/16 dark:focus:ring-white/[0.05]"
               placeholder="e.g., Explain the process of photosynthesis, or Write a marketing strategy for a coffee shop..."
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
@@ -1077,14 +1066,14 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setIsAIDialogOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-black/55 transition-colors hover:bg-black/[0.05] hover:text-black dark:text-white/55 dark:hover:bg-white/[0.07] dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAIGenerate}
                 disabled={!aiPrompt.trim() || isGenerating}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center gap-2 rounded-xl bg-[#191918] px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
               >
                 {isGenerating ? (
                   <>

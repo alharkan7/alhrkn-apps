@@ -9,16 +9,18 @@ export function AnimaChartHistorySidebar() {
       apiEndpoint="/api/animachart/history"
       itemUrlPrefix="/animachart/"
       eventName="toggleAnimaChartHistorySidebar"
+      title="Recent charts"
+      variant="quiet"
       emptyMessage="No previous animated charts found."
       onRenderTitle={(item: any) => item.chartData?.title || 'Untitled Chart'}
       onRenderIcon={(item: any) => {
         const type = item.chartData?.type;
         switch (type) {
-          case 'bar': return <BarChart size={16} className="text-emerald-500" />;
+          case 'bar': return <BarChart size={16} />;
           case 'pie': 
-          case 'doughnut': return <PieChart size={16} className="text-orange-500" />;
-          case 'line': return <LineChart size={16} className="text-indigo-500" />;
-          default: return <Activity size={16} className="text-gray-500" />;
+          case 'doughnut': return <PieChart size={16} />;
+          case 'line': return <LineChart size={16} />;
+          default: return <Activity size={16} />;
         }
       }}
     />

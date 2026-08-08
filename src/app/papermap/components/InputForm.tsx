@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LoaderCircle, AlertTriangle, Waypoints, X, Lightbulb } from "lucide-react";
+import { ArrowUp, LoaderCircle, AlertTriangle, Waypoints, X, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { motion } from 'framer-motion';
 
 // Define file size limit constant - increased with Vercel Blob
 const MAX_FILE_SIZE_MB = 25; // Maximum file size for PDF uploads
@@ -569,8 +570,8 @@ const InputForm: React.FC<InputFormProps> = ({
     const loadingMessage = getLoadingStageMessage(displayLoadingStage);
 
     return (
-        <div className="w-full max-w-7xl px-4 py-2 rounded-lg">
-            <div className="mb-4">
+        <div className="w-full">
+            <div>
 
                 {fileSizeError && (
                     <div className="text-destructive text-sm mb-0 p-3 bg-destructive/10 rounded-base flex items-start  max-w-2xl mx-auto w-full">
@@ -591,7 +592,7 @@ const InputForm: React.FC<InputFormProps> = ({
                         }}
                         tabIndex={0} // Make the form focusable
                         data-focused={isFocused}
-                        className={`relative flex flex-col bg-background/80 backdrop-blur-2xl transition-all duration-200 max-w-2xl mx-auto w-full rounded-[2rem] border shadow-xl p-4 sm:p-6 pb-2 focus:outline-none ${isDragging ? 'ring-2 ring-primary border-primary' : ''}`}
+                        className={`relative mx-auto flex w-full max-w-2xl flex-col rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] outline-none transition-[box-shadow,transform] duration-300 dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] sm:p-4 ${isFocused ? 'shadow-[0_18px_54px_rgba(25,25,24,0.13),0_0_0_3px_rgba(59,130,246,0.11)] dark:shadow-[0_22px_60px_rgba(0,0,0,0.45),0_0_0_3px_rgba(96,165,250,0.12)]' : ''} ${isDragging ? 'ring-2 ring-blue-500/40' : ''}`}
                     >
                         {/* {inputMode === 'file' && (
                             <div
@@ -662,7 +663,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                 value={url}
                                 onChange={handleUrlChange}
                                 placeholder="https://example.com/paper.pdf"
-                                className="w-full bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[120px] mb-4 max-h-[180px] overflow-y-auto py-4 outline-none resize-none"
+                                className="my-1 min-h-[92px] max-h-[180px] w-full resize-none overflow-y-auto border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none outline-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3 sm:text-lg"
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 rows={1}
@@ -676,8 +677,8 @@ const InputForm: React.FC<InputFormProps> = ({
                                 ref={textareaRef}
                                 value={text}
                                 onChange={handleTextChange}
-                                placeholder="Ask a question or brainstorm an idea.."
-                                className="w-full bg-transparent border-none text-xl placeholder:text-muted-foreground/50 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none min-h-[120px] mb-4 max-h-[240px] overflow-y-auto py-4 outline-none resize-none"
+                                placeholder="Enter a topic, question, or idea…"
+                                className="my-1 min-h-[92px] max-h-[240px] w-full resize-none overflow-y-auto border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none outline-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3 sm:text-lg"
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 rows={1}
@@ -703,10 +704,10 @@ const InputForm: React.FC<InputFormProps> = ({
                             </div>
                         )}
 
-                        <div className="flex justify-between items-center gap-2 md:gap-4 w-full">
+                        <div className="flex w-full items-center justify-between gap-2 border-t border-black/[0.055] pt-3 dark:border-white/[0.07]">
                             <div className="flex items-center gap-0 md:gap-1 shrink-0">
                                 <Tabs defaultValue="text" onValueChange={isFormDisabled ? undefined : handleInputModeChange} className="w-fit">
-                                    <TabsList className="flex p-1 -space-x-2 md:space-x-1 bg-muted/50 rounded-full border backdrop-blur-md h-auto">
+                                    <TabsList className="flex h-auto gap-0.5 rounded-xl border border-black/[0.065] bg-black/[0.035] p-1 dark:border-white/[0.08] dark:bg-white/[0.045]">
                                         {/* <TabsTrigger
                                             value="file"
                                             className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
@@ -717,19 +718,33 @@ const InputForm: React.FC<InputFormProps> = ({
                                         </TabsTrigger> */}
                                         <TabsTrigger
                                             value="text"
-                                            className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
+                                            className="relative rounded-lg border-0 bg-transparent px-3 py-1.5 text-xs font-medium text-black/42 shadow-none transition-colors hover:text-black/70 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none dark:text-white/40 dark:hover:text-white/70 dark:data-[state=active]:text-[#191918] md:px-3.5"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
-                                            Text
+                                            {inputMode === 'text' && (
+                                                <motion.span
+                                                    layoutId="papermap-input-mode"
+                                                    className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
+                                                    transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                                                />
+                                            )}
+                                            <span className="relative z-10">Text</span>
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="url"
-                                            className="px-3 md:px-4 py-1.5 text-xs font-medium rounded-full border border-transparent transition-all duration-300 data-[state=active]:bg-background data-[state=active]:border-border data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground relative z-10"
+                                            className="relative rounded-lg border-0 bg-transparent px-3 py-1.5 text-xs font-medium text-black/42 shadow-none transition-colors hover:text-black/70 data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none dark:text-white/40 dark:hover:text-white/70 dark:data-[state=active]:text-[#191918] md:px-3.5"
                                             disabled={isFormDisabled}
                                             aria-disabled={isFormDisabled}
                                         >
-                                            URL
+                                            {inputMode === 'url' && (
+                                                <motion.span
+                                                    layoutId="papermap-input-mode"
+                                                    className="absolute inset-0 rounded-lg bg-[#191918] shadow-[0_2px_7px_rgba(25,25,24,0.18)] dark:bg-[#f2f2ef] dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
+                                                    transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                                                />
+                                            )}
+                                            <span className="relative z-10">URL</span>
                                         </TabsTrigger>
                                     </TabsList>
                                 </Tabs>
@@ -738,7 +753,7 @@ const InputForm: React.FC<InputFormProps> = ({
                                     <TooltipTrigger asChild>
                                         <Badge
                                             variant={isHovered ? "default" : "neutral"}
-                                            className={`cursor-pointer h-8 text-muted-foreground hover:text-primary ml-2 md:ml-0${isActive ? " mb-1 mr-1 md:mr-2" : ""}`}
+                                            className={`ml-2 h-8 cursor-pointer rounded-xl border-black/[0.065] bg-black/[0.025] text-black/45 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/45 dark:hover:bg-white/[0.07] dark:hover:text-white${isActive ? " mb-1 mr-1 md:mr-2" : ""}`}
                                             onClick={isFormDisabled ? undefined : (() => { handleExampleClick(); setIsActive(true); })}
                                             onMouseEnter={isFormDisabled ? undefined : (() => { setIsHovered(true); setIsActive(true); })}
                                             onMouseLeave={isFormDisabled ? undefined : (() => { setIsHovered(false); setIsActive(false); })}
@@ -756,7 +771,7 @@ const InputForm: React.FC<InputFormProps> = ({
 
                             <Button
                                 type="submit"
-                                className="rounded-full font-semibold aspect-square p-0 shrink-0 md:aspect-auto md:px-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                                className="group h-10 shrink-0 rounded-xl bg-[#191918] px-3.5 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white sm:px-4"
                                 disabled={isCreateButtonDisabled}
                                 aria-label="Create mindmap"
                             >
@@ -767,8 +782,8 @@ const InputForm: React.FC<InputFormProps> = ({
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-2">
-                                        <Waypoints className="h-4 w-4 md:hidden" />
-                                        <span className="hidden md:inline">Create</span>
+                                        <span>Create</span>
+                                        <ArrowUp className="size-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />
                                     </span>
                                 )}
                             </Button>

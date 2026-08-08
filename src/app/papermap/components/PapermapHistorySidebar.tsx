@@ -9,14 +9,16 @@ export function PapermapHistorySidebar() {
       apiEndpoint="/api/papermap/history"
       itemUrlPrefix="/papermap/"
       eventName="toggleHistorySidebar"
+      title="Recent mindmaps"
+      variant="quiet"
       emptyMessage="No previous mindmaps found."
       onRenderTitle={(item) => item.title || 'Untitled Mindmap'}
       onRenderIcon={(item) => {
         switch (item.inputType) {
-          case 'pdf': return <FileText size={16} className="text-red-500" />;
-          case 'url': return <LinkIcon size={16} className="text-blue-500" />;
-          case 'text': return <FileQuestion size={16} className="text-emerald-500" />;
-          default: return <FileText size={16} className="text-gray-500" />;
+          case 'pdf': return <FileText size={15} />;
+          case 'url': return <LinkIcon size={15} />;
+          case 'text': return <FileQuestion size={15} />;
+          default: return <FileText size={15} />;
         }
       }}
     />

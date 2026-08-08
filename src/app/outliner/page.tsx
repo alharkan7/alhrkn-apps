@@ -3,16 +3,17 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Globe } from 'lucide-react';
+import { ArrowUp, Globe, Menu } from 'lucide-react';
 import AppsFooter from '@/components/apps-footer'
 import { AppsHeader } from '@/components/apps-header'
 import { useRouter } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 type Language = 'en' | 'id';
 
 export default function OutlinerSearchPage() {
     const router = useRouter();
+    const prefersReducedMotion = useReducedMotion();
     const [queryText, setQueryText] = useState<string>('');
     const [language, setLanguage] = useState<Language>('en');
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -68,79 +69,97 @@ export default function OutlinerSearchPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden relative font-sans">
-            {/* --- Ambient Background --- */}
-            <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-            </div>
-
-            <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
-                <AppsHeader 
-                  leftButton={
-                    <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}>
-                      <Menu size={20} />
-                    </Button>
-                  }
+        <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+            <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_38%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+                <div className="absolute inset-0 opacity-[0.3] [background-image:radial-gradient(rgba(25,25,24,0.18)_0.7px,transparent_0.7px)] [background-size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)] dark:opacity-[0.13] dark:[background-image:radial-gradient(rgba(255,255,255,0.35)_0.7px,transparent_0.7px)]" />
+                <motion.div
+                    className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 rounded-full bg-blue-400/[0.065] blur-3xl dark:bg-blue-500/[0.075]"
+                    animate={prefersReducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.4, 0.65, 0.4] }}
+                    transition={prefersReducedMotion ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
                 />
             </div>
 
-            <div className={`relative z-10 w-full max-w-5xl mx-auto flex-1 flex flex-col pt-24 pb-28 px-4`}>
-                <div className="min-h-[calc(100vh-15rem)] flex flex-col justify-center relative group">
-                    <div className="text-center pb-8 space-y-6 max-w-3xl mx-auto">
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x whitespace-nowrap">Outliner</span>{' '}
-                        </h1>
-                        <div className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed">
-                            {language === 'en' ? 'What do you want to research?' : 'Apa yang ingin kamu riset?'}
-                        </div>
-                    </div>
+            <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
+                <AppsHeader 
+                  leftButton={
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                        onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}
+                        aria-label="Open outline history"
+                    >
+                      <Menu size={18} />
+                    </Button>
+                  }
+                  title={<span className="text-sm font-semibold tracking-[-0.01em]">Outliner</span>}
+                />
+            </div>
 
-                    <div className="w-full relative flex justify-center max-w-3xl mx-auto">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200"></div>
-                        <form onSubmit={handleSubmit} className="relative z-10 w-full bg-background/80 backdrop-blur-2xl transition-all duration-200 rounded-[2rem] border shadow-xl flex flex-col items-center focus:outline-none p-4 sm:p-6 pb-4">
-                            <div className="w-full flex flex-col sm:flex-row sm:items-center gap-4">
-                                <div className="relative w-full sm:flex-1 flex items-center">
-                                    <Input
-                                        value={queryText}
-                                        onChange={(e) => setQueryText(e.target.value)}
-                                        placeholder={language === 'en' ? "Type your keywords or school major..." : "Input kata kunci atau jurusan studi..."}
-                                        className="h-12 text-lg bg-transparent border-none text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2 shadow-none rounded-none outline-none resize-none pl-4 pr-12 w-full"
-                                    />
-                                    <div className="absolute right-2 top-[50%] transform -translate-y-1/2">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={toggleLanguage}
-                                            className="h-10 w-10 p-0 hover:bg-muted rounded-full"
-                                            title={language === 'en' ? 'Switch to Bahasa Indonesia' : 'Switch to English'}
-                                        >
-                                            <Globe className="h-5 w-5 text-muted-foreground" />
-                                        </Button>
-                                    </div>
-                                </div>
+            <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pb-20 pt-24 sm:px-6 sm:pt-28">
+                <motion.section
+                    initial={prefersReducedMotion ? false : 'hidden'}
+                    animate="visible"
+                    variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } }}
+                    className="my-auto w-full py-4 sm:py-6"
+                >
+                    <motion.div
+                        variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
+                        transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+                        className="mx-auto mb-6 max-w-3xl text-center sm:mb-7"
+                    >
+                        <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+                            {language === 'en' ? 'Draft Research Outline' : 'Buat Kerangka Riset'}
+                        </h1>
+                    </motion.div>
+
+                    <motion.div
+                        variants={{ hidden: { opacity: 0, y: 18, scale: 0.985 }, visible: { opacity: 1, y: 0, scale: 1 } }}
+                        transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative mx-auto w-full max-w-2xl"
+                    >
+                        <div className="absolute -inset-px rounded-[25px] bg-gradient-to-b from-black/[0.09] to-black/[0.03] dark:from-white/[0.13] dark:to-white/[0.04]" />
+                        <div className="absolute inset-x-8 -bottom-5 h-14 rounded-full bg-black/[0.08] blur-2xl dark:bg-black/40" />
+                        <form onSubmit={handleSubmit} className="relative flex w-full flex-col rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] outline-none transition-shadow duration-300 focus-within:shadow-[0_18px_54px_rgba(25,25,24,0.13),0_0_0_3px_rgba(59,130,246,0.11)] dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] dark:focus-within:shadow-[0_22px_60px_rgba(0,0,0,0.45),0_0_0_3px_rgba(96,165,250,0.12)] sm:p-4">
+                            <Input
+                                value={queryText}
+                                onChange={(e) => setQueryText(e.target.value)}
+                                placeholder={language === 'en' ? 'Enter a topic or research question…' : 'Masukkan topik atau pertanyaan riset…'}
+                                className="h-auto min-h-[92px] w-full rounded-none border-none bg-transparent px-2 py-3 text-[17px] leading-7 text-[#191918] shadow-none outline-none placeholder:text-black/27 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3 sm:text-lg"
+                            />
+                            <div className="flex w-full items-center justify-between gap-2 border-t border-black/[0.055] px-1 pt-3 dark:border-white/[0.07]">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={toggleLanguage}
+                                    className="h-9 rounded-xl border border-black/[0.065] bg-black/[0.025] px-3 text-xs font-medium text-black/50 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/48 dark:hover:bg-white/[0.07] dark:hover:text-white"
+                                    title={language === 'en' ? 'Switch to Bahasa Indonesia' : 'Switch to English'}
+                                >
+                                    <Globe className="mr-1.5 size-3.5" />
+                                    {language === 'en' ? 'EN' : 'ID'}
+                                </Button>
                                 <Button
                                     type="submit"
-                                    className="shrink-0 grow-0 transition-colors disabled:opacity-50 w-auto rounded-full font-semibold px-6 h-12 shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                                    className="group h-10 shrink-0 rounded-xl bg-[#191918] px-4 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
                                     disabled={isLoading || !queryText.trim() || queryText.trim().length < 10}
                                 >
-                                    {isLoading ? (language === 'en' ? 'Starting...' : 'Memulai...') : (language === 'en' ? 'Outline' : 'Outline')}
+                                    {isLoading ? (language === 'en' ? 'Starting…' : 'Memulai…') : 'Outline'}
+                                    {!isLoading && <ArrowUp className="ml-1 size-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />}
                                 </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                    </motion.div>
 
-                {error && (
-                    <div className="mt-6 text-center text-red-500 text-sm">
-                        {error}
-                    </div>
-                )}
-            </div>
-            <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+                    {error && (
+                        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-4 max-w-2xl rounded-xl border border-red-500/15 bg-red-500/[0.06] px-4 py-3 text-center text-sm text-red-600 dark:text-red-400">
+                            {error}
+                        </motion.div>
+                    )}
+                </motion.section>
+            </main>
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/[0.045] bg-[#f7f7f5]/70 py-1 text-center text-xs text-black/45 backdrop-blur-lg dark:border-white/[0.06] dark:bg-[#10100f]/70 dark:text-white/40">
                 <div className="flex-none">
                     <AppsFooter />
                 </div>

@@ -12,7 +12,7 @@ export function ChatHistorySidebar() {
     return data;
   };
 
-  const renderIcon = () => <MessageSquare className="w-4 h-4 text-indigo-500 shrink-0" />;
+  const renderIcon = () => <MessageSquare className="size-4 shrink-0" />;
 
   const renderTitle = (item: any) => {
     return item.title || 'New Chat';
@@ -24,6 +24,8 @@ export function ChatHistorySidebar() {
       fetchItems={fetchChatHistory}
       itemUrlPrefix="/chat/"
       eventName="toggleChatHistorySidebar"
+      title="Recent chats"
+      variant="quiet"
       emptyMessage="No chats yet. Start a conversation to see history."
       onRenderTitle={renderTitle}
       onRenderIcon={renderIcon}

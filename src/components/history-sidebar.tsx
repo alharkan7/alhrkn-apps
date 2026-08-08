@@ -20,6 +20,8 @@ interface HistorySidebarProps<T extends BaseHistoryItem> {
   fetchItems?: (offset: number) => Promise<T[]>;
   itemUrlPrefix: string;
   eventName: string;
+  title?: string;
+  variant?: 'default' | 'quiet';
   emptyMessage: string;
   onRenderIcon: (item: T) => React.ReactNode;
   onRenderTitle: (item: T) => string;
@@ -35,10 +37,13 @@ export function HistorySidebar<T extends BaseHistoryItem>({
   fetchItems,
   itemUrlPrefix,
   eventName,
+  title = 'History',
+  variant = 'default',
   emptyMessage,
   onRenderIcon,
   onRenderTitle
 }: HistorySidebarProps<T>) {
+  const isQuiet = variant === 'quiet';
   const key = cacheKey || apiEndpoint || 'default';
   const [history, setHistory] = useState<T[]>(globalCache[key]?.data || []);
   const [loading, setLoading] = useState(!globalCache[key]);
@@ -151,20 +156,41 @@ export function HistorySidebar<T extends BaseHistoryItem>({
       <div 
         ref={sidebarRef}
         className={cn(
-          "fixed top-0 left-0 h-full w-64 bg-background/95 backdrop-blur-xl border-r z-[55] shadow-2xl transition-transform duration-300 flex flex-col",
+          "fixed left-0 top-0 z-[55] flex h-full flex-col border-r backdrop-blur-xl transition-transform duration-300",
+          isQuiet
+            ? "w-72 border-black/[0.065] bg-[#f7f7f5]/95 shadow-[16px_0_48px_rgba(25,25,24,0.08)] dark:border-white/[0.08] dark:bg-[#151513]/95 dark:shadow-[16px_0_54px_rgba(0,0,0,0.32)]"
+            : "w-64 bg-background/95 shadow-2xl",
           !isOpen && "-translate-x-full"
         )}
       >
-        <div className="h-14 px-4 border-b flex items-center justify-between shrink-0">
-          <h2 className="font-semibold text-lg">
-            History
+        <div className={cn(
+          "flex shrink-0 items-center justify-between border-b px-4",
+          isQuiet ? "h-16 border-black/[0.055] dark:border-white/[0.07]" : "h-14"
+        )}>
+          <h2 className={cn(
+            "font-semibold",
+            isQuiet ? "text-sm tracking-[-0.01em] text-black/75 dark:text-white/75" : "text-lg"
+          )}>
+            {title}
           </h2>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 -mr-2" title="Close">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsOpen(false)}
+            className={cn(
+              "-mr-2 h-8 w-8",
+              isQuiet && "rounded-xl text-black/40 hover:bg-black/[0.05] hover:text-black dark:text-white/40 dark:hover:bg-white/[0.07] dark:hover:text-white"
+            )}
+            title="Close"
+          >
             <ChevronLeft size={16} />
           </Button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
+        <div className={cn(
+          "flex-1 overflow-y-auto p-2 scrollbar-thin",
+          isQuiet ? "space-y-0.5" : "space-y-1"
+        )}>
           {loading && history.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-muted-foreground">
               <Loader2 className="animate-spin w-6 h-6" />
@@ -184,22 +210,38 @@ export function HistorySidebar<T extends BaseHistoryItem>({
                     <Link 
                       href={`${itemUrlPrefix}${item.id}`}
                       className={cn(
-                        "flex flex-col gap-1 p-3 rounded-lg text-sm transition-colors group",
-                        isActive 
-                          ? "bg-primary/10 text-primary font-medium" 
-                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        "group flex flex-col gap-1 transition-all",
+                        isQuiet ? "rounded-xl p-2.5 text-[13px]" : "rounded-lg p-3 text-sm",
+                        isActive && isQuiet
+                          ? "bg-white font-medium text-black shadow-[0_1px_4px_rgba(25,25,24,0.08)] dark:bg-white/[0.09] dark:text-white dark:shadow-none"
+                          : isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : isQuiet
+                              ? "text-black/52 hover:bg-black/[0.045] hover:text-black/80 dark:text-white/48 dark:hover:bg-white/[0.055] dark:hover:text-white/80"
+                              : "hover:bg-muted text-muted-foreground hover:text-foreground"
                       )}
                       onClick={() => setIsOpen(false)}
                     >
                       <div className="flex items-start gap-2">
-                        <div className="mt-0.5 shrink-0">
+                        <div className={cn(
+                          "shrink-0",
+                          isQuiet
+                            ? "flex size-7 items-center justify-center rounded-lg bg-black/[0.045] text-black/45 transition-colors group-hover:bg-black/[0.07] group-hover:text-black/70 dark:bg-white/[0.055] dark:text-white/45 dark:group-hover:bg-white/[0.09] dark:group-hover:text-white/70"
+                            : "mt-0.5"
+                        )}>
                           {onRenderIcon(item)}
                         </div>
-                        <span className="line-clamp-2 leading-tight">
+                        <span className={cn(
+                          "line-clamp-2 leading-tight",
+                          isQuiet && "pt-1"
+                        )}>
                           {onRenderTitle(item)}
                         </span>
                       </div>
-                      <span className="text-[10px] opacity-70 ml-6">
+                      <span className={cn(
+                        "text-[10px] opacity-70",
+                        isQuiet ? "ml-9 text-black/38 dark:text-white/35" : "ml-6"
+                      )}>
                         {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                       </span>
                     </Link>
@@ -219,7 +261,10 @@ export function HistorySidebar<T extends BaseHistoryItem>({
       {/* Backdrop for mobile */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[50] md:hidden"
+          className={cn(
+            "fixed inset-0 z-[50] md:hidden",
+            isQuiet ? "bg-black/15 backdrop-blur-[2px]" : "bg-black/20 backdrop-blur-sm"
+          )}
           onClick={() => setIsOpen(false)}
         />
       )}

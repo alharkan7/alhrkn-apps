@@ -1,9 +1,9 @@
 'use client';
 
 import 'reactflow/dist/style.css';
-import { useEffect, useState, useCallback, DragEvent } from 'react';
-import { useTheme } from '@/components/theme-provider';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import InputForm from './components/InputForm';
 import { useMindMap } from './hooks/useMindMap';
@@ -12,13 +12,9 @@ import AppsFooter from '@/components/apps-footer'
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Define file size limits (copied from Sidebar.tsx)
-const MAX_FILE_SIZE_MB = 25;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
 export default function PaperMap() {
-  const { setTheme } = useTheme();
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   // State to track the current input type (pdf or text)
   const [inputType, setInputType] = useState<'pdf' | 'text' | null>(null);
   // Local error state for input validation
@@ -184,50 +180,71 @@ export default function PaperMap() {
   }, [handleFileUpload, handleTextInput, handleFileUploadStreaming, handleTextInputStreaming, handleFileUploadRealtime, handleTextInputRealtime, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground overflow-hidden relative font-sans">
-      {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Animated Orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-        
-        {/* Subtle Grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_38%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+        <div className="absolute inset-0 opacity-[0.3] [background-image:radial-gradient(rgba(25,25,24,0.18)_0.7px,transparent_0.7px)] [background-size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)] dark:opacity-[0.13] dark:[background-image:radial-gradient(rgba(255,255,255,0.35)_0.7px,transparent_0.7px)]" />
+        <motion.div
+          className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 rounded-full bg-blue-400/[0.065] blur-3xl dark:bg-blue-500/[0.075]"
+          animate={prefersReducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.4, 0.65, 0.4] }}
+          transition={prefersReducedMotion ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
       </div>
 
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b">
+      <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
         <AppsHeader 
           leftButton={
-            <Button variant="ghost" size="icon" className="sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleHistorySidebar'))}>
-              <Menu size={20} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              onClick={() => window.dispatchEvent(new Event('toggleHistorySidebar'))}
+              aria-label="Open mindmap history"
+            >
+              <Menu size={18} />
             </Button>
           }
+          title={<span className="text-sm font-semibold tracking-[-0.01em]">Papermap</span>}
         />
       </div>
       
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 md:px-8 pt-16">
-        <div className="text-center py-8 space-y-6 max-w-3xl mx-auto">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-            Paper
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 animate-gradient-x">map</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed">
-            Learn Anything with AI Mindmap
-          </p>
-        </div>
-        <div className="w-full relative group max-w-4xl mx-auto">
-           <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200"></div>
-           <InputForm
-             onFileUpload={handleInput}
-             loading={loading}
-             error={combinedError}
-             onExampleClick={handleExampleClick}
-           />
-        </div>
-      </div>
+      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pb-20 pt-24 sm:px-6 sm:pt-28">
+        <motion.section
+          initial={prefersReducedMotion ? false : 'hidden'}
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } }}
+          className="my-auto w-full py-4 sm:py-6"
+        >
+          <motion.div
+            variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mb-6 max-w-3xl text-center sm:mb-7"
+          >
+            <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+              Create Interactive Mindmap
+            </h1>
+          </motion.div>
 
-      <div className="fixed bottom-0 left-0 right-0 py-1 px-0 text-center text-gray-600 text-xs bg-background/60 backdrop-blur-md z-50">
+          <motion.div
+            variants={{ hidden: { opacity: 0, y: 18, scale: 0.985 }, visible: { opacity: 1, y: 0, scale: 1 } }}
+            transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+            className="relative mx-auto w-full max-w-2xl"
+          >
+            <div className="absolute -inset-px rounded-[25px] bg-gradient-to-b from-black/[0.09] to-black/[0.03] dark:from-white/[0.13] dark:to-white/[0.04]" />
+            <div className="absolute inset-x-8 -bottom-5 h-14 rounded-full bg-black/[0.08] blur-2xl dark:bg-black/40" />
+            <div className="relative">
+              <InputForm
+                onFileUpload={handleInput}
+                loading={loading}
+                error={combinedError}
+                onExampleClick={handleExampleClick}
+              />
+            </div>
+          </motion.div>
+        </motion.section>
+      </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/[0.045] bg-[#f7f7f5]/70 py-1 text-center text-xs text-black/45 backdrop-blur-lg dark:border-white/[0.06] dark:bg-[#10100f]/70 dark:text-white/40">
         <div className="flex-none">
           <AppsFooter />
         </div>

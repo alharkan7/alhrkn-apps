@@ -1,4 +1,4 @@
-import { Send, Paperclip, Image } from 'lucide-react'
+import { ArrowUp, Image } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { FilePreview } from '@/components/ui/FilePreview'
 import { Button } from '@/components/ui/button'
@@ -68,13 +68,11 @@ export function ChatInput({
             e.target.blur();
             return;
         }
-        console.log('Focus event triggered');
         setIsFocused(true);
         onFocusChange?.(true);
     };
 
     const handleBlur = () => {
-        console.log('Blur event triggered');
         setIsFocused(false);
         onFocusChange?.(false);
     };
@@ -91,16 +89,14 @@ export function ChatInput({
                         />
                     </div>
                 )}
-                <div className="relative group w-full max-w-2xl mx-auto">
-                    {/* Glowing aura behind the input box */}
-                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 dark:from-indigo-500/30 dark:to-cyan-500/30 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-80 transition duration-1000 group-hover:duration-200 pointer-events-none"></div>
+                <div className="relative mx-auto w-full max-w-2xl">
+                    <div className="absolute -inset-px rounded-[25px] bg-gradient-to-b from-black/[0.09] to-black/[0.03] dark:from-white/[0.13] dark:to-white/[0.04]" />
+                    <div className="absolute inset-x-8 -bottom-5 h-14 rounded-full bg-black/[0.07] blur-2xl dark:bg-black/35" />
                     <Form {...form}>
                         <form 
                             onSubmit={handleSubmit} 
                             data-focused={isFocused}
-                            className={`relative z-10 flex flex-col gap-2 bg-background/80 backdrop-blur-2xl transition-all duration-200 rounded-[2rem] border shadow-xl w-full p-4 ${
-                                isFocused ? 'ring-2 ring-primary/20 border-primary/50' : ''
-                            }`}
+                            className="relative z-10 flex w-full flex-col gap-2 rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] transition-shadow duration-300 focus-within:shadow-[0_18px_54px_rgba(25,25,24,0.13),0_0_0_3px_rgba(59,130,246,0.08)] dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] dark:focus-within:shadow-[0_22px_60px_rgba(0,0,0,0.45),0_0_0_3px_rgba(96,165,250,0.1)] sm:p-4"
                         >
                         <textarea
                             ref={inputRef}
@@ -108,7 +104,7 @@ export function ChatInput({
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={file ? "Add a message..." : "Send a message..."}
-                            className="w-full bg-transparent border-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none disabled:opacity-50 p-0 resize-none min-h-[40px] max-h-[120px] overflow-y-auto px-1 pb-1"
+                            className="max-h-[160px] min-h-[52px] w-full resize-none overflow-y-auto border-0 bg-transparent px-2 py-2 text-[16px] leading-6 text-[#191918] outline-none placeholder:text-black/27 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:opacity-50 dark:text-[#f2f2ef] dark:placeholder:text-white/25 sm:px-3"
                             onFocus={handleFocus}
                             onBlur={handleBlur}
                             rows={1}
@@ -125,36 +121,26 @@ export function ChatInput({
                             className="hidden"
                             onChange={onFileSelect}
                         />
-                        <div className="flex justify-between items-center w-full">
+                        <div className="flex w-full items-center justify-between border-t border-black/[0.055] px-1 pt-3 dark:border-white/[0.07]">
                             <div className="flex gap-2">
-                                {/* <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={(e) => handleFileClick('file', e)}
-                                    className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
-                                    disabled={isLoading || !!file}
-                                    aria-label="Attach file"
-                                >
-                                    <Paperclip className="size-5 text-muted-foreground hover:text-foreground" />
-                                </Button> */}
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     onClick={(e) => handleFileClick('image', e)}
-                                    className="shrink-0 p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50 h-10 w-10"
+                                    className="size-9 shrink-0 rounded-xl border border-black/[0.065] bg-black/[0.025] p-2 text-black/45 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/45 dark:hover:bg-white/[0.07] dark:hover:text-white"
                                     disabled={isLoading || !!file}
                                     aria-label="Attach image"
                                 >
-                                    <Image className="size-5 text-muted-foreground hover:text-foreground" />
+                                    <Image className="size-4" />
                                 </Button>
                             </div>
                             <Button
                                 type="submit"
-                                className="shrink-0 p-2 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(0,0,0,0.15)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none h-11 w-11"
+                                className="group size-10 shrink-0 rounded-xl bg-[#191918] p-2 text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 disabled:shadow-none dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
                                 disabled={isLoading || (!input.trim() && (!file || !file.uploaded))}
                                 aria-label="Send message"
                             >
-                                <Send className="size-5" />
+                                <ArrowUp className="size-5 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />
                             </Button>
                         </div>
                     </form>

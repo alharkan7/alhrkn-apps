@@ -131,31 +131,31 @@ export function MessageList({ messages, messagesEndRef, isLoading, isStreaming }
     };
 
     return (
-        <div ref={messageListRef} className="h-full px-4 pb-4 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/20 hover:scrollbar-thumb-muted/40">
-            <div className="max-w-4xl mx-auto space-y-4 mt-4">
+        <div ref={messageListRef} className="h-full overflow-y-auto px-3 pb-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-black/15 hover:scrollbar-thumb-black/25 dark:scrollbar-thumb-white/15 dark:hover:scrollbar-thumb-white/25 sm:px-5">
+            <div className="mx-auto mt-5 max-w-3xl space-y-7">
                 {messages.map((message, index) => (
                     <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{
                             duration: 0.2,
                             ease: "easeOut"
                         }}
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                        <div className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end w-full' : ''}`}>
+                        <div className={`flex w-full flex-col gap-1.5 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
                             <motion.div
-                                className={`rounded-[2rem] px-5 py-3 max-w-[85%] shadow-sm
+                                className={`max-w-[88%] px-4 py-3 text-[15px] leading-7 sm:max-w-[82%]
                                 ${message.role === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-br-sm ml-auto shadow-md'
-                                        : 'bg-background/80 backdrop-blur-2xl border border-border/50 text-foreground rounded-bl-sm'
+                                        ? 'ml-auto rounded-[22px] rounded-br-lg bg-black/[0.07] text-[#191918] dark:bg-white/[0.1] dark:text-[#f2f2ef]'
+                                        : 'max-w-full px-1 text-[#191918] dark:text-[#f2f2ef]'
                                     }`}
                                 style={{ pointerEvents: 'auto' }}
                             >
                                 <div className={`prose prose-sm max-w-none [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:mt-2 [&_ol]:mt-2 [&_li]:my-1 [&_ol]:pl-6 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_code]:break-words [&_pre_code]:whitespace-pre-wrap [&_h1]:font-bold [&_h1]:text-lg [&_h1]:mt-4 [&_h1]:mb-2 [&_pre]:mb-4 [&_pre+p]:mt-4 ${
                                     message.role === 'user' 
-                                    ? 'text-left [&_*]:!text-primary-foreground' 
+                                    ? 'text-left dark:prose-invert'
                                     : 'dark:prose-invert'
                                 }`}
                                      style={{ pointerEvents: 'auto' }}
@@ -167,7 +167,7 @@ export function MessageList({ messages, messagesEndRef, isLoading, isStreaming }
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    className="self-start ml-2 h-7 w-7 rounded-full bg-background/50 backdrop-blur-md border border-border/50 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all"
+                                    className="ml-0 size-8 self-start rounded-lg border-0 bg-transparent text-black/35 shadow-none transition-colors hover:bg-black/[0.045] hover:text-black dark:text-white/35 dark:hover:bg-white/[0.06] dark:hover:text-white"
                                     onClick={() => handleCopy(message.content)}
                                     title="Copy message"
                                 >
@@ -180,9 +180,9 @@ export function MessageList({ messages, messagesEndRef, isLoading, isStreaming }
                 <AnimatePresence>
                     {(isLoading || isStreaming) && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
                         <motion.div
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
                             className="flex justify-start"
                         >

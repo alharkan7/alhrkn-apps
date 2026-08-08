@@ -24,8 +24,8 @@ export default function DNAnalyzerLayout({
 }) {
   return (
     <Providers>
-      <div className="min-h-screen bg-background">
-        <main className="container !px-2">
+      <div className="min-h-screen bg-[#f3f3f0] dark:bg-[#10100f]">
+        <main className="w-full">
           {children}
         </main>
       </div>

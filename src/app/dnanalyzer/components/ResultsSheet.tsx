@@ -140,10 +140,10 @@ export default function ResultsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
+      <SheetContent side="right" className="w-full overflow-y-auto border-l border-black/[0.07] bg-[#f7f7f5] px-4 shadow-2xl dark:border-white/[0.08] dark:bg-[#151513] sm:max-w-4xl sm:px-6">
         <SheetHeader>
-          <SheetTitle>{filterSourceFile ? `${filterSourceFile}` : 'Discourse Network Results'}</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-lg font-semibold tracking-[-0.02em]">{filterSourceFile ? `${filterSourceFile}` : 'Discourse results'}</SheetTitle>
+          <SheetDescription className="text-xs">
             {/* {filterSourceFile
               ? `Analysis results filtered for: ${filterSourceFile}`
               : 'Accumulated analysis results from all processed text files'
@@ -155,24 +155,25 @@ export default function ResultsSheet({
 
         <div className="mt-6">
           {filteredStatements.length === 0 ? (
-            <div className="min-h-[400px] border-2 border-dashed border-border rounded-lg p-8 flex items-center justify-center">
+            <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-black/12 p-8 dark:border-white/12">
               <div className="text-center text-muted-foreground">
-                <Eye className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-lg mb-2">No results yet</p>
-                <p className="text-sm">Process some text files to see analysis results here</p>
+                <Eye className="mx-auto mb-4 size-9 text-black/25 dark:text-white/25" />
+                <p className="font-medium text-foreground">No results yet</p>
+                <p className="mt-1 text-sm">Analyze a text source to populate this table.</p>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-border">
+            <div className="overflow-hidden rounded-2xl border border-black/[0.07] bg-white dark:border-white/[0.08] dark:bg-[#1a1a18]">
+              <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-muted">
+                  <tr className="bg-black/[0.035] text-xs text-black/55 dark:bg-white/[0.045] dark:text-white/55">
                     {/* <th className="border border-border px-4 py-2 text-left font-semibold">Title</th> */}
-                    <th className="border border-border px-4 py-2 text-left font-semibold">Statement</th>
-                    <th className="border border-border px-4 py-2 text-left font-semibold">Concept</th>
-                    <th className="border border-border px-4 py-2 text-left font-semibold">Actor</th>
-                    <th className="border border-border px-4 py-2 text-left font-semibold">Organization</th>
-                    <th className="border border-border px-4 py-2 text-center font-semibold">Agree</th>
+                    <th className="border-b border-r border-black/[0.06] px-4 py-3 text-left font-semibold dark:border-white/[0.07]">Statement</th>
+                    <th className="border-b border-r border-black/[0.06] px-4 py-3 text-left font-semibold dark:border-white/[0.07]">Concept</th>
+                    <th className="border-b border-r border-black/[0.06] px-4 py-3 text-left font-semibold dark:border-white/[0.07]">Actor</th>
+                    <th className="border-b border-r border-black/[0.06] px-4 py-3 text-left font-semibold dark:border-white/[0.07]">Organization</th>
+                    <th className="border-b border-black/[0.06] px-4 py-3 text-center font-semibold dark:border-white/[0.07]">Agree</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,36 +183,36 @@ export default function ResultsSheet({
                       ? statements.findIndex(stmt => stmt === statement)
                       : index
                     return (
-                    <tr key={index} className="hover:bg-muted">
+                    <tr key={index} className="transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.035]">
                       {/* <td className="border border-border px-4 py-2 text-xs">
                           {statement.sourceFile || 'Unknown'}
                       </td> */}
-                      <td className="border border-border px-4 py-2">
+                      <td className="border-b border-r border-black/[0.055] px-4 py-3 align-top dark:border-white/[0.065]">
                         <EditableCell
                           value={statement.statement}
                           onSave={(newValue) => handleCellEdit(originalIndex, 'statement', newValue)}
                         />
                       </td>
-                      <td className="border border-border px-4 py-2">
+                      <td className="border-b border-r border-black/[0.055] px-4 py-3 align-top dark:border-white/[0.065]">
                         <EditableCell
                           value={statement.concept}
                           onSave={(newValue) => handleCellEdit(originalIndex, 'concept', newValue)}
                           className="font-medium"
                         />
                       </td>
-                      <td className="border border-border px-4 py-2">
+                      <td className="border-b border-r border-black/[0.055] px-4 py-3 align-top dark:border-white/[0.065]">
                         <EditableCell
                           value={statement.actor}
                           onSave={(newValue) => handleCellEdit(originalIndex, 'actor', newValue)}
                         />
                       </td>
-                      <td className="border border-border px-4 py-2">
+                      <td className="border-b border-r border-black/[0.055] px-4 py-3 align-top dark:border-white/[0.065]">
                         <EditableCell
                           value={statement.organization}
                           onSave={(newValue) => handleCellEdit(originalIndex, 'organization', newValue)}
                         />
                       </td>
-                      <td className="border border-border px-4 py-2 text-center">
+                      <td className="border-b border-black/[0.055] px-4 py-3 text-center align-top dark:border-white/[0.065]">
                         <Select
                           value={statement.agree ? 'TRUE' : 'FALSE'}
                           onValueChange={(newValue) => handleCellEdit(originalIndex, 'agree', newValue)}
@@ -230,6 +231,7 @@ export default function ResultsSheet({
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
@@ -237,4 +239,3 @@ export default function ResultsSheet({
     </Sheet>
   )
 }
-

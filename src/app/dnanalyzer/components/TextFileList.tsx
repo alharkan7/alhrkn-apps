@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Play, Loader2, Check, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface TextFile {
   id: string
@@ -26,6 +27,7 @@ interface TextFileListProps {
   onBulkAnalyze: () => void
   onDeleteFile: (fileId: string) => void
   loading: boolean
+  variant?: 'panel' | 'sidebar'
 }
 
 function useScreenSize() {
@@ -51,7 +53,7 @@ function truncateText(text: string, isMobile: boolean): string {
 }
 
 const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProps>(
-  ({ files, selectedFileId, onFileSelect, onAddFile, onBulkAnalyze, onDeleteFile, loading }, ref) => {
+  ({ files, selectedFileId, onFileSelect, onAddFile, onBulkAnalyze, onDeleteFile, loading, variant = 'panel' }, ref) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [fileToDelete, setFileToDelete] = useState<TextFile | null>(null)
@@ -100,30 +102,39 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
   const hasUnprocessedFiles = unprocessedCount > 0
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className={cn(
+      'h-full bg-white/82 backdrop-blur-xl dark:bg-[#191917]/84',
+      variant === 'sidebar'
+        ? 'rounded-none border-0 shadow-none'
+        : 'rounded-2xl border-black/[0.07] shadow-[0_8px_28px_rgba(25,25,24,0.055)] dark:border-white/[0.08] dark:shadow-[0_10px_32px_rgba(0,0,0,0.24)]',
+    )}>
+      <CardHeader className={cn(
+        'border-b border-black/[0.055] px-4 py-4 dark:border-white/[0.07]',
+        variant === 'sidebar' && 'pr-12 pt-5',
+      )}>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Text Sources</CardTitle>
-            <CardDescription>
-              Select a text source to analyze discourse
+            <CardTitle className="text-base font-semibold tracking-[-0.02em]">Text sources</CardTitle>
+            <CardDescription className="mt-1 text-xs">
+              {files.length} {files.length === 1 ? 'source' : 'sources'} · {unprocessedCount} pending
             </CardDescription>
           </div>
           <Button
             onClick={onBulkAnalyze}
             disabled={loading || !hasUnprocessedFiles}
             size="sm"
-            variant="secondary"
+            variant="default"
+            className="h-9 rounded-xl bg-[#191918] px-3 text-white shadow-none hover:bg-black disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
           >
             {loading ? (
               <>
-                <Loader2 className="animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Analyzing...
               </>
             ) : (
               <>
-                <Play />
-                Analyze ({unprocessedCount})
+                <Play className="size-4" />
+                <span className="hidden sm:inline">Analyze</span> ({unprocessedCount})
               </>
             )}
           </Button>
@@ -191,22 +202,22 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3">
         {files.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="mb-4">No text sources added yet</p>
-            <p className="text-sm">Click "Add Source" to get started</p>
+          <div className="rounded-xl border border-dashed border-black/12 px-5 py-10 text-center dark:border-white/12">
+            <p className="font-medium">No text sources</p>
+            <p className="mt-1 text-sm text-black/42 dark:text-white/42">Use Add in the toolbar to begin.</p>
           </div>
         ) : (
-          <div className="max-h-[400px] overflow-y-auto">
-            <div className="space-y-3 pr-2">
+          <div className={cn('overflow-y-auto scrollbar-thin', variant === 'sidebar' ? 'max-h-[calc(100dvh-9.5rem)]' : 'max-h-[calc(100dvh-15rem)]')}>
+            <div className="space-y-1 pr-1">
               {[...files].reverse().map((file) => (
                 <div
                   key={file.id}
-                  className={`p-4 border rounded-lg bg-white cursor-pointer transition-colors ${
+                  className={`cursor-pointer rounded-xl border p-3 transition-colors ${
                     selectedFileId === file.id
-                      ? 'border-accent bg-accent/20 shadow-sm ring-1 ring-accent/30'
-                      : 'border-border hover:border-accent/70 hover:bg-accent/10'
+                      ? 'border-black/[0.09] bg-black/[0.07] dark:border-white/[0.11] dark:bg-white/[0.1]'
+                      : 'border-transparent bg-transparent hover:bg-black/[0.035] dark:hover:bg-white/[0.045]'
                   }`}
                   onClick={() => onFileSelect(file.id)}
                 >
@@ -218,15 +229,15 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
                             {file.title}
                           </h3>
                           {file.processed && (
-                            <Badge variant="default" className="text-xs rounded-full">
-                              <Check className="h-3 w-3" />
+                            <Badge variant="neutral" className="size-5 rounded-full border-black/[0.09] bg-black/[0.045] p-0 text-black/45 dark:border-white/[0.1] dark:bg-white/[0.07] dark:text-white/45">
+                              <Check className="size-3" />
                             </Badge>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground ml-2 flex-shrink-0 flex items-center gap-1">
                           {file.content.split(' ').filter(word => word.length > 0).length} words
                           <Trash2
-                            className="h-3 w-3 cursor-pointer hover:text-red-600 transition-colors"
+                            className="size-3 cursor-pointer transition-colors hover:text-red-600"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleDeleteClick(file)
@@ -234,7 +245,7 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
                           />
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
+                      <p className="line-clamp-1 text-xs leading-relaxed text-black/42 dark:text-white/42">
                         {truncateText(file.content, isMobile)}
                       </p>
                     </div>
@@ -252,4 +263,3 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
 TextFileList.displayName = 'TextFileList'
 
 export default TextFileList
-
