@@ -700,7 +700,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                animate={{ opacity: 1, y: 0 }}
                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+              <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">
                 Search Scientific Literature
               </h1>
             </motion.div>

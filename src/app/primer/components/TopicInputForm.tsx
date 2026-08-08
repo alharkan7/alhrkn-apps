@@ -70,7 +70,7 @@ export function TopicInputForm() {
           transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto mb-6 max-w-3xl text-center sm:mb-7"
         >
-          <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+          <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">
             Build Interactive Lesson
           </h1>
         </motion.div>

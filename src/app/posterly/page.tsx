@@ -62,7 +62,7 @@ export default function PosterlyPage() {
           className="my-auto w-full py-4 sm:py-6"
         >
           <motion.div variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }} className="mx-auto mb-6 max-w-3xl text-center sm:mb-7">
-            <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">Create Research Poster</h1>
+            <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">Create Research Poster</h1>
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 18, scale: 0.985 }, visible: { opacity: 1, y: 0, scale: 1 } }} transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}>
             <PosterUploader loading={loading} loadingText="Reading paper and composing poster…" error={error} onGenerate={handleGenerate} />

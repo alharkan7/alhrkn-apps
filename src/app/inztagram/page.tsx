@@ -174,7 +174,7 @@ export default function InztagramPage() {
               transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
               className="mx-auto mb-6 max-w-2xl text-center sm:mb-7"
             >
-              <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+              <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">
                 Create Diagram Instantly
               </h1>
             </motion.div>
@@ -222,7 +222,7 @@ export default function InztagramPage() {
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto mt-5 grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-3"
+              className="mx-auto mt-5 hidden max-w-2xl grid-cols-1 gap-2 sm:grid sm:grid-cols-3"
               aria-label="Starter ideas"
             >
               {STARTER_PROMPTS.map(({ icon: Icon, label, prompt }) => (

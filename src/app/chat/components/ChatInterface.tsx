@@ -184,7 +184,7 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
             <div className={`relative z-10 mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden px-1 pt-14 md:px-4 ${!hasUserSentMessage ? 'justify-center pb-14' : 'pb-0'}`}>
                 {!hasUserSentMessage && (
                     <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }} className="flex-none px-4 pb-6 text-center sm:pb-7">
-                        <h1 className="text-balance text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+                        <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">
                             What can I help with?
                         </h1>
                     </motion.div>
