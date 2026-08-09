@@ -155,7 +155,7 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
                             <Menu size={18} />
                         </Button>
                     }
-                    rightContent={<PrimerFontButton />}
+                    rightContent={pathname !== '/chat' ? <PrimerFontButton /> : undefined}
                 />
                 {!isOwner && (
                     <div 

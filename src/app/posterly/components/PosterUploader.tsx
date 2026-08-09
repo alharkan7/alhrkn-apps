@@ -77,7 +77,7 @@ export function PosterUploader({ loading, loadingText, error, onGenerate }: Post
       <div className="relative z-10 rounded-[24px] bg-white p-3 shadow-[0_14px_44px_rgba(25,25,24,0.09),0_2px_8px_rgba(25,25,24,0.04)] transition-shadow duration-300 focus-within:shadow-[0_18px_54px_rgba(25,25,24,0.13),0_0_0_3px_rgba(6,182,212,0.08)] dark:bg-[#1b1b19] dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] sm:p-4">
         <div className="relative mb-3 grid grid-cols-2 gap-1 rounded-xl border border-black/[0.05] bg-black/[0.035] p-1 dark:border-white/[0.06] dark:bg-white/[0.045]">
           <span
-            className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%_-_0.375rem)] rounded-lg bg-[#191918] shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none dark:bg-[#f2f2ef] ${mode === 'text' ? 'translate-x-[calc(100%_+_0.25rem)]' : 'translate-x-0'}`}
+            className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%_-_0.375rem)] rounded-lg bg-[#191918] shadow-sm transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none dark:bg-[#f2f2ef] ${mode === 'text' ? 'translate-x-[calc(100%_+_0.25rem)]' : 'translate-x-0'}`}
             aria-hidden="true"
           />
           <button type="button" onClick={() => setMode('file')} className={`relative z-10 flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${mode === 'file' ? 'text-white dark:text-[#191918]' : 'text-black/45 hover:text-black dark:text-white/45 dark:hover:text-white'}`}>

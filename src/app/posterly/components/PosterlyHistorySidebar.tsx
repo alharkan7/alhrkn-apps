@@ -10,7 +10,7 @@ export function PosterlyHistorySidebar() {
       apiEndpoint="/api/posterly/history"
       itemUrlPrefix="/posterly/"
       eventName="togglePosterlyHistorySidebar"
-      title="Recent posters"
+      title="Recent Posters"
       variant="quiet"
       emptyMessage="No posters yet. Upload a paper to begin."
       onRenderTitle={(item) => item.title || item.sourceFileName || 'Untitled poster'}

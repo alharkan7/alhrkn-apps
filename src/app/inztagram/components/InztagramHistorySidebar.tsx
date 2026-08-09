@@ -9,7 +9,7 @@ export function InztagramHistorySidebar() {
       apiEndpoint="/api/inztagram/history"
       itemUrlPrefix="/inztagram/"
       eventName="toggleInztagramHistorySidebar"
-      title="Recent diagrams"
+      title="Recent Diagrams"
       variant="quiet"
       emptyMessage="No previous diagrams found."
       onRenderTitle={(item) => item.pdfName || item.description || 'Untitled Diagram'}

@@ -339,7 +339,7 @@ export default function Downloader({}: DownloaderProps) {
       <Button
         variant="secondary"
         size="sm"
-        className="h-9 border border-black/[0.08] bg-white/60 text-[#191918] hover:bg-white dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
+        className="h-9 border border-black/[0.08] bg-white text-[#191918] hover:bg-black/5 dark:border-white/[0.1] dark:bg-[#20201f] dark:text-[#f2f2ef] dark:hover:bg-[#2a2a29]"
         onClick={() => setShowDropdown(!showDropdown)}
         title="Share"
       >

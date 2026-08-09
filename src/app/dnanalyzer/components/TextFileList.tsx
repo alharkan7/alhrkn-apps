@@ -142,9 +142,9 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Add New Text Source</DialogTitle>
-                <DialogDescription>
+                {/* <DialogDescription>
                   Enter a title and paste or type your text content. This could be a news article, blog post, or any textual content you want to analyze.
-                </DialogDescription>
+                </DialogDescription> */}
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
@@ -170,7 +170,7 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
                   </div>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-row justify-end space-x-2 mt-2">
                 <Button variant="secondary" onClick={handleDialogClose}>
                   Cancel
                 </Button>
@@ -190,7 +190,7 @@ const TextFileList = forwardRef<{ triggerAddFile: () => void }, TextFileListProp
                   Are you sure you want to delete "{fileToDelete?.title}"? This action cannot be undone and will also remove all associated statements from the database.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
+              <DialogFooter className="flex-row justify-end space-x-2 mt-2">
                 <Button variant="secondary" onClick={handleDeleteCancel}>
                   Cancel
                 </Button>

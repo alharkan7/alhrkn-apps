@@ -18,14 +18,14 @@ export function AppsHeader({ title, leftButton, centerContent, rightContent, cla
   return (
     <header className={cn('sticky top-0 bg-transparent py-1 px-2 md:px-4', className)}>
       <div className="relative flex items-center max-w-6xl mx-auto min-h-[48px]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           {leftButton && (
-            <div>
+            <div className="shrink-0">
               {leftButton}
             </div>
           )}
           {title && (
-            <div className="text-sm font-semibold tracking-[-0.01em]">
+            <div className="text-sm font-semibold tracking-[-0.01em] min-w-0">
               {title}
             </div>
           )}
@@ -35,7 +35,7 @@ export function AppsHeader({ title, leftButton, centerContent, rightContent, cla
             {centerContent}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {rightContent}
           <AppsGrid
             trigger={

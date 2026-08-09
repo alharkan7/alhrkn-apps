@@ -17,7 +17,7 @@ export function BeeblioHistorySidebar() {
       apiEndpoint="/api/beeblio/history"
       itemUrlPrefix="/beeblio/"
       eventName="toggleBeeblioHistorySidebar"
-      title="Recent searches"
+      title="Recent Searches"
       variant="quiet"
       emptyMessage="No search history found."
       onRenderIcon={() => <Search size={15} />}

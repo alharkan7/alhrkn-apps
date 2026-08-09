@@ -13,18 +13,63 @@ interface HeaderItem {
 
 type MobileCorner = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
+const FAB_SIZE = 44;
+const FAB_MARGIN = 16;
+const FAB_MARGIN_TOP = 80;
+const DRAG_THRESHOLD = 4;
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+function nearestCorner(x: number, y: number): MobileCorner {
+  const left = x < window.innerWidth / 2;
+  const top = y < window.innerHeight / 2;
+  if (top && left) return 'top-left';
+  if (top) return 'top-right';
+  if (left) return 'bottom-left';
+  return 'bottom-right';
+}
+
+function cornerPosition(corner: MobileCorner): { left: number; top: number } {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  switch (corner) {
+    case 'top-left': return { left: FAB_MARGIN, top: FAB_MARGIN_TOP };
+    case 'top-right': return { left: w - FAB_SIZE - FAB_MARGIN, top: FAB_MARGIN_TOP };
+    case 'bottom-left': return { left: FAB_MARGIN, top: h - FAB_SIZE - FAB_MARGIN };
+    default: return { left: w - FAB_SIZE - FAB_MARGIN, top: h - FAB_SIZE - FAB_MARGIN };
+  }
+}
+
 export function DocumentMap({ containerId }: { containerId: string }) {
     const [headers, setHeaders] = useState<HeaderItem[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [mobileCorner, setMobileCorner] = useState<MobileCorner>('top-right');
     const [isDragging, setIsDragging] = useState(false);
-    const pointerRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+    const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+    const drag = useRef<{ sx: number; sy: number; ol: number; ot: number } | null>(null);
     const skipClickRef = useRef(false);
+    const movedRef = useRef(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-            setIsOpen(true);
+        if (typeof window !== 'undefined') {
+            if (window.innerWidth >= 1024) {
+                setIsOpen(true);
+            } else {
+                setPos(cornerPosition('top-right'));
+            }
         }
+    }, []);
+
+    useEffect(() => {
+        const onResize = () => {
+            if (window.innerWidth < 1024) {
+                setPos((p) => (p ? cornerPosition(nearestCorner(p.left + FAB_SIZE / 2, p.top + FAB_SIZE / 2)) : cornerPosition('top-right')));
+            } else {
+                setPos(null);
+            }
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
     }, []);
 
     useEffect(() => {
@@ -108,34 +153,42 @@ export function DocumentMap({ containerId }: { containerId: string }) {
     };
 
     const handleTogglePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
-        if (window.innerWidth >= 1024) return;
+        if (window.innerWidth >= 1024 || !pos) return;
         event.currentTarget.setPointerCapture(event.pointerId);
-        pointerRef.current = { x: event.clientX, y: event.clientY, moved: false };
+        drag.current = { sx: event.clientX, sy: event.clientY, ol: pos.left, ot: pos.top };
+        movedRef.current = false;
         setIsDragging(true);
     };
 
     const handleTogglePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-        const pointer = pointerRef.current;
-        if (!pointer) return;
+        const d = drag.current;
+        if (!d || window.innerWidth >= 1024) return;
 
-        if (Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) > 8) {
-            pointer.moved = true;
+        const dx = event.clientX - d.sx;
+        const dy = event.clientY - d.sy;
+        if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+            movedRef.current = true;
         }
+        setPos({
+            left: clamp(d.ol + dx, FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN),
+            top: clamp(d.ot + dy, FAB_MARGIN_TOP, window.innerHeight - FAB_SIZE - FAB_MARGIN),
+        });
     };
 
     const handleTogglePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
-        const pointer = pointerRef.current;
-        if (!pointer) return;
+        if (window.innerWidth >= 1024) return;
+        const d = drag.current;
+        drag.current = null;
+        setIsDragging(false);
+        try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
+        if (!d) return;
 
-        if (pointer.moved) {
-            const isLeft = event.clientX < window.innerWidth / 2;
-            const isTop = event.clientY < window.innerHeight / 2;
-            setMobileCorner(`${isTop ? 'top' : 'bottom'}-${isLeft ? 'left' : 'right'}` as MobileCorner);
+        if (movedRef.current) {
+            const corner = nearestCorner(event.clientX, event.clientY);
+            setMobileCorner(corner);
+            setPos(cornerPosition(corner));
             skipClickRef.current = true;
         }
-
-        pointerRef.current = null;
-        setIsDragging(false);
     };
 
     const handleToggleClick = () => {
@@ -157,7 +210,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
 
     return (
         <div className={cn(
-            'fixed z-40 flex flex-col lg:bottom-auto lg:left-auto lg:right-4 lg:top-1/2 lg:-translate-y-1/2 lg:items-end',
+            'fixed z-40 flex flex-col lg:bottom-auto lg:left-auto lg:right-4 lg:top-1/2 lg:-translate-y-1/2 lg:items-end pointer-events-none',
             mobileCornerClass
         )}>
             {!isOpen && (
@@ -167,9 +220,10 @@ export function DocumentMap({ containerId }: { containerId: string }) {
                     onPointerMove={handleTogglePointerMove}
                     onPointerUp={handleTogglePointerUp}
                     onPointerCancel={handleTogglePointerUp}
+                    style={pos ? { left: pos.left, top: pos.top, position: 'fixed', zIndex: 50, width: FAB_SIZE, height: FAB_SIZE } : undefined}
                     className={cn(
-                        'touch-none select-none rounded-full border border-black/[0.08] bg-white p-3 text-black/50 shadow-sm transition-all hover:bg-black/[0.04] hover:text-[#191918] hover:shadow-md focus:outline-none dark:border-white/[0.1] dark:bg-[#1b1b19] dark:text-white/50 dark:hover:bg-white/[0.08] dark:hover:text-white',
-                        isDragging ? 'cursor-grabbing shadow-lg' : 'cursor-grab'
+                        'pointer-events-auto flex items-center justify-center touch-none select-none rounded-full border border-black/[0.08] bg-white p-3 text-black/50 shadow-sm hover:bg-black/[0.04] hover:text-[#191918] hover:shadow-md focus:outline-none dark:border-white/[0.1] dark:bg-[#1b1b19] dark:text-white/50 dark:hover:bg-white/[0.08] dark:hover:text-white',
+                        isDragging ? 'cursor-grabbing shadow-lg transition-none' : 'cursor-grab transition-[left,top,transform,background-color] duration-200'
                     )}
                     title="Open Document Map"
                     aria-label="Open Document Map"
@@ -180,7 +234,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
 
             <div
                 className={cn(
-                    "overflow-hidden rounded-xl border border-black/[0.08] bg-white/95 shadow-xl backdrop-blur-md transition-all duration-300 ease-in-out origin-right dark:border-white/[0.1] dark:bg-[#1b1b19]/95",
+                    "pointer-events-auto overflow-hidden rounded-xl border border-black/[0.08] bg-white/95 shadow-xl backdrop-blur-md transition-all duration-300 ease-in-out origin-right dark:border-white/[0.1] dark:bg-[#1b1b19]/95",
                     isOpen ? "max-h-[60vh] w-64 scale-100 opacity-100" : "h-0 w-0 scale-95 border-transparent opacity-0"
                 )}
             >

@@ -9,7 +9,7 @@ export function AnimaChartHistorySidebar() {
       apiEndpoint="/api/animachart/history"
       itemUrlPrefix="/animachart/"
       eventName="toggleAnimaChartHistorySidebar"
-      title="Recent charts"
+      title="Recent Charts"
       variant="quiet"
       emptyMessage="No previous animated charts found."
       onRenderTitle={(item: any) => item.chartData?.title || 'Untitled Chart'}

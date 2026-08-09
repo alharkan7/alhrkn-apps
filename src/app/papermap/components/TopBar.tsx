@@ -90,7 +90,7 @@ export default function TopBar() {
           : isUrlType && sourceUrl ? 'Open source in a new tab' : undefined
       }
       className={[
-        'group inline-flex max-w-[44vw] items-center gap-2 text-sm font-medium tracking-[-0.01em] sm:max-w-[320px]',
+        'group inline-flex min-w-0 max-w-[44vw] items-center gap-2 text-sm font-medium tracking-[-0.01em] sm:max-w-[320px]',
         isClickable
           ? 'cursor-pointer text-[#191918] hover:text-black/70 dark:text-[#f2f2ef] dark:hover:text-white/80'
           : 'cursor-default text-black/55 dark:text-white/50'
@@ -128,7 +128,7 @@ export default function TopBar() {
             <Button
               variant="secondary"
               size="sm"
-              className="h-9 rounded-xl border border-black/[0.08] bg-white/60 text-[#191918] hover:bg-white dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
+              className="h-9 rounded-xl border border-black/[0.08] bg-white text-[#191918] hover:bg-black/5 dark:border-white/[0.1] dark:bg-[#20201f] dark:text-[#f2f2ef] dark:hover:bg-[#2a2a29]"
               onClick={handleNewClick}
               title="New mindmap"
             >

@@ -24,7 +24,7 @@ export function ChatHistorySidebar() {
       fetchItems={fetchChatHistory}
       itemUrlPrefix="/chat/"
       eventName="toggleChatHistorySidebar"
-      title="Recent chats"
+      title="Recent Chats"
       variant="quiet"
       emptyMessage="No chats yet. Start a conversation to see history."
       onRenderTitle={renderTitle}

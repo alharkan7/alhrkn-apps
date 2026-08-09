@@ -206,7 +206,7 @@ export function PrimerHistorySidebar() {
         )}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/[0.06] px-4 dark:border-white/[0.07]">
-          <h2 className="text-sm font-semibold tracking-[-0.01em]">Recent lessons</h2>
+          <h2 className="text-sm font-semibold tracking-[-0.01em]">Recent Lessons</h2>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="size-8 rounded-lg text-black/45 hover:bg-black/[0.06] dark:text-white/45 dark:hover:bg-white/[0.07]" title="Close">
             <ChevronLeft size={16} />
           </Button>

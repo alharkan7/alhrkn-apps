@@ -9,7 +9,7 @@ export function PapermapHistorySidebar() {
       apiEndpoint="/api/papermap/history"
       itemUrlPrefix="/papermap/"
       eventName="toggleHistorySidebar"
-      title="Recent mindmaps"
+      title="Recent Mindmaps"
       variant="quiet"
       emptyMessage="No previous mindmaps found."
       onRenderTitle={(item) => item.title || 'Untitled Mindmap'}

@@ -603,7 +603,6 @@ export function SvgArtifact({
       <Card className={isFullscreen ? 'w-full h-full shadow-lg flex flex-col max-w-none' : 'w-full h-full shadow-lg flex flex-col min-h-0'}>
         <div className="flex items-center justify-between p-2 border-b shrink-0">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground px-2">
-            <span>Diagram</span>
             {!renderError && (
               <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground/80">
                 <MousePointer2 className="size-3" />
@@ -793,7 +792,7 @@ export function SvgArtifact({
               )}
             </div>
             {showEditButton && onEdit && (
-              <Button variant="default" size="sm" onClick={onEdit} className="ml-1 h-10 gap-1.5 px-3">
+              <Button variant="default" size="sm" onClick={onEdit} className="ml-1 h-10 gap-1.5 px-3 hidden sm:flex">
                 <Pencil className="size-3.5" />
                 <span className="hidden sm:inline">Edit</span>
               </Button>

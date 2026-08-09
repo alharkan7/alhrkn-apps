@@ -24,6 +24,7 @@ interface PrimerChatProps {
 
 const FAB_SIZE = 52;
 const FAB_MARGIN = 20;
+const FAB_MARGIN_TOP = 80;
 const DRAG_THRESHOLD = 4;
 
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
@@ -43,8 +44,8 @@ function cornerPosition(corner: Corner): { left: number; top: number } {
   const w = window.innerWidth;
   const h = window.innerHeight;
   switch (corner) {
-    case 'tl': return { left: FAB_MARGIN, top: FAB_MARGIN };
-    case 'tr': return { left: w - FAB_SIZE - FAB_MARGIN, top: FAB_MARGIN };
+    case 'tl': return { left: FAB_MARGIN, top: FAB_MARGIN_TOP };
+    case 'tr': return { left: w - FAB_SIZE - FAB_MARGIN, top: FAB_MARGIN_TOP };
     case 'bl': return { left: FAB_MARGIN, top: h - FAB_SIZE - FAB_MARGIN };
     default: return { left: w - FAB_SIZE - FAB_MARGIN, top: h - FAB_SIZE - FAB_MARGIN };
   }
@@ -84,7 +85,7 @@ function ChatFab({ onOpen }: { onOpen: () => void }) {
     if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) movedRef.current = true;
     setPos({
       left: clamp(d.ol + dx, FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN),
-      top: clamp(d.ot + dy, FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN),
+      top: clamp(d.ot + dy, FAB_MARGIN_TOP, window.innerHeight - FAB_SIZE - FAB_MARGIN),
     });
   };
 
