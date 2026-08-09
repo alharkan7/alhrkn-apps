@@ -313,10 +313,10 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
     };
 
     return (
-        <div className="flex-1 flex flex-col justify-center items-center max-w-6xl mx-auto w-full px-1 md:px-4 mt-[80px] mb-[20px] relative">
+        <div className="relative w-full">
             {!isOwner && (
                 <div 
-                    className="absolute top-0 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50 mt-16" 
+                    className="absolute top-14 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50"
                     onClick={handleMakeCopy}
                 >
                     <span>View Only</span>
@@ -357,7 +357,23 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                                 <SheetHeader>
                                     <SheetTitle>Edit Diagram Text</SheetTitle>
                                     <SheetDescription>
-                                        Edit the Mermaid source. Changes update the preview live.
+                                        {(() => {
+                                            const type = DIAGRAM_TYPES.find(t => t.value === diagramType);
+                                            if (!type) return <span>Learn to customize Mermaid Diagram here.</span>;
+                                            return (
+                                                <span>
+                                                    Learn to customize Mermaid Diagram{' '}
+                                                    <a
+                                                        href={`https://mermaid.js.org/syntax/${type.docs}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary underline hover:text-primary/80"
+                                                    >
+                                                        here
+                                                    </a>.
+                                                </span>
+                                            );
+                                        })()}
                                     </SheetDescription>
                                 </SheetHeader>
                                 <textarea
@@ -366,23 +382,6 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, diagramT
                                     className="w-full h-[60vh] mt-4 p-2 border rounded bg-background text-foreground font-mono text-sm resize-vertical"
                                     style={{ minHeight: 200 }}
                                 />
-                                {(() => {
-                                    const type = DIAGRAM_TYPES.find(t => t.value === diagramType);
-                                    if (!type) return null;
-                                    return (
-                                        <div className="mt-3 text-sm text-muted-foreground">
-                                            Learn to customize Mermaid Diagram{' '}
-                                            <a
-                                                href={`https://mermaid.js.org/syntax/${type.docs}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-primary underline hover:text-primary/80"
-                                            >
-                                                here
-                                            </a>.
-                                        </div>
-                                    );
-                                })()}
                             </SheetContent>
                         </Sheet>
                         <Button

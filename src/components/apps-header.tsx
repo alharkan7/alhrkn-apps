@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils';
 interface AppsHeaderProps {
   title?: React.ReactNode;
   leftButton?: React.ReactNode;
+  centerContent?: React.ReactNode;
   rightContent?: React.ReactNode;
   className?: string;
 }
 
-export function AppsHeader({ title, leftButton, rightContent, className }: AppsHeaderProps) {
+export function AppsHeader({ title, leftButton, centerContent, rightContent, className }: AppsHeaderProps) {
 
   return (
     <header className={cn('sticky top-0 bg-transparent py-1 px-2 md:px-4', className)}>
@@ -24,18 +25,24 @@ export function AppsHeader({ title, leftButton, rightContent, className }: AppsH
             </div>
           )}
           {title && (
-            <div className="text-xl font-semibold">
+            <div className="text-sm font-semibold tracking-[-0.01em]">
               {title}
             </div>
           )}
         </div>
+        {centerContent && (
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1.5 lg:flex">
+            {centerContent}
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {rightContent}
           <AppsGrid
             trigger={
               <Button
                 variant="default"
-                className="flex items-center px-3 h-fit"
+                size="sm"
+                aria-label="Browse apps"
               >
                 <LayoutGrid size={14} /> Apps
               </Button>

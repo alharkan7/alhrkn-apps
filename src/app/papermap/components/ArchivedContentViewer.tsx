@@ -81,12 +81,12 @@ const ArchivedContentViewer: React.FC<ArchivedContentViewerProps> = ({
   const processedContent = processMarkdownContent(markdownContent);
 
   return (
-    <div 
+    <div
       className={`
-        fixed top-0 right-0 h-full w-full md:w-2/5 bg-card shadow-xl z-50 
-        transform transition-transform duration-300 ease-in-out 
+        fixed top-0 right-0 z-50 h-full w-full transform border-l border-black/[0.08] bg-[#fbfaf8] p-4 shadow-xl
+        transition-transform duration-300 ease-in-out dark:border-white/[0.08] dark:bg-[#161614]
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-        flex flex-col p-4 border-l border-border
+        flex flex-col
       `}
     >
       <div className="flex justify-between items-center mb-4">

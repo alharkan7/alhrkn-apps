@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Menu, Plus } from 'lucide-react'
+import { Menu } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
@@ -12,6 +13,7 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { usePathname } from 'next/navigation'
 import { Message } from '../types/types'
 import { motion, useReducedMotion } from 'framer-motion'
+import { PrimerFontButton } from '@/app/primer/components/PrimerFontButton'
 
 import { toast } from 'sonner'
 
@@ -23,7 +25,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialMessages = [], initialSessionId, isOwner = true }: ChatInterfaceProps) {
     const prefersReducedMotion = useReducedMotion();
-    const { messages, isLoading, isStreaming, sendMessage, clearMessages, sessionId } = useChatMessages(initialMessages, initialSessionId);
+    const { messages, isLoading, isStreaming, sendMessage, sessionId } = useChatMessages(initialMessages, initialSessionId);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [input, setInput] = useState('');
@@ -118,19 +120,6 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
         }
     };
 
-    const handleClearChat = () => {
-        clearMessages();
-        setHasUserSentMessage(false);
-        setInput('');
-        clearFile();
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-        if (pathname !== '/chat') {
-            window.history.replaceState(null, '', '/chat');
-        }
-    };
-
     return (
         <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -145,32 +134,28 @@ export function ChatInterface({ initialMessages = [], initialSessionId, isOwner 
 
             <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
                 <AppsHeader 
-                    title={<span className="text-sm font-semibold tracking-[-0.01em]">Disposable Chat</span>}
-                    leftButton={
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => window.dispatchEvent(new CustomEvent('toggleChatHistorySidebar'))}
-                                className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
-                                aria-label="Open chat history"
-                            >
-                                <Menu size={18} />
-                            </Button>
-                            {hasUserSentMessage && (
-                                <Button
-                                    onClick={(e) => {
-                                        if (handleInteract(e)) handleClearChat();
-                                    }}
-                                    className="size-9 rounded-xl border border-black/[0.06] bg-black/[0.025] p-2 text-black/55 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white"
-                                    title="New chat"
-                                    variant="ghost"
-                                >
-                                    <Plus size={16} />
-                                </Button>
-                            )}
-                        </div>
+                    title={
+                        <Link
+                            href="/chat"
+                            title="Back to Chat"
+                            className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] text-[#191918] no-underline transition-opacity hover:opacity-65 dark:text-[#f2f2ef]"
+                        >
+                            Chat
+                        </Link>
                     }
+                    leftButton={
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.dispatchEvent(new CustomEvent('toggleChatHistorySidebar'))}
+                            className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                            title="History"
+                            aria-label="Open chat history"
+                        >
+                            <Menu size={18} />
+                        </Button>
+                    }
+                    rightContent={<PrimerFontButton />}
                 />
                 {!isOwner && (
                     <div 

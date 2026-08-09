@@ -2,8 +2,8 @@
 
 export const nodeUpdateStyles = `
   @keyframes node-updated {
-    0% { border: 2px solid #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3); }
-    100% { border: 2px solid #e2e8f0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); }
+    0% { border: 2px solid #191918; box-shadow: 0 0 0 3px rgba(25, 25, 24, 0.18); }
+    100% { border: 2px solid rgba(25, 25, 24, 0.12); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); }
   }
   .node-card {
     /* Remove global transition to avoid lag during dragging */
@@ -20,8 +20,8 @@ export const nodeUpdateStyles = `
     outline: none;
   }
   .react-flow__node.selected .node-card {
-    border: 2px solid #4299E1 !important;
-    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3) !important;
+    border: 1.5px solid #191918 !important;
+    box-shadow: 0 0 0 3px rgba(25, 25, 24, 0.14) !important;
   }
   
   /* Resizer styling */
@@ -29,8 +29,8 @@ export const nodeUpdateStyles = `
     z-index: 100 !important;
   }
   .react-flow__resize-control.handle {
-    background-color: #4299E1 !important;
-    border: 1px solid white !important;
+    background-color: #191918 !important;
+    border: 1px solid #ffffff !important;
   }
   .react-flow__resize-control.handle-right {
     cursor: e-resize !important;
@@ -60,12 +60,14 @@ export const nodeUpdateStyles = `
   /* Fix for ReactFlow controls visibility on mobile */
   .react-flow__controls {
     position: fixed !important;
-    bottom: 0px !important;
-    left: 0px !important;
+    bottom: 16px !important;
+    left: 12px !important;
     z-index: 10 !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(25, 25, 24, 0.08) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+    backdrop-filter: blur(8px) !important;
   }
   
   /* Dark mode styling */
@@ -132,20 +134,22 @@ export const draggableStyles = `
   }
 `;
 
-// Colors for sticky notes based on column level
+// Calm warm palette for sticky notes. Each entry encodes a depth level via a
+// muted, warm-leaning tint with a deeper border hue. Surfaces stay close to the
+// warm page background so cards read as quiet elevated panels, while the border
+// carries the subtle color identity per level.
 export const STICKY_NOTE_COLORS = [
-  { bg: '#EBF8FF', border: '#3182CE', shadow: 'rgba(49, 130, 206, 0.2)' }, // Bright blue
-  { bg: '#E6FFFA', border: '#319795', shadow: 'rgba(49, 151, 149, 0.2)' }, // Teal
-  { bg: '#E9E3FF', border: '#6B46C1', shadow: 'rgba(107, 70, 193, 0.2)' }, // Purple
-  { bg: '#EDFDFD', border: '#0987A0', shadow: 'rgba(9, 135, 160, 0.2)' },  // Cyan
-  { bg: '#EBF4FF', border: '#4C51BF', shadow: 'rgba(76, 81, 191, 0.2)' },  // Indigo
-  { bg: '#F0FFF4', border: '#38A169', shadow: 'rgba(56, 161, 105, 0.2)' }, // Green
-  { bg: '#E6F7FF', border: '#0C74D6', shadow: 'rgba(12, 116, 214, 0.2)' }, // Vivid blue
+  { bg: '#f6f4ef', border: '#b3a692', shadow: 'rgba(179, 166, 146, 0.20)' }, // Sand / stone
+  { bg: '#f6efe9', border: '#bd8f74', shadow: 'rgba(189, 143, 116, 0.20)' }, // Clay
+  { bg: '#f1f3ec', border: '#93a17f', shadow: 'rgba(147, 161, 127, 0.20)' }, // Sage
+  { bg: '#eef1f4', border: '#8597a8', shadow: 'rgba(133, 151, 168, 0.20)' }, // Muted slate
+  { bg: '#f6f0e2', border: '#b89b5e', shadow: 'rgba(184, 155, 94, 0.20)' },  // Honey
+  { bg: '#f3eff1', border: '#a08d99', shadow: 'rgba(160, 141, 153, 0.20)' }, // Mauve
 ];
 
 // Special node colors
-export const BLANK_NODE_COLOR = { bg: '#ffffff', border: '#000000', shadow: 'rgba(158, 158, 158, 0.4)' }; // White/plain
-export const ANSWER_NODE_COLOR = { bg: '#F0F9FF', border: '#63B3ED', shadow: 'rgba(66, 153, 225, 0.15)' }; // Very light blue
+export const BLANK_NODE_COLOR = { bg: '#ffffff', border: '#c9c4b8', shadow: 'rgba(158, 152, 140, 0.30)' }; // Plain warm white
+export const ANSWER_NODE_COLOR = { bg: '#eef2f6', border: '#7e95a8', shadow: 'rgba(126, 149, 168, 0.18)' }; // Calm blue for AI answers
 
 // Sticky note CSS styles
 export const stickyNoteStyles = `
@@ -357,29 +361,22 @@ export const reactFlowStyles = `
     stroke-width: 2px;
   }
 
-  /* Theme-aware background dots */
+  /* Canvas is transparent so the warm page shell shows through; dots are drawn by the Background component */
   .react-flow__background {
-    background-color: var(--background);
-  }
-  
-  .react-flow__background-dots {
-    background-color: var(--muted);
+    background-color: transparent;
   }
 
-  /* Theme-aware controls */
-  .react-flow__controls {
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
+  /* Warm translucent controls (theme-aware) */
   .react-flow__controls-button {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    color: var(--foreground);
+    background: transparent;
+    border-bottom: 1px solid rgba(25, 25, 24, 0.06);
+    color: #191918;
     transition: background 0.2s ease;
+  }
+
+  .dark .react-flow__controls-button {
+    border-bottom-color: rgba(242, 242, 239, 0.08);
+    color: #f2f2ef;
   }
 
   /* Round the first and last buttons */
@@ -395,11 +392,15 @@ export const reactFlowStyles = `
   }
 
   .react-flow__controls-button:hover {
-    background: var(--muted);
+    background: rgba(25, 25, 24, 0.06);
+  }
+
+  .dark .react-flow__controls-button:hover {
+    background: rgba(242, 242, 239, 0.08);
   }
 
   .react-flow__controls-button svg {
-    fill: var(--foreground);
+    fill: currentColor;
   }
 `;
 

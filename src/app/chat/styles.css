@@ -1,0 +1,16 @@
+/* Keep the reading-font control focused on chat content, not the surrounding UI. */
+[data-primer-font="serif"] .chat-message-content {
+  font-family: Georgia, Cambria, 'Times New Roman', Times, serif;
+}
+
+[data-primer-font="rounded"] .chat-message-content {
+  font-family: var(--font-chat-rounded), ui-rounded, 'Segoe UI', system-ui, sans-serif;
+}
+
+[data-primer-font="lexend"] .chat-message-content {
+  font-family: var(--font-chat-lexend), system-ui, -apple-system, sans-serif;
+}
+
+[data-primer-font="mono"] .chat-message-content {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}

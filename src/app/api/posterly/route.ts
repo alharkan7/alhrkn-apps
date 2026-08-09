@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { posterlyPosters } from '@/db/schema';
 import { getBucket } from '@/lib/storage/client';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { extractInputText, deriveSourceTitle, generatePosterHtml, titleFromPosterHtml } from '@/app/posterly/lib/generator';
+import { deriveSourceTitle, generatePosterHtml, titleFromPosterHtml } from '@/app/posterly/lib/generator';
 import type { PosterStyle } from '@/app/posterly/types';
 
 export const runtime = 'nodejs';
@@ -50,22 +50,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Input file must be 25 MB or smaller.' }, { status: 413 });
     }
 
-    const sourceFileName = safeFileName(file?.name || 'paper.md');
-    const sourceBuffer = file
-      ? Buffer.from(await file.arrayBuffer())
-      : Buffer.from(textInput.slice(0, MAX_TEXT_CHARS), 'utf8');
-    const sourceText = file
-      ? await extractInputText(sourceBuffer, file.type, sourceFileName)
-      : textInput.slice(0, MAX_TEXT_CHARS).trim();
+    const uploadedFileName = typeof formData.get('fileName') === 'string' ? String(formData.get('fileName')) : null;
+    const originalName = file?.name || uploadedFileName || 'paper.md';
+    const sourceFileName = safeFileName(originalName);
+    
+    // Always use the client-extracted text as the source text
+    const sourceText = textInput.slice(0, MAX_TEXT_CHARS).trim();
+    
     if (sourceText.length < 20) {
       return NextResponse.json({ error: 'The paper input is too short to generate a useful poster.' }, { status: 400 });
     }
 
-    const sourcePath = `posterly/${user.id}/${uuidv4()}-${sourceFileName}`;
-    await getBucket().file(sourcePath).save(sourceBuffer, {
-      contentType: contentTypeFor(sourceFileName, file?.type || 'text/markdown'),
+    // Since we avoid sending large PDFs to Vercel, we might only receive the extracted text.
+    // If a file was sent, we save it. If not, we save the text as a .md file.
+    let saveBuffer: Buffer;
+    let saveContentType: string;
+    let saveFileName: string;
+
+    if (file) {
+      saveBuffer = Buffer.from(await file.arrayBuffer());
+      saveContentType = contentTypeFor(sourceFileName, file.type);
+      saveFileName = sourceFileName;
+    } else {
+      saveBuffer = Buffer.from(sourceText, 'utf8');
+      saveContentType = 'text/markdown; charset=utf-8';
+      // Change extension to .md so it is not incorrectly served as a broken PDF
+      saveFileName = sourceFileName.replace(/\.pdf$/i, '.md');
+    }
+
+    const sourcePath = `posterly/${user.id}/${uuidv4()}-${saveFileName}`;
+    await getBucket().file(sourcePath).save(saveBuffer, {
+      contentType: saveContentType,
       resumable: false,
-      metadata: { userId: user.id, originalFileName: file?.name || 'paper.md' },
+      metadata: { userId: user.id, originalFileName: originalName },
     });
 
     const sourceTitle = deriveSourceTitle(sourceText, sourceFileName);

@@ -7,6 +7,7 @@ import AppsFooter from '@/components/apps-footer';
 import { Button } from '@/components/ui/button';
 import { PosterUploader, type PosterInput } from './components/PosterUploader';
 import { motion, useReducedMotion } from 'framer-motion';
+import { extractClientPdfText } from './lib/client-pdf';
 
 export default function PosterlyPage() {
   const prefersReducedMotion = useReducedMotion();
@@ -18,8 +19,22 @@ export default function PosterlyPage() {
     setError(null);
     try {
       const formData = new FormData();
-      if (input.file) formData.append('file', input.file);
-      if (input.text) formData.append('text', input.text);
+      if (input.file) {
+        formData.append('fileName', input.file.name);
+        
+        if (input.file.type === 'application/pdf' || input.file.name.toLowerCase().endsWith('.pdf')) {
+          const extractedText = await extractClientPdfText(input.file);
+          formData.append('text', extractedText);
+          // Omit appending the actual file to bypass Vercel's 4.5MB request body limit
+        } else {
+          // For other files, we can just send the file
+          formData.append('file', input.file);
+          const text = await input.file.text();
+          formData.append('text', text); // Send text too, since server no longer extracts it
+        }
+      } else if (input.text) {
+        formData.append('text', input.text);
+      }
       formData.append('style', input.style);
 
       const response = await fetch('/api/posterly', { method: 'POST', body: formData });
@@ -65,7 +80,7 @@ export default function PosterlyPage() {
             <h1 className="text-balance text-[2.5rem] font-semibold leading-[1.2] tracking-[-0.05em] sm:text-5xl sm:leading-[1]">Create Research Poster</h1>
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 18, scale: 0.985 }, visible: { opacity: 1, y: 0, scale: 1 } }} transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}>
-            <PosterUploader loading={loading} loadingText="Reading paper and composing poster…" error={error} onGenerate={handleGenerate} />
+            <PosterUploader loading={loading} loadingText="Creating..." error={error} onGenerate={handleGenerate} />
           </motion.div>
         </motion.section>
       </main>

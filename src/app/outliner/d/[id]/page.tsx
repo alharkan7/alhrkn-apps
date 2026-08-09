@@ -77,15 +77,8 @@ export default function OutlinerDetailPage() {
     }, [id]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden relative font-sans">
-            <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
-            </div>
-
-            <div className="relative z-10 min-h-[100vh] w-full max-w-5xl mx-auto px-4 sm:px-8 py-4 flex flex-col">
+        <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+            <div className="relative z-10 mx-auto flex min-h-[100vh] w-full max-w-5xl flex-col px-4 py-4 sm:px-8">
                 {isLoading ? (
                     <div className="text-center pt-24">
                         <div className="animate-pulse flex flex-col items-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, FileText, FileCode, FileType, File, ArrowLeft, Quote, MessageCircle, Menu, Check } from 'lucide-react';
+import { Download, FileText, FileCode, FileType, File, Quote, MessageCircle, Menu, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
+import { AppsHeader } from '@/components/apps-header';
+import Link from 'next/link';
 
 interface ToolbarProps {
   onDownload: (format: 'pdf' | 'markdown' | 'txt' | 'docx') => void;
@@ -19,84 +20,90 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: ToolbarProps) {
-  const router = useRouter();
+  const renderCitationControls = () => (
+    <>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="h-9 max-lg:w-9 rounded-xl border-black/[0.07] bg-black/[0.025] px-3 max-lg:px-0 text-black/65 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white"
+        aria-label="Open Citations"
+        title="Citations"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('outliner-open-citations'));
+          }
+        }}
+      >
+        <Quote className="h-4 w-4" />
+        <span className="font-medium max-lg:hidden">Cite</span>
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="h-9 max-lg:w-9 rounded-xl border-black/[0.07] bg-black/[0.025] px-3 max-lg:px-0 text-black/65 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white"
+        aria-label="Open Chat"
+        title="Chat"
+        onClick={(e) => {
+          e.preventDefault();
+          onOpenChat?.();
+        }}
+      >
+        <MessageCircle className="h-4 w-4" />
+        <span className="font-medium max-lg:hidden">Chat</span>
+      </Button>
+    </>
+  );
+
+  const quietButtonClass = 'h-9 max-lg:w-9 rounded-xl border-black/[0.07] bg-black/[0.025] px-3 max-lg:px-0 text-black/65 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white';
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border/50 px-4 md:px-8 py-3 bg-background/60 backdrop-blur-xl overflow-x-auto gap-4">
-      
-      {/* Left side - history and back button */}
-      <div className="flex items-center space-x-2 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full sidebar-toggle hover:bg-black/5 dark:hover:bg-white/10"
-          onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}
-        >
-          <Menu size={20} />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-full gap-2 hover:bg-black/5 dark:hover:bg-white/10"
-          aria-label="Go Back"
-          onClick={() => router.push('/outliner')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="font-medium hidden sm:inline">Back</span>
-        </Button>
-      </div>
-
-      {/* Middle - citations and chat */}
-      <div className="flex items-center justify-center space-x-3 shrink-0">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-full shadow-sm gap-2"
-          aria-label="Open Citations"
-          onClick={() => {
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('outliner-open-citations'));
-            }
-          }}
-        >
-          <Quote className="h-4 w-4" />
-          <span className="font-medium">Cite</span>
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-full shadow-sm gap-2"
-          aria-label="Open Chat"
-          onClick={(e) => {
-            e.preventDefault();
-            if (onOpenChat) {
-              onOpenChat();
-            }
-          }}
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span className="font-medium">Chat</span>
-        </Button>
-      </div>
-
-      {/* Right side - save and download */}
-      <div className="flex items-center space-x-2 shrink-0">
-        {onSave && (
+    <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
+      <AppsHeader
+        leftButton={
           <Button
-            variant="default"
+            variant="ghost"
+            size="icon"
+            className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+            aria-label="Open outline history"
+            onClick={() => window.dispatchEvent(new Event('toggleOutlinerHistorySidebar'))}
+          >
+            <Menu size={18} />
+          </Button>
+        }
+        title={
+          <Link
+            href="/outliner"
+            title="Back to Outliner"
+            className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] text-[#191918] no-underline transition-opacity hover:opacity-65 dark:text-[#f2f2ef]"
+          >
+            Outliner
+          </Link>
+        }
+        centerContent={renderCitationControls()}
+        rightContent={
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 lg:hidden">
+              {renderCitationControls()}
+            </div>
+            {onSave && (
+          <Button
+            variant="secondary"
             size="sm"
-            className={`rounded-full shadow-sm gap-2 ${isSaved ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+            className={quietButtonClass}
             onClick={onSave}
             disabled={isSaving}
+            aria-label={isSaved ? 'Saved' : 'Save document'}
+            title={isSaved ? 'Saved' : 'Save document'}
           >
             {isSaved ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-            <span className="font-medium">{isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}</span>
+            <span className="font-medium max-lg:hidden">{isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}</span>
           </Button>
-        )}
-        <DropdownMenu>
+            )}
+            <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="sm" className="rounded-full shadow-sm gap-2">
+            <Button variant="secondary" size="sm" className={quietButtonClass} aria-label="Export document" title="Export document">
               <Download className="h-4 w-4" />
-              <span className="font-medium">Export</span>
+              <span className="font-medium max-lg:hidden">Export</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40 rounded-xl">
@@ -116,9 +123,11 @@ export function Toolbar({ onDownload, onOpenChat, onSave, isSaving, isSaved }: T
               <File className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Word</span>
             </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          </div>
+        }
+      />
     </div>
   );
 }

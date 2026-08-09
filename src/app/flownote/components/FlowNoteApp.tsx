@@ -13,6 +13,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 
 import React, { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import ReactFlow, {
   Background,
   Controls,
@@ -899,7 +900,7 @@ function FlowEditor({ flownoteId, isOwner = true }: { flownoteId?: string, isOwn
               <Menu size={18} />
             </Button>
           }
-          title={<span className="text-sm font-semibold tracking-[-0.01em]">FlowNote</span>}
+          title={<Link href="/flownote" className="text-sm font-semibold tracking-[-0.01em]">FlowNote</Link>}
           rightContent={
             <Button
               variant="ghost"

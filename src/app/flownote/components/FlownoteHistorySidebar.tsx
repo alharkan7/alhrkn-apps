@@ -28,7 +28,7 @@ export function FlownoteHistorySidebar() {
       fetchItems={fetchFlownoteHistory}
       itemUrlPrefix="/flownote/"
       eventName="toggleHistorySidebar"
-      title="Recent flownotes"
+      title="Recent FlowNotes"
       variant="quiet"
       emptyMessage="No flownotes yet. Create a new document to get started."
       onRenderTitle={renderTitle}

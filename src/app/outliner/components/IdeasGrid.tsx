@@ -123,7 +123,7 @@ export default function IdeasGrid({
     }, [open, ideas.length]);
 
     const renderSkeletonCard = () => (
-        <Card className="h-full bg-background">
+        <Card className="h-full bg-white dark:bg-[#1b1b19]">
             <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
             </CardHeader>
@@ -151,11 +151,11 @@ export default function IdeasGrid({
 
     return (
         <>
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ideas.map((idea, idx) => (
                     <Card
                         key={idx}
-                        className="h-full cursor-pointer transition hover:shadow-lg bg-background hover:bg-main hover:text-foreground"
+                        className="h-full cursor-pointer bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:bg-[#1b1b19]"
                         onClick={() => {
                             setSelectedIndex(idx);
                             setOpen(true);
@@ -179,7 +179,7 @@ export default function IdeasGrid({
                                 <div className="font-medium">{language === 'en' ? 'Method' : 'Metode'}</div>
                                 <p className="text-sm text-muted-foreground line-clamp-1">{idea.abstract.method}</p>
                             </div>
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 md:h-32 bg-gradient-to-t from-main/95 via-main/60 to-transparent" />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-[#1b1b19] dark:via-[#1b1b19]/80 md:h-32" />
                         </CardContent>
                     </Card>
                 ))}
@@ -214,7 +214,7 @@ export default function IdeasGrid({
                                             const Icon = section.icon;
                                             return (
                                                 <div key={idx} className="relative pl-10">
-                                                    <div className="absolute left-[-1px] top-[-2px] flex h-6 w-6 items-center justify-center rounded-full bg-background ring-[6px] ring-background">
+                                                    <div className="absolute left-[-1px] top-[-2px] flex h-6 w-6 items-center justify-center rounded-full bg-[#fbfaf8] ring-[6px] ring-[#fbfaf8] dark:bg-[#161614] dark:ring-[#161614]">
                                                         <Icon className="h-5 w-5 text-primary" />
                                                     </div>
                                                     <h4 className="font-semibold text-foreground text-base mb-1">{section.title}</h4>
@@ -227,7 +227,7 @@ export default function IdeasGrid({
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-4 sm:px-6 sm:pb-6 pt-4 border-t bg-background shrink-0 mt-auto">
+                            <div className="p-4 sm:px-6 sm:pb-6 pt-4 border-t bg-[#fbfaf8] shrink-0 mt-auto dark:bg-[#161614]">
                                 <DialogFooter className="flex flex-row w-full items-center gap-2 space-x-0 sm:space-x-0">
                                     <Button size="icon" variant="default" aria-label={language === 'en' ? 'Previous' : 'Sebelumnya'}
                                         onClick={goPrev}

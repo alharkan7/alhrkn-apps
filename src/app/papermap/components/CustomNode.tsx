@@ -718,12 +718,12 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
           backgroundColor: nodeColor.bg,
           // Apply border/shadow from nodeColor, override with selected/resizing states
           border: isResizing
-            ? '1px solid #3b82f6' 
+            ? '1px solid #191918'
             : selected
-              ? '1px solid #3182CE' 
+              ? '1.5px solid #191918'
               : `1px solid ${nodeColor.border || 'transparent'}`,
           boxShadow: selected
-            ? '0 0 0 2px rgba(49, 130, 206, 0.5)' 
+            ? '0 0 0 3px rgba(25, 25, 24, 0.14)'
             : nodeColor.shadow || '0 4px 6px rgba(0, 0, 0, 0.1)',
           // Apply width and height
           width: `${width}px`,
@@ -773,9 +773,9 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
               rows={1}
             />
           ) : (
-            <h3 
+            <h3
               className="font-bold text-lg mb-2 cursor-text"
-              style={{ color: nodeColor.border }}
+              style={{ color: '#191918' }}
               onDoubleClick={handleTitleDoubleClick}
             >
               {data.title}
@@ -858,7 +858,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
             {/* Show FileText icon only if it's a PDF node and not a blank node */}
             {isPdfNode && !isBlankNode && (
               <button
-                className="bg-card hover:outline outline-1.5 outline-border p-2 rounded-full shadow-md transition-all flex items-center justify-center w-8 h-8 border border-border dark:bg-slate-800 dark:border-slate-700"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.08] bg-white/85 p-2 text-[#191918] shadow-sm backdrop-blur transition-all hover:bg-black/[0.05] dark:border-white/[0.1] dark:bg-[#1b1b19]/85 dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
                 onClick={handleDocumentButtonClick}
                 title={
                   isPdfAccessExpired 
@@ -874,7 +874,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
 
             {showChatButton && (
               <button
-                className="bg-card hover:outline outline-1.5 outline-border p-2 rounded-full shadow-md transition-all flex items-center justify-center w-8 h-8 border border-border dark:bg-slate-800 dark:border-slate-700"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.08] bg-white/85 p-2 text-[#191918] shadow-sm backdrop-blur transition-all hover:bg-black/[0.05] dark:border-white/[0.1] dark:bg-[#1b1b19]/85 dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
                 onClick={handleAddBlankChildNode}
                 title="Add blank child node"
               >
@@ -884,7 +884,7 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
 
             {showChatButton && !isBlankNode && (
               <button
-                className="bg-card hover:outline outline-1.5 outline-border p-2 rounded-full shadow-md transition-all flex items-center justify-center w-8 h-8 border border-border dark:bg-slate-800 dark:border-slate-700"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.08] bg-white/85 p-2 text-[#191918] shadow-sm backdrop-blur transition-all hover:bg-black/[0.05] dark:border-white/[0.1] dark:bg-[#1b1b19]/85 dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
                 onClick={handleChatButtonClick}
                 title="Ask a follow-up question"
               >
@@ -897,8 +897,8 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
         {/* Toggle Children Button - Corrected Positioning and Icons */}
         {data.hasChildren && (
           <div 
-            className={`absolute cursor-pointer p-0.5 rounded-full border border-muted-foreground/50 hover:border-muted-foreground/80 hover:bg-secondary bg-card z-10 
-              ${isHorizontalFlow 
+            className={`absolute cursor-pointer p-0.5 rounded-full border border-black/[0.12] bg-white/85 backdrop-blur hover:border-black/[0.2] hover:bg-black/[0.05] z-10 dark:border-white/[0.14] dark:bg-[#1b1b19]/85 dark:hover:bg-white/[0.1]
+              ${isHorizontalFlow
                 ? 'right-[-12px] top-1/2 transform -translate-y-1/2' // Centered on Right for LR/RL
                 : 'bottom-[-12px] left-1/2 transform -translate-x-1/2' // Centered on Bottom for TB/BT
               }`}
@@ -910,16 +910,16 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
             {isHorizontalFlow ? (
               // Icons for Horizontal flow (LR/RL)
               data.childrenCollapsed ? (
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <ChevronRight className="w-4 h-4 text-black/60 dark:text-white/60" />
               ) : (
-                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                <ChevronLeft className="w-4 h-4 text-black/60 dark:text-white/60" />
               )
             ) : (
               // Icons for Vertical flow (TB/BT)
               data.childrenCollapsed ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                <ChevronDown className="w-4 h-4 text-black/60 dark:text-white/60" />
               ) : (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                <ChevronUp className="w-4 h-4 text-black/60 dark:text-white/60" />
               )
             )}
           </div>
@@ -946,8 +946,8 @@ const CustomNodeComponent = ({ data, id, selected }: CustomNodeProps) => {
         )}
 
         {showDeleteConfirm && (
-          <div 
-            className="absolute top-0 left-0 right-0 bottom-0 bg-background/80 flex flex-col items-center justify-center rounded-lg z-50 p-4 border border-destructive"
+          <div
+            className="absolute bottom-0 left-0 right-0 top-0 z-50 flex flex-col items-center justify-center rounded-lg border border-destructive bg-[#f7f7f5]/85 p-4 backdrop-blur-sm dark:bg-[#10100f]/85"
             data-exclude-from-export="true"
           >
              <p className="text-sm font-medium text-center mb-3">Delete this node?</p>

@@ -5,7 +5,7 @@ import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { MermaidRenderer } from "../components/MermaidRenderer";
 import { Button } from '@/components/ui/button';
-import { Plus, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -38,8 +38,8 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="secondary" aria-label="Create new diagram">
-                    <Plus className="size-5" /> New
+                  <Button variant="ghost" className="px-2 text-sm font-semibold tracking-[-0.01em]" aria-label="Create new diagram">
+                    Inztagram
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -61,7 +61,7 @@ export function DiagramViewer({ initialCode, initialType, initialDescription, fi
           )}
         />
       </div>
-      <div className="relative z-10 flex-1 flex flex-col justify-start items-center max-w-6xl mx-auto w-full px-1 md:px-4 pt-16">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-1 md:px-4 pt-20 pb-16">
         <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key="mermaid-renderer"

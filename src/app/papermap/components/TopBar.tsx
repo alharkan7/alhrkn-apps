@@ -1,193 +1,144 @@
-import { FileText, Plus, RefreshCw, MessageSquare, ExternalLink } from 'lucide-react';
+'use client';
+
+import { FileText, Plus, MessageSquare, ExternalLink, Menu, Loader2 } from 'lucide-react';
 import Downloader from './Downloader';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { AppsHeader } from '@/components/apps-header';
 import { useMindMapContext, usePdfViewerContext } from '../context';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation';
 
-interface TopBarProps {
-  onFileUpload: (file: File | { text: string, isTextInput?: boolean }, blobUrl?: string) => void;
-  onNewClick: () => void;
-  inputType: 'pdf' | 'text' | 'url' | null;
-}
+export default function TopBar() {
+  const { loading, error } = useMindMapContext();
 
-export default function TopBar({
-  onFileUpload,
-  onNewClick,
-  inputType
-}: TopBarProps) {
-  // Get state from contexts
-  const { 
-    loading, 
-    error, 
-    loadExampleMindMap 
-  } = useMindMapContext();
-  
-  const { 
-    fileName, 
-    openPdfViewer, 
-    handlePdfFile, 
-    sourceUrl: contextSourceUrl, 
+  const {
+    fileName,
+    openPdfViewer,
+    sourceUrl: contextSourceUrl,
     inputType: contextInputType,
     isPdfAccessExpired,
     parsedPdfContent: contextParsedPdfContent,
     openArchivedContentViewer
   } = usePdfViewerContext();
+
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Load sourceUrl from context when component mounts or context changes
+  // Load sourceUrl from context when it mounts, falling back to localStorage
   useEffect(() => {
     if (contextSourceUrl) {
       setSourceUrl(contextSourceUrl);
     } else {
-      // Fallback to localStorage if not in context (e.g. for initial load before context is fully populated)
       const lsSourceUrl = localStorage.getItem('sourceUrl');
       setSourceUrl(lsSourceUrl);
     }
   }, [contextSourceUrl]);
 
-  // Custom file upload handler for PDF files
-  const handleUpload = useCallback(async (file: File, blobUrl?: string) => {
-    // Process the PDF file for viewing first
-    await handlePdfFile(file, blobUrl);
-    
-    // Then call the parent handler for mind map generation
-    // Make sure we're passing the file as a File object, not as text
-    onFileUpload(file, blobUrl);
-  }, [onFileUpload, handlePdfFile]);
+  const isUrlType = contextInputType === 'url';
+  const isPdfType = contextInputType === 'pdf';
+  const isClickable = isPdfType || (isUrlType && !!sourceUrl);
+  const isGenerating = loading && (!fileName || fileName === 'Generating...');
 
-  // Function to handle file name click and open PDF viewer or archived content
-  const handleFileNameClick = () => {
-    if (contextInputType === 'pdf') {
+  const displayName = isPdfType
+    ? (fileName !== 'mindmap' ? fileName : "Example: Steve Jobs' Stanford Commencement Speech")
+    : isUrlType && sourceUrl
+      ? (fileName || 'Web Content')
+      : (fileName || 'Topic Mindmap');
+
+  const handleSourceClick = () => {
+    if (isPdfType) {
       if (isPdfAccessExpired) {
-        if (contextParsedPdfContent) {
-          openArchivedContentViewer();
-        } else {
-          // Optionally, inform user that PDF is expired and no archive exists
-          alert('The PDF for this mindmap has expired, and no archived text is available.');
-        }
+        if (contextParsedPdfContent) openArchivedContentViewer();
       } else {
-        openPdfViewer(1); // Open to the first page if not expired
+        openPdfViewer(1);
       }
-    }
-  };
-
-  // Function to handle URL click and open in new tab
-  const handleUrlClick = () => {
-    if (sourceUrl) {
+    } else if (isUrlType && sourceUrl) {
       window.open(sourceUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
-  // Determine if the title is a URL based on contextInputType
-  const isUrlType = contextInputType === 'url';
+  const handleNewClick = () => router.push('/papermap');
 
-  // Replace the onNewClick handler to navigate to root
-  const handleNewClick = () => {
-    router.push('/papermap');
-  };
+  // Surface a concise, friendly error inline instead of a raw stack
+  const friendlyError = error
+    ? error.includes("[GoogleGenerativeAI Error]") && error.includes("exceeds the supported page limit of 1000")
+      ? "PDF is too large. Use a document with fewer than 1000 pages."
+      : error.includes("[GoogleGenerativeAI Error]")
+        ? "AI service unavailable. Please try again later."
+        : error.length > 60
+          ? `${error.substring(0, 60)}…`
+          : error
+    : null;
+
+  const SourceIcon = isPdfType ? FileText : isUrlType && sourceUrl ? ExternalLink : MessageSquare;
+
+  const titleNode = friendlyError ? (
+    <span
+      className="max-w-[44vw] truncate text-sm font-medium text-destructive sm:max-w-[320px]"
+      title={error ?? undefined}
+    >
+      {friendlyError}
+    </span>
+  ) : (
+    <button
+      type="button"
+      disabled={!isClickable}
+      onClick={handleSourceClick}
+      title={
+        isPdfType
+          ? (isPdfAccessExpired ? (contextParsedPdfContent ? 'View archived text' : 'PDF expired') : 'Open source')
+          : isUrlType && sourceUrl ? 'Open source in a new tab' : undefined
+      }
+      className={[
+        'group inline-flex max-w-[44vw] items-center gap-2 text-sm font-medium tracking-[-0.01em] sm:max-w-[320px]',
+        isClickable
+          ? 'cursor-pointer text-[#191918] hover:text-black/70 dark:text-[#f2f2ef] dark:hover:text-white/80'
+          : 'cursor-default text-black/55 dark:text-white/50'
+      ].join(' ')}
+    >
+      {isGenerating ? (
+        <Loader2 className="size-4 shrink-0 animate-spin text-black/45 dark:text-white/45" />
+      ) : (
+        <SourceIcon className={[
+          'size-4 shrink-0',
+          isUrlType && sourceUrl ? 'text-black/55 dark:text-white/55' : ''
+        ].join(' ')} />
+      )}
+      <span className="truncate">{displayName}</span>
+    </button>
+  );
 
   return (
-    <div className="sticky top-0 py-4 px-2 bg-muted/50 backdrop-blur-sm print:hidden z-50 overscroll-none">
-      <div className="flex items-center justify-between gap-4 relative">
-        {/* Left side - New button */}
-        <div className="absolute left-0 z-10">
+    <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
+      <AppsHeader
+        leftButton={
           <Button
-            variant="default"
-            className="flex items-center"
-            title="New Mindmap"
-            onClick={handleNewClick}
+            variant="ghost"
+            size="icon"
+            className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+            onClick={() => window.dispatchEvent(new Event('toggleHistorySidebar'))}
+            aria-label="Open mindmap history"
           >
-            <span className=""><Plus className="h-4 w-4" /></span>
-            <span className="sm:inline hidden">New</span>
+            <Menu size={18} />
           </Button>
-        </div>
-        
-        {/* Center - Status messages */}
-        <div className="flex-1 text-center min-w-0 mx-[72px] sm:mx-[85px]">
-          {loading && (
-            <div className="flex items-center justify-center text-primary">
-              <span>Loading Mindmap</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="text-destructive">
-              {error.includes("[GoogleGenerativeAI Error]") && error.includes("exceeds the supported page limit of 1000")
-                ? "PDF is too large. Please use a document with fewer than 1000 pages."
-                : error.includes("[GoogleGenerativeAI Error]") 
-                  ? "AI service unavailable. Please try again later." 
-                  : error.length > 60 
-                    ? `${error.substring(0, 60)}...` 
-                    : error
-              }
-            </div>
-          )}
-
-          {!loading && !error && (
-            <div 
-              className={`font-extrabold text-primary relative inline-flex items-center max-w-[calc(100%-2rem)] ${
-                contextInputType === 'pdf' || (isUrlType && sourceUrl) ? 'cursor-pointer hover:text-blue-600 group' : ''
-              }`}
-              onClick={
-                contextInputType === 'pdf' 
-                  ? handleFileNameClick 
-                  : isUrlType && sourceUrl 
-                    ? handleUrlClick 
-                    : undefined
-              }
-              title={
-                contextInputType === 'pdf' 
-                  ? (isPdfAccessExpired 
-                      ? (contextParsedPdfContent ? "View Archived Text" : "PDF Expired (No Archive)") 
-                      : "Click to open PDF")
-                  : isUrlType && sourceUrl 
-                    ? "Click to open URL in new tab" 
-                    : ""
-              }
+        }
+        title={titleNode}
+        rightContent={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-9 rounded-xl border border-black/[0.08] bg-white/60 text-[#191918] hover:bg-white dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
+              onClick={handleNewClick}
+              title="New mindmap"
             >
-              <div className={`${contextInputType === 'pdf' || (isUrlType && sourceUrl) ? "group-hover:text-blue-600 mr-2" : "mr-2"}`}>
-                {contextInputType === 'pdf' ? (
-                  <FileText className="h-4 w-4" />
-                ) : isUrlType && sourceUrl ? (
-                  <ExternalLink className="h-4 w-4 text-blue-600" />
-                ) : (
-                  <MessageSquare className="h-4 w-4" />
-                )}
-              </div>
-              <div className="truncate max-w-full">
-                {contextInputType === 'pdf' 
-                  ? (fileName !== 'mindmap' ? fileName : "Example: Steve Jobs' Stanford Commencement Speech")
-                  : isUrlType && sourceUrl 
-                    ? (
-                      <span className="flex items-center gap-1 text-blue-600 group-hover:underline">
-                        {fileName || "Web Content"} 
-                      </span>
-                    )
-                    : (fileName || "Topic Mindmap")
-                }
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Right side - Download button */}
-        <div className="absolute right-0 z-10">
-          <Downloader />
-        </div>
-      </div>
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">New</span>
+            </Button>
+            <Downloader />
+          </div>
+        }
+      />
     </div>
   );
-} 
+}

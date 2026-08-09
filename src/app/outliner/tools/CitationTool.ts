@@ -1,4 +1,4 @@
-import { CITE_ICON_SVG, OPEN_ICON_SVG, FILE_ICON_SVG, PENCIL_ICON_SVG, CHEVRON_UP_ICON_SVG, CHEVRON_DOWN_ICON_SVG, CHECK_ICON_SVG, X_ICON_SVG, ABSTRACT_ICON_SVG } from '../components/svg-icons';
+import { CITE_ICON_SVG, OPEN_ICON_SVG, FILE_ICON_SVG, CHEVRON_UP_ICON_SVG, CHEVRON_DOWN_ICON_SVG, X_ICON_SVG, ABSTRACT_ICON_SVG } from '../components/svg-icons';
 
 // Inline tool to find citations for selected text using the /api/outliner/cite endpoint
 export class CitationTool {
@@ -234,48 +234,71 @@ export class CitationTool {
             } catch { }
         });
 
+        const hasSearchRun = Boolean(
+            String(data?.searchQuery || '').trim() ||
+            (Array.isArray(data?.keywords) && data.keywords.length > 0)
+        );
+
         // Create modal with custom CSS variables
         this.modal = document.createElement('div');
         this.modal.setAttribute('data-citation-modal', 'true');
-        this.modal.className = 'fixed inset-0 flex items-center justify-center z-50 font-sans bg-black/60 backdrop-blur-sm transition-all duration-300';
+        this.modal.className = 'fixed inset-0 z-[60] flex items-center justify-center bg-[#191918]/40 p-3 font-sans backdrop-blur-[3px] transition-all duration-300 dark:bg-black/60 sm:p-6';
 
 
         const modalContent = document.createElement('div');
-        modalContent.className = 'max-w-4xl max-h-[90vh] w-[90vw] overflow-hidden rounded-[2rem] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex flex-col';
+        modalContent.className = `flex max-h-[min(90vh,920px)] w-full ${hasSearchRun ? 'max-w-5xl' : 'max-w-xl'} flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-[#fdfdfb] shadow-[0_24px_80px_rgba(25,25,24,0.18)] backdrop-blur-2xl dark:border-white/[0.1] dark:bg-[#1b1b19]`;
 
 
         // Header
         const header = document.createElement('div');
-        header.className = 'p-6 border-b border-border/50 flex justify-between items-center bg-transparent';
+        header.className = 'flex shrink-0 items-center justify-between gap-4 border-b border-black/[0.07] bg-[#f7f7f5]/75 px-4 py-3.5 dark:border-white/[0.08] dark:bg-white/[0.025] sm:px-6';
 
+        const titleGroup = document.createElement('div');
+        titleGroup.className = 'min-w-0';
 
-        const title = document.createElement('h3');
         const totalFound = data?.totalFound ?? (data.papers ? data.papers.length : 0);
         const page = data?.page ?? this.currentPage;
         const perPage = data?.perPage ?? this.perPage;
         const showingCount = data?.papers?.length ?? 0;
-        title.textContent = `Found ${totalFound} Reference${totalFound !== 1 ? 's' : ''} — Page ${page}`;
-        title.className = 'm-0 text-lg font-semibold text-foreground';
+        const hasMultiplePages = hasSearchRun && (
+            page > 1 ||
+            showingCount === perPage ||
+            (typeof totalFound === 'number' && totalFound > perPage)
+        );
+
+        const title = document.createElement('h3');
+        title.textContent = hasSearchRun ? 'Reference search' : 'Find references';
+        title.className = 'm-0 truncate text-base font-semibold tracking-[-0.01em] text-[#191918] dark:text-[#f2f2ef]';
+
+        titleGroup.appendChild(title);
+        if (hasSearchRun) {
+            const resultMeta = document.createElement('p');
+            resultMeta.textContent = `${totalFound} reference${totalFound !== 1 ? 's' : ''} found · Page ${page}`;
+            resultMeta.className = 'm-0 mt-0.5 text-xs text-black/45 dark:text-white/45';
+            titleGroup.appendChild(resultMeta);
+        }
 
 
         // Pagination controls
         const pager = document.createElement('div');
-        pager.className = 'flex flex-col gap-2';
+        pager.className = 'shrink-0';
 
         // Button row with responsive layout
         const buttonRow = document.createElement('div');
-        buttonRow.className = 'flex flex-col sm:flex-row items-center gap-2';
+        buttonRow.className = 'flex items-center gap-1.5';
 
         const prevBtn = document.createElement('button');
         prevBtn.textContent = 'Prev';
-        prevBtn.className = 'px-4 py-2 rounded-full border border-border/50 bg-background/50 backdrop-blur text-sm font-medium cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
+        prevBtn.className = 'h-8 rounded-lg border border-black/[0.08] bg-transparent px-2.5 text-xs font-medium text-black/60 transition-colors hover:bg-black/[0.055] hover:text-[#191918] disabled:pointer-events-none disabled:opacity-35 dark:border-white/[0.1] dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white';
+        prevBtn.setAttribute('aria-label', 'Previous reference page');
 
         prevBtn.disabled = page <= 1;
         prevBtn.onclick = () => this.goToPage(page - 1);
 
         const nextBtn = document.createElement('button');
         nextBtn.textContent = 'Next';
-        nextBtn.className = 'px-4 py-2 rounded-full border border-transparent bg-primary text-primary-foreground text-sm font-medium cursor-pointer transition-colors hover:bg-primary/90 disabled:opacity-50 shadow-md shadow-primary/20';
+        nextBtn.className = 'h-8 rounded-lg border border-[#191918] bg-[#191918] px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-black disabled:pointer-events-none disabled:opacity-35 dark:border-[#f2f2ef] dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white';
+        nextBtn.setAttribute('aria-label', 'Next reference page');
 
         const hasMore = totalFound ? (page * perPage) < totalFound : showingCount === perPage;
         nextBtn.disabled = !hasMore;
@@ -294,156 +317,82 @@ export class CitationTool {
         pager.appendChild(buttonRow);
 
         const closeBtn = document.createElement('button');
-        closeBtn.textContent = '×';
-        closeBtn.className = 'border-none text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 bg-transparent text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10';
+        closeBtn.innerHTML = X_ICON_SVG;
+        closeBtn.className = 'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-black/50 transition-colors hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/50 dark:hover:bg-white/[0.08] dark:hover:text-white';
+        closeBtn.setAttribute('aria-label', 'Close reference search');
 
         closeBtn.onclick = () => this.closeModal();
 
-        header.appendChild(title);
+        header.appendChild(titleGroup);
         const rightActions = document.createElement('div');
-        rightActions.className = 'flex items-center gap-3';
-        rightActions.appendChild(pager);
+        rightActions.className = 'flex shrink-0 items-center gap-2';
+        if (hasMultiplePages) rightActions.appendChild(pager);
         rightActions.appendChild(closeBtn);
         header.appendChild(rightActions);
 
         // Content
         const content = document.createElement('div');
-        content.className = 'p-6 overflow-y-auto max-h-[78vh] bg-transparent';
+        content.className = 'max-h-[78vh] overflow-y-auto bg-transparent p-4 sm:p-6';
 
 
-        // Search info with editable keywords
-        const searchInfo = document.createElement('div');
-        searchInfo.className = 'mb-6 p-4 rounded-[1.5rem] text-sm bg-zinc-50/80 dark:bg-zinc-900/40 border border-border/50 text-foreground shadow-inner';
+        // One direct search field is used both before and after results are shown.
+        const searchInfo = document.createElement('form');
+        searchInfo.className = 'mb-5 rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 dark:border-white/[0.08] dark:bg-white/[0.035] sm:p-4';
 
+        const searchLabel = document.createElement('label');
+        searchLabel.textContent = hasSearchRun ? 'Search again' : 'Search for papers to cite';
+        searchLabel.className = 'mb-2 block text-xs font-medium text-black/50 dark:text-white/50';
 
         const searchRow = document.createElement('div');
-        searchRow.className = 'flex items-center justify-between gap-2';
+        searchRow.className = 'flex items-center gap-2';
 
-        const keywordsLeft = document.createElement('div');
-        keywordsLeft.className = 'flex items-center gap-2 flex-wrap flex-1';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = Array.isArray(data?.keywords) && data.keywords.length > 0
+            ? data.keywords.join(', ')
+            : String(data?.searchQuery || '').replace(/\s+AND\s+/gi, ', ');
+        input.placeholder = 'Topic, paper title, or keywords…';
+        input.className = 'h-10 min-w-0 flex-1 rounded-lg border border-black/[0.1] bg-white px-3 text-sm text-[#191918] shadow-none transition-all placeholder:text-black/30 focus:border-black/25 focus:outline-none focus:ring-2 focus:ring-black/[0.08] dark:border-white/[0.12] dark:bg-[#1b1b19] dark:text-[#f2f2ef] dark:placeholder:text-white/30 dark:focus:border-white/25 dark:focus:ring-white/[0.08]';
 
-        const actionsRight = document.createElement('div');
-        actionsRight.className = 'flex items-center gap-2';
-        const editBtn = document.createElement('button');
-        editBtn.title = 'Edit keywords';
-        editBtn.className = 'p-2 rounded-full border border-border/50 bg-white/50 dark:bg-zinc-800/50 text-foreground text-xs cursor-pointer transition-colors hover:bg-white dark:hover:bg-zinc-700 shadow-sm';
+        const searchButton = document.createElement('button');
+        searchButton.type = 'submit';
+        searchButton.textContent = 'Search';
+        searchButton.className = 'h-10 shrink-0 cursor-pointer rounded-lg border border-[#191918] bg-[#191918] px-3.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-black dark:border-[#f2f2ef] dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white';
 
-        // Pencil icon SVG
-        const editIcon = document.createElement('span');
-        editIcon.innerHTML = PENCIL_ICON_SVG;
-        editBtn.appendChild(editIcon);
-
-        const renderEdit = () => {
-            searchRow.innerHTML = '';
-            const editContainer = document.createElement('div');
-            editContainer.className = 'flex items-center justify-between gap-2 w-full';
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = (data.keywords && data.keywords.length > 0) ? data.keywords.join(', ') : '';
-            input.placeholder = 'e.g. artificial intelligence, machine learning';
-            input.className = 'flex-1 px-4 py-2 rounded-full border border-border/50 bg-white dark:bg-zinc-950 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-sm';
-
-
-            const saveBtn = document.createElement('button');
-            saveBtn.innerHTML = CHECK_ICON_SVG;
-            saveBtn.className = 'rounded-full border border-transparent cursor-pointer transition-all hover:bg-primary/90 hover:scale-105 bg-primary text-primary-foreground w-9 h-9 inline-flex items-center justify-center p-0 shadow-md shadow-primary/20 shrink-0';
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.innerHTML = X_ICON_SVG;
-            cancelBtn.className = 'rounded-full border border-border/50 cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/10 bg-white dark:bg-zinc-800 text-foreground w-9 h-9 inline-flex items-center justify-center p-0 shadow-sm shrink-0';
-
-
-            const submit = async () => {
-                const raw = input.value || '';
-                const keywords = raw.split(',').map(k => k.trim()).filter(k => k.length > 0);
-                if (keywords.length === 0) {
-                    this.config.notify?.('Please enter at least one keyword.');
-                    return;
-                }
-                await this.applyEditedKeywords(keywords);
-            };
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    submit();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    renderView();
-                }
-            });
-            saveBtn.onclick = () => submit();
-            cancelBtn.onclick = () => renderView();
-
-            editContainer.appendChild(input);
-            editContainer.appendChild(cancelBtn);
-            editContainer.appendChild(saveBtn);
-            searchRow.appendChild(editContainer);
-            // Focus after the element is attached to DOM and move caret to end
-            setTimeout(() => {
-                try {
-                    input.focus();
-                    const len = input.value.length;
-                    input.setSelectionRange(len, len);
-                } catch { }
-            }, 0);
-        };
-
-        const renderView = () => {
-            searchRow.innerHTML = '';
-            keywordsLeft.innerHTML = '';
-            
-            const keywordsLabel = document.createElement('span');
-            keywordsLabel.textContent = 'Keywords:';
-            keywordsLabel.className = 'font-medium text-muted-foreground mr-1';
-            keywordsLeft.appendChild(keywordsLabel);
-
-            if (data.keywords && data.keywords.length > 0) {
-                data.keywords.forEach((kw: string) => {
-                    const tag = document.createElement('span');
-                    tag.textContent = kw;
-                    tag.className = 'px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border border-border/50 text-xs font-medium shadow-sm';
-                    keywordsLeft.appendChild(tag);
-                });
-            } else {
-                const tag = document.createElement('span');
-                tag.textContent = 'None';
-                tag.className = 'px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border border-border/50 text-xs font-medium shadow-sm text-muted-foreground';
-                keywordsLeft.appendChild(tag);
+        searchInfo.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const keywords = input.value.split(',').map(k => k.trim()).filter(Boolean);
+            if (keywords.length === 0) {
+                this.config.notify?.('Enter a topic or keyword to search.');
+                input.focus();
+                return;
             }
+            await this.applyEditedKeywords(keywords);
+        });
 
-            actionsRight.innerHTML = '';
-            actionsRight.appendChild(editBtn);
-            searchRow.appendChild(keywordsLeft);
-            searchRow.appendChild(actionsRight);
-        };
-
-        editBtn.onclick = () => renderEdit();
-
-        // If user has no input yet, start in edit mode by default
-        const shouldStartInEditMode = (
-            (!data.keywords || data.keywords.length === 0) &&
-            (!data.searchQuery || String(data.searchQuery).trim() === '') &&
-            (!data.papers || data.papers.length === 0)
-        );
-
-        if (shouldStartInEditMode) {
-            renderEdit();
-        } else {
-            renderView();
-        }
+        searchRow.appendChild(input);
+        searchRow.appendChild(searchButton);
+        searchInfo.appendChild(searchLabel);
         searchInfo.appendChild(searchRow);
+        if (!hasSearchRun) {
+            const hint = document.createElement('p');
+            hint.textContent = 'Use a topic, paper title, or a few keywords.';
+            hint.className = 'm-0 mt-2 text-xs text-black/40 dark:text-white/40';
+            searchInfo.appendChild(hint);
+        }
         content.appendChild(searchInfo);
+        if (!hasSearchRun) {
+            setTimeout(() => input.focus(), 0);
+        }
 
         // Papers list
         if (data.papers && data.papers.length > 0) {
             const papersList = document.createElement('div');
-            papersList.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+            papersList.className = 'grid grid-cols-1 gap-3 md:grid-cols-2';
             papersList.style.cssText = `
                 display: grid;
                 grid-template-columns: repeat(1, 1fr);
-                gap: 1rem;
+                gap: 0.75rem;
                 align-items: stretch;
             `;
 
@@ -473,11 +422,11 @@ export class CitationTool {
             });
 
             content.appendChild(papersList);
-        } else {
+        } else if (hasSearchRun) {
             const noResults = document.createElement('div');
-            noResults.className = 'text-center py-10 px-5 text-base rounded-md text-muted-foreground bg-muted/30 border';
+            noResults.className = 'rounded-xl border border-black/[0.07] bg-black/[0.025] px-5 py-10 text-center text-sm text-black/50 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/50';
 
-            noResults.textContent = 'No papers yet. Try inputing keywords or adjusting your search.';
+            noResults.textContent = 'No references found. Try a broader search.';
             content.appendChild(noResults);
         }
 
@@ -653,18 +602,18 @@ export class CitationTool {
 
     private createPaperCard(paper: any, index: number): HTMLDivElement {
         const card = document.createElement('div');
-        card.className = 'rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 border border-border/50 bg-zinc-50/80 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-800 text-card-foreground shadow-sm hover:shadow-xl flex flex-col h-full overflow-visible group';
+        card.className = 'group flex h-full flex-col overflow-visible rounded-xl border border-black/[0.07] bg-white/75 p-4 text-[#191918] shadow-[0_2px_10px_rgba(25,25,24,0.035)] transition-all duration-200 hover:-translate-y-px hover:bg-white hover:shadow-[0_8px_24px_rgba(25,25,24,0.08)] dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-[#f2f2ef] dark:hover:bg-white/[0.06]';
 
         // Remove manual hover listeners as we use Tailwind classes
 
 
         const title = document.createElement('h4');
         title.textContent = paper.title || 'Untitled';
-        title.className = 'm-0 mb-2 text-base font-semibold leading-relaxed text-card-foreground';
+        title.className = 'm-0 mb-2 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-[#191918] dark:text-[#f2f2ef]';
 
 
         const authors = document.createElement('div');
-        authors.className = 'text-sm mb-2 text-muted-foreground';
+        authors.className = 'mb-2 text-sm leading-5 text-black/55 dark:text-white/55';
 
         const authorNames = Array.isArray(paper.authors)
             ? paper.authors.map((a: any) => a?.name).filter(Boolean)
@@ -674,7 +623,7 @@ export class CitationTool {
             : (authorNames.join(', ') || 'Unknown authors');
 
         const metaInfo = document.createElement('div');
-        metaInfo.className = 'flex flex-wrap gap-2 text-xs mb-3 text-muted-foreground/80';
+        metaInfo.className = 'mb-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-black/42 dark:text-white/42';
 
 
         if (paper.year) {
@@ -696,14 +645,15 @@ export class CitationTool {
         }
 
         const actions = document.createElement('div');
-        actions.className = 'flex gap-2 flex-wrap mt-auto';
+        actions.className = 'mt-auto flex flex-wrap gap-1.5';
         actions.style.cssText = `
             margin-top: auto;
         `;
 
         // Add Cite button
         const citeBtn = document.createElement('button');
-        citeBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full border border-transparent text-xs font-medium cursor-pointer transition-all hover:bg-primary/90 bg-primary text-primary-foreground shadow-sm shadow-primary/20 group-hover:scale-105';
+        citeBtn.className = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[#191918] bg-[#191918] px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-black dark:border-[#f2f2ef] dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white';
+        citeBtn.setAttribute('aria-label', `Cite ${paper.title || 'paper'}`);
 
         citeBtn.innerHTML = `<span class="icon" aria-hidden="true">${CITE_ICON_SVG}</span><span>Cite</span>`;
 
@@ -713,7 +663,7 @@ export class CitationTool {
         // Add Show Abstract button
         const abstractBtn = document.createElement('button');
         abstractBtn.setAttribute('data-abstract-btn', 'true');
-        abstractBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/50 text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/10 bg-background/50 text-foreground';
+        abstractBtn.className = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-black/[0.08] bg-transparent px-2.5 text-xs font-medium text-black/65 transition-colors hover:bg-black/[0.05] hover:text-[#191918] dark:border-white/[0.1] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white';
 
         abstractBtn.innerHTML = `<span class="icon" aria-hidden="true">${ABSTRACT_ICON_SVG}</span><span>Abstract</span>`;
         abstractBtn.onclick = () => this.toggleAbstract(paper, card);
@@ -738,13 +688,9 @@ export class CitationTool {
             const viewBtn = document.createElement('a');
             viewBtn.href = paper.url;
             viewBtn.target = '_blank';
-            viewBtn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 cursor-pointer no-underline';
-            viewBtn.style.cssText = `
-                background-color: var(--main);
-                color: var(--mtext);
-                border-color: var(--border);
-                font-weight: var(--base-font-weight);
-            `;
+            viewBtn.rel = 'noreferrer';
+            viewBtn.className = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-black/[0.08] bg-transparent px-2.5 text-xs font-medium text-black/65 no-underline transition-colors hover:bg-black/[0.05] hover:text-[#191918] dark:border-white/[0.1] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white';
+            viewBtn.setAttribute('aria-label', `Open ${paper.title || 'paper'} on the web`);
             viewBtn.innerHTML = `<span class="icon" aria-hidden="true">${OPEN_ICON_SVG}</span><span>Web</span>`;
             actions.appendChild(viewBtn);
         }
@@ -753,13 +699,9 @@ export class CitationTool {
             const pdfBtn = document.createElement('a');
             pdfBtn.href = paper.openAccessPdf.url;
             pdfBtn.target = '_blank';
-            pdfBtn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 cursor-pointer no-underline';
-            pdfBtn.style.cssText = `
-                background-color: var(--main);
-                color: var(--mtext);
-                border-color: var(--border);
-                font-weight: var(--base-font-weight);
-            `;
+            pdfBtn.rel = 'noreferrer';
+            pdfBtn.className = 'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-black/[0.08] bg-transparent px-2.5 text-xs font-medium text-black/65 no-underline transition-colors hover:bg-black/[0.05] hover:text-[#191918] dark:border-white/[0.1] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white';
+            pdfBtn.setAttribute('aria-label', `Open PDF for ${paper.title || 'paper'}`);
             pdfBtn.innerHTML = `<span class="icon" aria-hidden="true">${FILE_ICON_SVG}</span><span>PDF</span>`;
             actions.appendChild(pdfBtn);
         }

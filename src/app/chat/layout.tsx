@@ -1,5 +1,21 @@
 import type { Metadata } from 'next'
+import { Lexend, Nunito } from 'next/font/google'
 import { ChatHistorySidebar } from './components/ChatHistorySidebar'
+import './styles.css'
+
+const lexend = Lexend({
+  subsets: ['latin'],
+  variable: '--font-chat-lexend',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+})
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  variable: '--font-chat-rounded',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+})
 
 export const metadata: Metadata = {
   title: 'Ask AI',
@@ -23,7 +39,7 @@ export default function ChatLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-background w-full overflow-hidden">
+    <div className={`flex min-h-screen w-full overflow-hidden bg-background ${lexend.variable} ${nunito.variable}`}>
       <ChatHistorySidebar />
       <main className="flex-1 w-full relative">
         {children}

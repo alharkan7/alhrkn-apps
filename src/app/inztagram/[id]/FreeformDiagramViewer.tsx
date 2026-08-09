@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { Button } from '@/components/ui/button';
-import { Plus, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -279,8 +279,8 @@ export function FreeformDiagramViewer({
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="secondary" aria-label="Create new diagram">
-                    <Plus className="size-5" /> New
+                  <Button variant="ghost" className="px-2 text-sm font-semibold tracking-[-0.01em]" aria-label="Create new diagram">
+                    Inztagram
                   </Button>
                 </AlertDialogTrigger>
               <AlertDialogContent>
@@ -303,7 +303,7 @@ export function FreeformDiagramViewer({
         />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-[1600px] mx-auto w-full px-2 md:px-4 min-h-0 pb-2 lg:pb-10">
+      <div className={cn('relative z-10 mx-auto flex w-full flex-1 flex-col px-2 md:px-4 min-h-0 pb-2 lg:pb-10', chatMinimized ? 'max-w-6xl' : 'max-w-[1600px]')}>
         <div
           className={cn(
             'relative flex-1 flex flex-col gap-2 sm:gap-3 min-h-0 py-2 sm:py-3',
@@ -332,6 +332,8 @@ export function FreeformDiagramViewer({
                   fileName={fileName || undefined}
                   description={initialDescription || undefined}
                   onAutoFix={handleAutoFixSvg}
+                  showEditButton={chatMinimized}
+                  onEdit={() => setChatMinimized(false)}
                   attachments={attachments}
                   onAttachmentsChange={handleAttachmentsChange}
                   hasPrevious={currentVersionIndex < versions.length - 1}
@@ -365,27 +367,22 @@ export function FreeformDiagramViewer({
             )}
           </div>
 
-          <div
-            className={cn(
-              'overflow-hidden',
-              chatMinimized
-                ? 'shrink-0 h-auto w-full lg:absolute lg:right-0 lg:bottom-0 lg:z-20 lg:w-[min(280px,calc(100%-1rem))] lg:max-w-[280px]'
-                : 'shrink-0 h-[32dvh] max-h-[280px] min-h-[200px] w-full sm:h-[34dvh] sm:max-h-[300px] lg:h-full lg:max-h-none lg:min-h-0 lg:w-auto lg:max-w-[280px] lg:justify-self-end'
-            )}
-          >
-            <FreeformChatPanel
-              messages={messages}
-              loading={isStreaming}
-              onSend={handleSend}
-              error={error}
-              minimized={chatMinimized}
-              onToggleMinimize={() => setChatMinimized((v) => !v)}
-              attachments={attachments}
-              onRemoveAttachment={handleRemoveAttachment}
-              onClearAttachments={() => setAttachments([])}
-              onInteract={handleInteract}
-            />
-          </div>
+          {!chatMinimized && (
+            <div className="shrink-0 h-[32dvh] max-h-[280px] min-h-[200px] w-full overflow-hidden sm:h-[34dvh] sm:max-h-[300px] lg:h-full lg:max-h-none lg:min-h-0 lg:w-auto lg:max-w-[280px] lg:justify-self-end">
+              <FreeformChatPanel
+                messages={messages}
+                loading={isStreaming}
+                onSend={handleSend}
+                error={error}
+                minimized={false}
+                onToggleMinimize={() => setChatMinimized(true)}
+                attachments={attachments}
+                onRemoveAttachment={handleRemoveAttachment}
+                onClearAttachments={() => setAttachments([])}
+                onInteract={handleInteract}
+              />
+            </div>
+          )}
         </div>
       </div>
 

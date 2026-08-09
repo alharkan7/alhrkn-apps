@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { MindMapProvider, PdfViewerProvider } from '../context';
 import { useMindMap } from '../hooks/useMindMap';
 import MindMapFlow from '../components/MindMapFlow';
@@ -24,7 +25,6 @@ interface MindmapClientViewProps {
 }
 
 interface MindmapViewLayoutProps {
-  mindmapInputType: 'pdf' | 'text' | 'url' | null;
   mindMap: ReturnType<typeof useMindMap> & { setLoading: (loading: boolean) => void };
   isOwner?: boolean;
   mindmapId?: string;
@@ -32,7 +32,8 @@ interface MindmapViewLayoutProps {
 
 import { toast } from 'sonner';
 
-const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType, mindMap, isOwner = true, mindmapId }) => {
+const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindMap, isOwner = true, mindmapId }) => {
+  const prefersReducedMotion = useReducedMotion();
   const {
     viewMode,
     closeViewer,
@@ -67,20 +68,19 @@ const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType,
   return (
     <MindMapProvider value={mindMap}>
       <ReactFlowProvider>
-        <div className="flex flex-col h-[100dvh] relative bg-background text-foreground overflow-hidden font-sans">
+        <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
           {/* --- Ambient Background --- */}
-          <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* Animated Orbs */}
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-900/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 dark:bg-blue-900/20 blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-            <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-cyan-500/10 dark:bg-cyan-900/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
-            
-            {/* Subtle Grid overlay */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+          <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.98),rgba(247,247,245,0.72)_44%,rgba(238,239,235,0.82)_100%)] dark:bg-[radial-gradient(circle_at_50%_38%,rgba(37,37,34,0.72),rgba(16,16,15,1)_62%)]" />
+            <motion.div
+              className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 rounded-full bg-blue-400/[0.06] blur-3xl dark:bg-blue-500/[0.07]"
+              animate={prefersReducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.4, 0.65, 0.4] }}
+              transition={prefersReducedMotion ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+            />
           </div>
 
-          <div className="relative z-10 flex flex-col h-full w-full">
-            <TopBar onFileUpload={() => { }} onNewClick={() => { }} inputType={mindmapInputType} />
+          <div className="relative z-10 flex h-full w-full flex-col pt-14">
+            <TopBar />
 
             {viewMode === 'pdf' && <PdfViewer />}
             {viewMode === 'archived' && archivedContent && (
@@ -91,7 +91,7 @@ const MindmapViewLayout: React.FC<MindmapViewLayoutProps> = ({ mindmapInputType,
               />
             )}
 
-            <div className="flex-grow h-[calc(100vh-4rem)] relative" onDoubleClick={handleInteract}>
+            <div className="relative flex-grow" onDoubleClick={handleInteract}>
               {!isOwner && (
                 <div 
                   className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-sans font-medium px-3 py-1.5 rounded-full shadow-sm hover:shadow-md cursor-pointer select-none transition-all flex items-center gap-1 z-50" 
@@ -284,7 +284,6 @@ export default function MindmapClientView({
       initialParsedPdfContent={mindmapParsedPdfContent}
     >
       <MindmapViewLayout
-        mindmapInputType={mindmapInputType || null}
         mindMap={mindMap}
         isOwner={isOwner}
         mindmapId={mindmapId}

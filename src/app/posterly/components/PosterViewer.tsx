@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { type SyntheticEvent, type TouchEvent as ReactTouchEvent, type TouchList as ReactTouchList, type WheelEvent as ReactWheelEvent, useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Download, FileCode2, FileImage, FileText, LoaderCircle, Menu, Plus, TriangleAlert } from 'lucide-react';
+import { Check, Download, FileCode2, FileImage, FileText, LoaderCircle, Menu, TriangleAlert } from 'lucide-react';
 import { AppsHeader } from '@/components/apps-header';
 import AppsFooter from '@/components/apps-footer';
 import { Button } from '@/components/ui/button';
@@ -408,7 +408,6 @@ export function PosterViewer({ id, title, status: initialStatus, initialHtml, in
         >
           {exporting ? <LoaderCircle className="h-4 w-4 animate-spin sm:mr-1.5" /> : <Download className="h-4 w-4 sm:mr-1.5" />}
           <span className="hidden sm:inline">{exporting ? `Preparing ${exporting.toUpperCase()}…` : 'Download'}</span>
-          {!exporting && <ChevronDown className="hidden h-4 w-4 sm:inline" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -419,28 +418,52 @@ export function PosterViewer({ id, title, status: initialStatus, initialHtml, in
     </DropdownMenu>
   ) : null;
 
+  const statusIndicator = status === 'processing' || status === 'pending'
+    ? <div className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /><span className="hidden sm:inline">Building poster…</span></div>
+    : status === 'error'
+      ? <div className="flex shrink-0 items-center gap-1.5 text-sm text-red-500"><TriangleAlert className="h-4 w-4" /><span className="hidden sm:inline">Generation failed</span></div>
+      : null;
+
+  const saveIndicator = status === 'ready'
+    ? saveState === 'saving'
+      ? <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Saving edits"><LoaderCircle className="h-4 w-4 animate-spin" /><span className="hidden sm:inline">Saving…</span></span>
+      : saveState === 'saved'
+        ? <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400" aria-label="Edits saved"><Check className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></span>
+        : saveState === 'error'
+          ? <span className="inline-flex items-center gap-1.5 text-sm text-red-500" title={saveError || 'Could not save edits'} aria-label={saveError || 'Could not save edits'}><TriangleAlert className="h-4 w-4" /><span className="hidden sm:inline">Couldn’t save</span></span>
+          : null
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
       <div className="fixed left-0 right-0 top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
         <AppsHeader
           leftButton={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle h-9 w-9"
+              onClick={() => window.dispatchEvent(new Event('togglePosterlyHistorySidebar'))}
+              title="History"
+              aria-label="History"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+          }
+          title={
+            <Link
+              href="/posterly"
+              title="Back to Posterly"
+              className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] no-underline transition-opacity hover:opacity-65"
+            >
+              Posterly
+            </Link>
+          }
+          rightContent={
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sidebar-toggle h-9 w-9"
-                onClick={() => window.dispatchEvent(new Event('togglePosterlyHistorySidebar'))}
-                title="History"
-                aria-label="History"
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-              <Button asChild variant="outline" size="sm" className="h-9">
-                <Link href="/posterly">
-                  <Plus className="mr-1 h-4 w-4" />
-                  New
-                </Link>
-              </Button>
+              {statusIndicator}
+              {saveIndicator}
+              {downloadMenu}
             </div>
           }
         />
@@ -448,20 +471,10 @@ export function PosterViewer({ id, title, status: initialStatus, initialHtml, in
 
       <main className="flex flex-1 flex-col px-3 pb-14 pt-20 sm:px-6">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <h1 className="min-w-0 flex-1 truncate text-xl font-bold tracking-tight sm:text-2xl" title={posterTitle}>{posterTitle}</h1>
-            {status === 'processing' || status === 'pending' ? <div className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /><span className="hidden sm:inline">Building poster…</span></div> : status === 'error' ? <div className="flex shrink-0 items-center gap-2 text-sm text-red-500"><TriangleAlert className="h-4 w-4" /><span className="hidden sm:inline">Generation failed</span></div> : <div className="flex shrink-0 items-center gap-2">
-              {saveState === 'saving' && <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" aria-label="Saving edits"><LoaderCircle className="h-4 w-4 animate-spin" />Saving…</span>}
-              {saveState === 'saved' && <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400" aria-label="Edits saved"><Check className="h-4 w-4" />Saved</span>}
-              {saveState === 'error' && <span className="inline-flex items-center gap-1.5 text-sm text-red-500" title={saveError || 'Could not save edits'} aria-label={saveError || 'Could not save edits'}><TriangleAlert className="h-4 w-4" />Couldn’t save</span>}
-              {downloadMenu}
-            </div>}
-          </div>
-
           {status === 'ready' && hasPreview ? <>
             <div
               ref={previewRef}
-              className="relative min-h-[65vh] overflow-auto rounded-2xl border bg-slate-950/95 p-3 shadow-2xl sm:p-6"
+              className="relative min-h-[65vh] overflow-auto rounded-2xl border border-black/[0.08] bg-[#e9e9e5] p-3 shadow-[0_16px_48px_rgba(25,25,24,0.08)] dark:border-white/[0.1] dark:bg-[#22221f] dark:shadow-[0_16px_48px_rgba(0,0,0,0.28)] sm:p-6"
               style={{ touchAction: 'pan-x pan-y' }}
               onWheel={handlePreviewWheel}
               onTouchStart={handlePreviewTouchStart}

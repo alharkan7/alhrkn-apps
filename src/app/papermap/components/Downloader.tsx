@@ -337,21 +337,22 @@ export default function Downloader({}: DownloaderProps) {
   return (
     <div className="relative" ref={dropdownRef}>
       <Button
-        variant="default"
-        className="flex items-center"
+        variant="secondary"
+        size="sm"
+        className="h-9 border border-black/[0.08] bg-white/60 text-[#191918] hover:bg-white dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-[#f2f2ef] dark:hover:bg-white/[0.1]"
         onClick={() => setShowDropdown(!showDropdown)}
-        title="Download"
+        title="Share"
       >
-        <Share2 className="h-4 w-4" />
-        <span className="sm:inline hidden">Share</span>
+        <Share2 className="size-4" />
+        <span className="hidden sm:inline">Share</span>
       </Button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-[100px] bg-card rounded-md shadow-lg z-10 border border-border">
+        <div className="absolute right-0 mt-2 w-[100px] rounded-md border border-black/[0.08] bg-[#fbfaf8] shadow-lg z-10 dark:border-white/[0.08] dark:bg-[#161614]">
           <ul className="py-1">
             <li key="jpeg">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={() => executeDownload(downloadAsJpeg)}
               >
                 <div className="flex items-center">
@@ -362,7 +363,7 @@ export default function Downloader({}: DownloaderProps) {
             </li>
             <li key="png">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={() => executeDownload(downloadAsPng)}
               >
                 <div className="flex items-center">
@@ -373,7 +374,7 @@ export default function Downloader({}: DownloaderProps) {
             </li>
             <li key="pdf">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={() => executeDownload(downloadAsPdf)}
               >
                 <div className="flex items-center">
@@ -384,7 +385,7 @@ export default function Downloader({}: DownloaderProps) {
             </li>
             <li key="copy-url">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={copyUrlToClipboard}
               >
                 <div className="flex items-center">
@@ -395,7 +396,7 @@ export default function Downloader({}: DownloaderProps) {
             </li>
             <li key="txt">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={() => executeDownload(downloadAsBulletList)}
               >
                 <div className="flex items-center">
@@ -406,7 +407,7 @@ export default function Downloader({}: DownloaderProps) {
             </li>
             <li key="json">
               <button
-                className="block w-full text-left px-3 py-2 text-card-foreground hover:bg-muted"
+                className="block w-full text-left px-3 py-2 text-[#191918] hover:bg-black/[0.05] dark:text-[#f2f2ef] dark:hover:bg-white/[0.08]"
                 onClick={() => executeDownload(downloadAsJSON)}
               >
                 <div className="flex items-center">

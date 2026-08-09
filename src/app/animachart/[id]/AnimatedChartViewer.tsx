@@ -18,8 +18,8 @@ import {
 } from 'chart.js';
 import { Line, Bar, Pie, Doughnut, Radar, PolarArea, Bubble, Scatter } from 'react-chartjs-2';
 import { Button } from '@/components/ui/button';
-import { Play, Download, RefreshCw, ChevronLeft, Menu, Plus, ChevronDown, Video, Image as ImageIcon, ChevronRight, Send, Loader2, MessageSquare, X, ChevronUp, Code } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Play, Download, RefreshCw, ChevronLeft, Menu, ChevronDown, Video, Image as ImageIcon, ChevronRight, Send, Loader2, Pencil, X, ChevronUp, Code } from 'lucide-react';
 import { AppsHeader } from '@/components/apps-header';
 import { merge } from 'lodash';
 import AppsFooter from '@/components/apps-footer';
@@ -386,7 +386,6 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
   const currentData = versions[currentVersionIndex].chartData as ChartData;
   const [chatInput, setChatInput] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const router = useRouter();
   const chartRef = useRef<any>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [chartKey, setChartKey] = useState(0); 
@@ -949,66 +948,8 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
     }
   };
 
-  const renderActionButtons = (isMobile: boolean) => (
-    <>
-      <Button 
-        variant="outline" 
-        size={isMobile ? "icon" : "default"}
-        onClick={handleReplay}
-        disabled={isRecording}
-        className={`bg-card border-border text-foreground hover:bg-muted transition-colors rounded-full shadow-sm ${!isMobile ? 'px-5' : ''}`}
-        title="Replay Animation"
-      >
-        <Play className={`w-4 h-4 ${!isMobile ? 'mr-2' : ''}`} /> {!isMobile && 'Replay'}
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="outline"
-            disabled={isRecording}
-            size={isMobile ? "icon" : "default"}
-            className={`bg-card border-border text-foreground hover:bg-muted transition-colors rounded-full shadow-sm ${!isMobile ? 'px-5' : ''}`}
-            title="Download"
-          >
-            {isRecording ? (
-              <>
-                <RefreshCw className={`w-4 h-4 ${!isMobile ? 'mr-2' : ''} animate-spin`} /> {!isMobile && 'Recording...'}
-              </>
-            ) : (
-              <>
-                <Download className={`w-4 h-4 ${!isMobile ? 'mr-2' : ''}`} /> {!isMobile && <>Download <ChevronDown className="w-4 h-4 ml-1" /></>}
-              </>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 bg-card text-foreground border-border">
-          <DropdownMenuItem onClick={() => handleDownloadVideo('webm')} className="cursor-pointer hover:bg-muted focus:bg-muted">
-            <Video className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span>WebM (Web Video)</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleDownloadVideo('mp4')} className="cursor-pointer hover:bg-muted focus:bg-muted">
-            <Video className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span>MP4 (Safari/iOS)</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadImage('png')} className="cursor-pointer hover:bg-muted focus:bg-muted">
-            <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span>PNG (Transparent)</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadImage('jpeg')} className="cursor-pointer hover:bg-muted focus:bg-muted">
-            <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span>JPEG Image</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={copyHtmlSource} className="cursor-pointer hover:bg-muted focus:bg-muted">
-            <Code className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span>Code (HTML)</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
-  );
-
   const renderVersionNav = () => (
-    <div className="flex items-center justify-between bg-card border border-border rounded-lg p-1.5 shadow-sm shrink-0">
+    <div className="flex items-center gap-0.5 border-l border-black/[0.08] pl-1 dark:border-white/[0.1]">
       <Button
         variant="ghost"
         size="icon"
@@ -1018,14 +959,12 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
           setCurrentVersionIndex(prev => prev + 1);
           setChartKey(prev => prev + 1);
         }}
-        className="w-7 h-7 rounded-md hover:bg-muted"
+        className="size-8 rounded-lg text-black/55 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white"
         title="Undo (Previous Version)"
+        aria-label="Previous version"
       >
         <ChevronLeft className="w-4 h-4 text-muted-foreground" />
       </Button>
-      <div className="text-xs font-medium text-muted-foreground tabular-nums px-2">
-        v{versions.length - currentVersionIndex} of {versions.length}
-      </div>
       <Button
         variant="ghost"
         size="icon"
@@ -1035,78 +974,120 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
           setCurrentVersionIndex(prev => prev - 1);
           setChartKey(prev => prev + 1);
         }}
-        className="w-7 h-7 rounded-md hover:bg-muted"
+        className="size-8 rounded-lg text-black/55 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white"
         title="Redo (Next Version)"
+        aria-label="Next version"
       >
         <ChevronRight className="w-4 h-4 text-muted-foreground" />
       </Button>
     </div>
   );
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden relative font-sans">
-      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-violet-500/10 dark:bg-violet-500/5 blur-[120px] mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-orange-500/10 dark:bg-orange-500/5 blur-[150px] mix-blend-multiply dark:mix-blend-screen" />
-      </div>
+  const renderDownloadButton = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={isRecording}
+          className="h-9 max-sm:w-9 rounded-xl border-black/[0.07] bg-black/[0.025] px-3 max-sm:px-0 text-black/65 shadow-none hover:bg-black/[0.06] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/65 dark:hover:bg-white/[0.08] dark:hover:text-white"
+          title={isRecording ? 'Recording animation' : 'Download chart'}
+          aria-label={isRecording ? 'Recording animation' : 'Download chart'}
+        >
+          {isRecording ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          <span className="max-sm:hidden">{isRecording ? 'Recording…' : 'Download'}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48 bg-card text-foreground border-border">
+        <DropdownMenuItem onClick={() => handleDownloadVideo('webm')} className="cursor-pointer hover:bg-muted focus:bg-muted">
+          <Video className="w-4 h-4 mr-2 text-muted-foreground" />
+          <span>WebM (Web Video)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownloadVideo('mp4')} className="cursor-pointer hover:bg-muted focus:bg-muted">
+          <Video className="w-4 h-4 mr-2 text-muted-foreground" />
+          <span>MP4 (Safari/iOS)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => downloadImage('png')} className="cursor-pointer hover:bg-muted focus:bg-muted">
+          <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+          <span>PNG (Transparent)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => downloadImage('jpeg')} className="cursor-pointer hover:bg-muted focus:bg-muted">
+          <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+          <span>JPEG Image</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={copyHtmlSource} className="cursor-pointer hover:bg-muted focus:bg-muted">
+          <Code className="w-4 h-4 mr-2 text-muted-foreground" />
+          <span>Code (HTML)</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border">
+  const renderChartControls = () => (
+    <div className="static z-10 mb-3 flex w-auto shrink-0 self-end items-center justify-end gap-0.5 rounded-xl border border-black/[0.08] bg-[#f7f7f5]/90 p-1 shadow-[0_4px_16px_rgba(25,25,24,0.08)] backdrop-blur-md dark:border-white/[0.1] dark:bg-[#10100f]/90 dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] md:absolute md:right-3 md:top-3 md:mb-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleReplay}
+        disabled={isRecording}
+        className="size-8 rounded-lg text-black/60 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+        title="Replay animation"
+        aria-label="Replay animation"
+      >
+        <Play className="size-4" />
+      </Button>
+      {versions.length > 1 && renderVersionNav()}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsSidebarOpen(true)}
+        className="size-8 rounded-lg text-black/60 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+        title="Edit chart"
+        aria-label="Edit chart"
+      >
+        <Pencil className="size-4" />
+      </Button>
+    </div>
+  );
+
+  return (
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
+
+      <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
         <AppsHeader
           leftButton={(
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-muted sidebar-toggle" onClick={() => window.dispatchEvent(new Event('toggleAnimaChartHistorySidebar'))}>
-                <Menu size={20} />
-              </Button>
-              <Button variant="secondary" aria-label="Create new chart" onClick={() => router.push('/animachart')} className="bg-card hover:bg-muted text-foreground border border-border">
-                <Plus className="size-4 mr-1" /> New
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              onClick={() => window.dispatchEvent(new Event('toggleAnimaChartHistorySidebar'))}
+              aria-label="Open chart history"
+            >
+              <Menu size={18} />
+            </Button>
           )}
+          title={(
+            <Link
+              href="/animachart"
+              title="Back to Motion Chart"
+              className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] text-[#191918] no-underline transition-opacity hover:opacity-65 dark:text-[#f2f2ef]"
+            >
+              Motion Chart
+            </Link>
+          )}
+          rightContent={renderDownloadButton()}
         />
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col justify-start items-center w-full max-w-6xl px-2 md:px-4 pt-20 pb-20 md:pb-16 mx-auto">
-        
-        {/* MOBILE: Title & Action Buttons */}
-        <div className="w-full flex md:hidden items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-medium text-muted-foreground truncate">
-            Motion Chart Preview
-          </h2>
-          <div className="flex items-center gap-2 shrink-0">
-            {renderActionButtons(true)}
-          </div>
-        </div>
-
         <div className="w-full flex flex-col md:flex-row gap-6 items-start h-full">
           
           {/* LEFT AREA: Chart */}
           <div className={`flex flex-col gap-4 transition-all duration-300 ${isSidebarOpen ? 'w-full md:w-[calc(100%-350px-1.5rem)]' : 'w-full'}`}>
             
-            {/* DESKTOP: Title & Action Buttons */}
-            <div className="hidden md:flex w-full items-center justify-between gap-4">
-              <h2 className="text-xl font-medium text-muted-foreground">
-                Motion Chart Preview
-              </h2>
-              <div className="flex items-center gap-3">
-                {renderActionButtons(false)}
-                
-                {/* Collapsed Sidebar Header Items */}
-                {!isSidebarOpen && (
-                  <div className="flex items-center gap-3 ml-2 pl-4 border-l border-border">
-                    {versions.length > 1 && renderVersionNav()}
-                    <Button 
-                      onClick={() => setIsSidebarOpen(true)}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md border-0 transition-all rounded-full px-5"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" /> Edit Chart
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Chart Container */}
-            <div className="w-full bg-card border border-border rounded-xl p-4 md:p-6 lg:p-8 shadow-sm flex items-center justify-center min-h-[400px] md:h-[calc(100vh-220px)]">
+            <div className="relative flex min-h-[400px] w-full flex-col items-center justify-center rounded-xl border border-border bg-card p-4 shadow-sm md:h-[calc(100vh-160px)] md:flex-row md:p-6 lg:p-8">
+              {renderChartControls()}
               <div className="relative w-full h-full aspect-square sm:aspect-video md:aspect-auto">
                   <div key={`${chartKey}-${currentVersionIndex}`} className="w-full h-full relative">
                     <ChartRenderErrorBoundary>
@@ -1123,7 +1104,7 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
             <div className="hidden md:flex w-[350px] shrink-0 flex-col h-[calc(100vh-160px)] sticky top-20 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
-                {versions.length > 1 ? renderVersionNav() : <span className="text-sm font-semibold text-muted-foreground px-2">Edit Chart</span>}
+                <span className="px-2 text-sm font-semibold text-muted-foreground">Edit</span>
                 <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted">
                   <X className="w-4 h-4" />
                 </Button>
@@ -1184,19 +1165,10 @@ export function AnimatedChartViewer({ id, initialData, initialVersions = [] }: A
         }}
       >
         <div className="h-[60px] px-4 flex items-center justify-between border-b border-border bg-muted/30 cursor-pointer" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-            {versions.length > 1 && renderVersionNav()}
-          </div>
-          <div className="flex items-center gap-2 pointer-events-none">
-            {!isSidebarOpen && (
-              <div className="bg-primary text-primary-foreground shadow-sm rounded-full py-2 px-4 flex items-center text-sm font-medium">
-                <MessageSquare className="w-4 h-4 mr-2" /> Edit
-              </div>
-            )}
-            <Button variant="ghost" size="icon" className="pointer-events-none text-muted-foreground w-8 h-8">
-              {isSidebarOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-            </Button>
-          </div>
+          <span className="text-sm font-semibold text-foreground">Edit chart</span>
+          <Button variant="ghost" size="icon" className="pointer-events-none h-8 w-8 text-muted-foreground">
+            {isSidebarOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </Button>
         </div>
         <div className="h-[50vh] flex flex-col bg-muted/10">
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">

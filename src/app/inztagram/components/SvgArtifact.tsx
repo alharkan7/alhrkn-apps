@@ -12,6 +12,7 @@ import {
   LoaderCircle,
   Wrench,
   MousePointer2,
+  Pencil,
   Undo,
   Redo,
   Sparkles,
@@ -78,6 +79,9 @@ interface SvgArtifactProps {
   showAutoImprove?: boolean;
   onAutoImprove?: (dataUrl: string) => void;
   onLocalSave?: (newSvg: string) => Promise<void>;
+  /** Show an "Edit" affordance in the toolbar (e.g. when the chat panel is hidden). */
+  showEditButton?: boolean;
+  onEdit?: () => void;
 }
 
 export function SvgArtifact({
@@ -96,6 +100,8 @@ export function SvgArtifact({
   showAutoImprove,
   onAutoImprove,
   onLocalSave,
+  showEditButton,
+  onEdit,
 }: SvgArtifactProps) {
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -608,12 +614,12 @@ export function SvgArtifact({
           <div className="flex items-center gap-1 ml-auto">
             {(hasLocalChanges || showAutoImprove) && (
               hasLocalChanges ? (
-                <Button variant="default" size="sm" onClick={handleLocalSaveSubmit} disabled={isSavingLocal} className="mr-2 h-8 gap-1.5 px-3">
+                <Button variant="default" size="sm" onClick={handleLocalSaveSubmit} disabled={isSavingLocal} className="mr-2 h-10 gap-1.5 px-3">
                   {isSavingLocal ? <LoaderCircle className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
                   <span className="hidden sm:inline">Save</span>
                 </Button>
               ) : (
-                <Button variant="default" size="sm" onClick={handleAutoImprove} disabled={loading} className="mr-2 h-8 gap-1.5 px-3">
+                <Button variant="default" size="sm" onClick={handleAutoImprove} disabled={loading} className="mr-2 h-10 gap-1.5 px-3">
                   <Sparkles className="size-3.5" /> <span className="hidden sm:inline">Improve</span>
                 </Button>
               )
@@ -786,6 +792,12 @@ export function SvgArtifact({
                 </div>
               )}
             </div>
+            {showEditButton && onEdit && (
+              <Button variant="default" size="sm" onClick={onEdit} className="ml-1 h-10 gap-1.5 px-3">
+                <Pencil className="size-3.5" />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
+            )}
           </div>
         </div>
         <CardContent className="p-0 flex-1 relative min-h-[280px] md:min-h-0 flex flex-col">

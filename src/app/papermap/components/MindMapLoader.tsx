@@ -35,7 +35,7 @@ const MindMapLoader = () => {
           cy={centerY}
           r={mainRadius}
           fill="none"
-          stroke="#6b7280" // gray-500
+          stroke="#3d3d3a"
           strokeWidth="2.5"
           className="node center-node"
         />
@@ -49,7 +49,7 @@ const MindMapLoader = () => {
               y1={centerY}
               x2={branch.x2}
               y2={branch.y2}
-              stroke="#9ca3af" // gray-400
+              stroke="#a8a294"
               strokeWidth="2"
               className="line"
               style={{
@@ -62,8 +62,8 @@ const MindMapLoader = () => {
               cx={branch.x2}
               cy={branch.y2}
               r={childRadius}
-              fill="#9ca3af" // gray-400
-              stroke="#6b7280" // gray-500
+              fill="#a8a294"
+              stroke="#3d3d3a"
               strokeWidth="1"
               className="node child-node"
               style={{

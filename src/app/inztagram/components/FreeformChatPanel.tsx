@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, LoaderCircle, Paperclip, Send, Sparkles, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, LoaderCircle, Paperclip, Pencil, Send, X } from 'lucide-react';
 import type { InztagramMessage } from '../lib/types';
 import type { SvgElementSelection } from '../lib/svg-selection';
 import { selectionKey } from '../lib/svg-selection';
@@ -86,7 +86,7 @@ export function FreeformChatPanel({
     >
       <div className="px-3 sm:px-4 py-2 sm:py-3 border-b shrink-0 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 font-semibold text-sm min-w-0">
-          <Sparkles className="size-4 text-primary shrink-0" />
+          <Pencil className="size-4 text-primary shrink-0" />
           <span className="truncate">Ask for Edits</span>
           {loading && (
             <LoaderCircle className="size-3.5 animate-spin text-muted-foreground shrink-0" />

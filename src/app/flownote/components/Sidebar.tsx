@@ -260,7 +260,7 @@ export default function Sidebar({ isOpen, selectedNode, allNodes, allEdges, onCl
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/[0.06] bg-[#f7f7f5]/90 px-6 py-4 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#151513]/90">
           <h2 className="text-sm font-semibold tracking-[-0.01em] text-black/70 dark:text-white/70">
-            Document editor
+            Document Editor
           </h2>
           <div className="flex items-center gap-2">
             <DropdownMenu>

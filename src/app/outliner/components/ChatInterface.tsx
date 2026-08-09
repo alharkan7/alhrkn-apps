@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, User, Trash2, Paperclip, X, File, Image, Copy, Check, FileText} from 'lucide-react';
+import { Send, Lightbulb, User, RotateCcw, Paperclip, X, File, Image, Copy, Check, FileText} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -277,26 +277,28 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[400px] sm:w-[500px] !p-6 border-l border-border/50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.1)] flex flex-col">
-        <SheetHeader>
-          <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+      <SheetContent side="right" closeClassName="top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-black/45 opacity-100 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white sm:top-6" className="flex w-[min(100vw,460px)] flex-col border-l border-black/[0.08] bg-[#f7f7f5] !p-4 text-[#191918] shadow-[-16px_0_48px_rgba(25,25,24,0.08)] dark:border-white/[0.1] dark:bg-[#10100f] dark:text-[#f2f2ef] sm:w-[480px] sm:!p-6">
+        <SheetHeader className="border-b border-black/[0.07] bg-[#f7f7f5] pb-4 pr-14 dark:border-white/[0.08] dark:bg-[#10100f]">
+          <div className="flex min-h-8 items-center justify-between gap-3">
+            <SheetTitle className="text-base font-semibold tracking-[-0.01em] text-[#191918] dark:text-[#f2f2ef]">
               Chat Assistant
             </SheetTitle>
             <Button
               variant="icon"
-              size="sm"
+              size="icon"
               onClick={clearChat}
-              className="text-xs h-8 px-2 mr-6"
+              className="h-8 w-8 rounded-lg text-black/45 hover:bg-black/[0.06] hover:text-[#191918] dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              aria-label="Clear chat"
+              title="Clear chat"
             >
-              <Trash2 className="h-3 w-3" />
+              <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
         </SheetHeader>
 
-        <div className="flex flex-col h-full mt-4">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+          <div className="mb-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -304,14 +306,14 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
                   }`}
               >
                 {message.role === 'assistant' && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                    <Sparkles className="h-4 w-4 text-accent-foreground" />
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-black/[0.07] bg-white text-[#191918] dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-[#f2f2ef]">
+                    <Lightbulb className="h-4 w-4" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-3xl px-5 py-3 shadow-sm ${message.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-sm'
-                      : 'bg-muted/60 backdrop-blur-sm text-foreground rounded-bl-sm border border-border/50'
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${message.role === 'user'
+                      ? 'rounded-br-md bg-[#191918] text-white dark:bg-[#f2f2ef] dark:text-[#191918]'
+                      : 'rounded-bl-md border border-black/[0.07] bg-white/80 text-[#191918] backdrop-blur-sm dark:border-white/[0.08] dark:bg-white/[0.045] dark:text-[#f2f2ef]'
                     }`}
                 >
                   {/* File attachments display */}
@@ -339,9 +341,9 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
                       {message.isStreaming && !message.content ? (
                         // Show typing indicator inside bubble when no content yet
                         <div className="flex items-center gap-1 py-2">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40 dark:bg-white/40"></div>
+                          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40 dark:bg-white/40" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40 dark:bg-white/40" style={{ animationDelay: '0.2s' }}></div>
                         </div>
                       ) : (
                         <ReactMarkdown
@@ -409,8 +411,8 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
 
                 </div>
                 {message.role === 'user' && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary-foreground" />
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-black/[0.07] bg-black/[0.05] text-[#191918] dark:border-white/[0.08] dark:bg-white/[0.08] dark:text-[#f2f2ef]">
+                    <User className="h-4 w-4" />
                   </div>
                 )}
               </div>
@@ -422,12 +424,13 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
           {attachedFiles.length > 0 && (
             <div className="mb-2 space-y-1">
               {attachedFiles.map((file, index) => (
-                <div key={index} className="flex items-center gap-2 bg-secondary rounded px-2 py-1">
-                  <Paperclip className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs text-secondary-foreground flex-1 truncate">{file.name}</span>
+                <div key={index} className="flex items-center gap-2 rounded-lg border border-black/[0.07] bg-black/[0.025] px-2.5 py-1.5 dark:border-white/[0.08] dark:bg-white/[0.035]">
+                  <Paperclip className="h-3 w-3 text-black/45 dark:text-white/45" />
+                  <span className="flex-1 truncate text-xs text-black/65 dark:text-white/65">{file.name}</span>
                   <button
                     onClick={() => removeFile(index)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="rounded-md p-0.5 text-black/40 hover:bg-black/[0.06] hover:text-red-600 dark:text-white/40 dark:hover:bg-white/[0.08] dark:hover:text-red-400"
+                    aria-label={`Remove ${file.name}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -438,22 +441,23 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
 
           {/* Selected text attachment cue */}
           {attachedSelectedText && (
-            <div className="mb-2 p-2 bg-accent border border-border rounded">
+            <div className="mb-2 rounded-xl border border-black/[0.07] bg-black/[0.025] p-2.5 dark:border-white/[0.08] dark:bg-white/[0.035]">
               <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                  <FileText className="h-3 w-3 text-accent-foreground" />
+                <div className="mt-0.5 flex h-4 w-4 flex-shrink-0">
+                  <FileText className="h-3 w-3 text-black/45 dark:text-white/45" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-xs text-accent-foreground bg-background rounded px-2 py-1 border">
-                    <div className="line-clamp-3 italic">
+                  <div className="rounded-lg border border-black/[0.07] bg-white/80 px-2 py-1.5 text-xs text-black/65 dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-white/65">
+                    <div className="line-clamp-3 italic leading-5">
                       "{attachedSelectedText.length > 80 ? attachedSelectedText.substring(0, 80) + '...' : attachedSelectedText}"
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setAttachedSelectedText('')}
-                  className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                  className="flex-shrink-0 rounded-md p-0.5 text-black/40 hover:bg-black/[0.06] hover:text-red-600 dark:text-white/40 dark:hover:bg-white/[0.08] dark:hover:text-red-400"
                   title="Remove attached text"
+                  aria-label="Remove selected text"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -462,7 +466,7 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
           )}
 
           {/* Input */}
-          <div className="flex gap-2 mb-12">
+          <div className="mb-2 flex items-center gap-1.5 rounded-2xl border border-black/[0.08] bg-white p-1.5 shadow-[0_4px_16px_rgba(25,25,24,0.05)] transition-shadow focus-within:border-black/[0.16] focus-within:shadow-[0_6px_22px_rgba(25,25,24,0.08)] dark:border-white/[0.1] dark:bg-white/[0.05] dark:shadow-none dark:focus-within:border-white/[0.18]">
             <Input
               ref={inputRef}
               value={inputMessage}
@@ -470,7 +474,7 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
               disabled={isLoading}
-              className="flex-1 rounded-full bg-muted/50 border-border/50 focus-visible:ring-blue-500/50 px-5"
+              className="h-10 min-w-0 flex-1 rounded-xl border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <input
               type="file"
@@ -485,7 +489,9 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
-              className="rounded-full h-10 w-10 shrink-0"
+              className="h-10 w-10 shrink-0 rounded-xl border-0 bg-black/[0.04] p-0 text-black/55 shadow-none hover:bg-black/[0.08] hover:text-[#191918] dark:bg-white/[0.07] dark:text-white/55 dark:hover:bg-white/[0.12] dark:hover:text-white"
+              aria-label="Attach a file"
+              title="Attach a file"
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -493,7 +499,9 @@ export function ChatInterface({ isOpen, onClose, documentContext, selectedText }
               onClick={sendMessage}
               disabled={(!inputMessage.trim() && attachedFiles.length === 0) || isLoading}
               size="icon"
-              className="rounded-full h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+              className="h-10 w-10 shrink-0 rounded-xl bg-[#191918] text-white shadow-[0_3px_10px_rgba(25,25,24,0.16)] hover:bg-black dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
+              aria-label="Send message"
+              title="Send message"
             >
               <Send className="h-4 w-4" />
             </Button>

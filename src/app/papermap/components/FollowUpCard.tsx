@@ -1,8 +1,16 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { MindMapNode } from '../types';
-import { X, LoaderCircle } from 'lucide-react';
-import { followUpCardStyles } from '../styles/styles';
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface FollowUpCardProps {
   parentId: string;
@@ -10,6 +18,8 @@ interface FollowUpCardProps {
   onCancel: () => void;
   loading: boolean;
 }
+
+const QUICK_SUGGESTIONS = ['Give an example', 'Add more details'];
 
 const FollowUpCard: React.FC<FollowUpCardProps> = ({
   parentId,
@@ -19,196 +29,88 @@ const FollowUpCard: React.FC<FollowUpCardProps> = ({
 }) => {
   const [question, setQuestion] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
-  
-  // Create a portal container when the component mounts
+
+  // Radix focuses the first focusable element on open, but the built-in close
+  // button can win that race, so explicitly focus the input shortly after mount.
   useEffect(() => {
-    // Check if we're in the browser environment
-    if (typeof document !== 'undefined') {
-      // Check if portal container already exists
-      let container = document.getElementById('follow-up-portal');
-      
-      // If not, create it
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'follow-up-portal';
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.zIndex = '9999999'; // Very high z-index
-        container.style.pointerEvents = 'none';
-        document.body.appendChild(container);
-      }
-      
-      setPortalContainer(container);
-      
-      // Clean up the portal container when component unmounts
-      return () => {
-        // Only remove the container if it's empty
-        if (container && container.childNodes.length === 0) {
-          document.body.removeChild(container);
-        }
-      };
-    }
+    const t = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
   }, []);
-  
-  // Set focus on input when component mounts
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuestion(e.target.value);
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && question.trim() && !loading) {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    }
-  };
-  
+
   const handleSave = () => {
     if (question.trim() && !loading) {
       onSave(parentId, question);
     }
   };
-  
-  // Content to be rendered in the portal
-  const content = (
-    <div 
-      className="follow-up-overlay" 
-      style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'auto',
-        backgroundColor: 'rgba(0, 0, 0, 0.05)', // Semi-transparent overlay
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        animation: 'fadeIn 0.1s ease-out forwards'
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!loading) {
-          onCancel();
-        }
-      }}
-    >
-      <div 
-        ref={cardRef}
-        className="follow-up-card" 
-        style={{ 
-          width: '360px',
-          pointerEvents: 'auto',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-          backgroundColor: 'var(--card)',
-          background: 'hsl(var(--card) / 1)',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          border: '1px solid var(--border)',
-          position: 'relative',
-          animation: 'scaleIn 0.2s ease-out forwards'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <style jsx global>{followUpCardStyles}</style>
-        <div className="py-3 pr-3 pl-4 font-medium text-sm text-primary flex justify-between border-b border-border bg-muted">
-          <span>Ask a Question</span>
-          <button 
-            className="text-muted-foreground hover:text-foreground focus:outline-none"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!loading) {
-                onCancel();
-              }
-            }}
-            disabled={loading}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="p-4">
-          <input
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && question.trim() && !loading) {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
+  const handleSuggestion = (suggestion: string) => {
+    if (!loading) onSave(parentId, suggestion);
+  };
+
+  const canAsk = question.trim().length > 0 && !loading;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="max-w-[400px] gap-4 p-5">
+        <DialogHeader>
+          <DialogTitle className="text-base">Ask a Question</DialogTitle>
+          <DialogDescription>The answer is added as a connected node.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          <Input
             ref={inputRef}
             type="text"
-            className="w-full p-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
             placeholder="Type your question here..."
             value={question}
-            onChange={handleInputChange}
+            onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()}
-            autoFocus={true}
             disabled={loading}
           />
-          <div className="flex flex-wrap gap-2 mt-3">
-            <button 
-              className="px-2 py-1 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!loading) {
-                  onSave(parentId, "Give an example");
-                }
-              }}
-              disabled={loading}
-            >
-              Give an example
-            </button>
-            <button 
-              className="px-2 py-1 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!loading) {
-                  onSave(parentId, "Add more details");
-                }
-              }}
-              disabled={loading}
-            >
-              Add more details
-            </button>
+
+          <div className="flex flex-wrap gap-2">
+            {QUICK_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                disabled={loading}
+                onClick={() => handleSuggestion(suggestion)}
+                className="rounded-full border border-black/[0.08] bg-white/60 px-2.5 py-1 text-xs text-black/70 transition-colors hover:bg-black/[0.05] hover:text-black disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-white/70 dark:hover:bg-white/[0.1] dark:hover:text-white"
+              >
+                {suggestion}
+              </button>
+            ))}
           </div>
-          <div className="flex justify-end mt-4 space-x-2 text-sm">
-            <button 
-              className="px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              disabled={!question.trim() || loading}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSave();
-              }}
+
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              size="sm"
+              disabled={!canAsk}
+              onClick={handleSave}
+              className="min-w-[84px]"
             >
               {loading ? (
                 <>
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Processing...
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Processing
                 </>
               ) : (
                 'Ask'
               )}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-  
-  // Only render the portal if the container is available
-  if (!portalContainer) {
-    return null;
-  }
-  
-  // Use createPortal to render the component directly into the portal container
-  return createPortal(content, portalContainer);
 };
 
 export default FollowUpCard;

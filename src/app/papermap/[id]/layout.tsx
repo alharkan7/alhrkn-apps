@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default function MindmapIdLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#10100f]">
       <main className="w-full">
         {children}
       </main>

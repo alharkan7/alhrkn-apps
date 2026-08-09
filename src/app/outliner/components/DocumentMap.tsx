@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { List, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,9 +11,15 @@ interface HeaderItem {
     element: HTMLElement;
 }
 
+type MobileCorner = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+
 export function DocumentMap({ containerId }: { containerId: string }) {
     const [headers, setHeaders] = useState<HeaderItem[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [mobileCorner, setMobileCorner] = useState<MobileCorner>('top-right');
+    const [isDragging, setIsDragging] = useState(false);
+    const pointerRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+    const skipClickRef = useRef(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
@@ -101,26 +107,95 @@ export function DocumentMap({ containerId }: { containerId: string }) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
+    const handleTogglePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (window.innerWidth >= 1024) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        pointerRef.current = { x: event.clientX, y: event.clientY, moved: false };
+        setIsDragging(true);
+    };
+
+    const handleTogglePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+        const pointer = pointerRef.current;
+        if (!pointer) return;
+
+        if (Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) > 8) {
+            pointer.moved = true;
+        }
+    };
+
+    const handleTogglePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+        const pointer = pointerRef.current;
+        if (!pointer) return;
+
+        if (pointer.moved) {
+            const isLeft = event.clientX < window.innerWidth / 2;
+            const isTop = event.clientY < window.innerHeight / 2;
+            setMobileCorner(`${isTop ? 'top' : 'bottom'}-${isLeft ? 'left' : 'right'}` as MobileCorner);
+            skipClickRef.current = true;
+        }
+
+        pointerRef.current = null;
+        setIsDragging(false);
+    };
+
+    const handleToggleClick = () => {
+        if (skipClickRef.current) {
+            skipClickRef.current = false;
+            return;
+        }
+        setIsOpen((open) => !open);
+    };
+
+    const mobileCornerClass = {
+        'top-right': 'right-4 top-20 items-end',
+        'top-left': 'left-4 top-20 items-start',
+        'bottom-right': 'right-4 bottom-4 items-end',
+        'bottom-left': 'left-4 bottom-4 items-start',
+    }[mobileCorner];
+
     if (headers.length === 0) return null;
 
     return (
-        <div className="fixed right-4 top-20 lg:top-1/2 lg:-translate-y-1/2 z-40 flex flex-col items-end">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="bg-white dark:bg-zinc-900 border border-border shadow-sm rounded-full p-3 text-muted-foreground hover:text-foreground transition-all focus:outline-none mb-2 hover:shadow-md"
-                title="Toggle Document Map"
-            >
-                {isOpen ? <ChevronRight size={20} /> : <List size={20} />}
-            </button>
-            
-            <div 
+        <div className={cn(
+            'fixed z-40 flex flex-col lg:bottom-auto lg:left-auto lg:right-4 lg:top-1/2 lg:-translate-y-1/2 lg:items-end',
+            mobileCornerClass
+        )}>
+            {!isOpen && (
+                <button
+                    onClick={handleToggleClick}
+                    onPointerDown={handleTogglePointerDown}
+                    onPointerMove={handleTogglePointerMove}
+                    onPointerUp={handleTogglePointerUp}
+                    onPointerCancel={handleTogglePointerUp}
+                    className={cn(
+                        'touch-none select-none rounded-full border border-black/[0.08] bg-white p-3 text-black/50 shadow-sm transition-all hover:bg-black/[0.04] hover:text-[#191918] hover:shadow-md focus:outline-none dark:border-white/[0.1] dark:bg-[#1b1b19] dark:text-white/50 dark:hover:bg-white/[0.08] dark:hover:text-white',
+                        isDragging ? 'cursor-grabbing shadow-lg' : 'cursor-grab'
+                    )}
+                    title="Open Document Map"
+                    aria-label="Open Document Map"
+                >
+                    <List size={18} />
+                </button>
+            )}
+
+            <div
                 className={cn(
-                    "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden transition-all duration-300 ease-in-out origin-right",
-                    isOpen ? "opacity-100 scale-100 w-64 max-h-[60vh] border" : "opacity-0 scale-95 w-0 h-0 border-transparent"
+                    "overflow-hidden rounded-xl border border-black/[0.08] bg-white/95 shadow-xl backdrop-blur-md transition-all duration-300 ease-in-out origin-right dark:border-white/[0.1] dark:bg-[#1b1b19]/95",
+                    isOpen ? "max-h-[60vh] w-64 scale-100 opacity-100" : "h-0 w-0 scale-95 border-transparent opacity-0"
                 )}
             >
-                <div className="p-4 overflow-y-auto max-h-[60vh] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Document Map</h3>
+                <div className="flex h-12 items-center justify-between border-b border-black/[0.06] px-3 dark:border-white/[0.08]">
+                    <h3 className="!m-0 flex h-8 items-center px-1 text-xs font-semibold uppercase !leading-none tracking-wider text-black/50 dark:text-white/50">Document Map</h3>
+                    <button
+                        onClick={() => setIsOpen(false)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.07] bg-black/[0.025] text-black/50 transition-colors hover:bg-black/[0.06] hover:text-[#191918] focus:outline-none dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/50 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                        title="Hide Document Map"
+                        aria-label="Hide Document Map"
+                    >
+                        <ChevronRight size={17} />
+                    </button>
+                </div>
+                <div className="max-h-[calc(60vh-48px)] overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/15 dark:[&::-webkit-scrollbar-thumb]:bg-white/15">
                     <ul className="space-y-1 pb-2">
                         {headers.map((header) => (
                             <li 
@@ -129,7 +204,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
                             >
                                 <button
                                     onClick={() => scrollToHeader(header.element)}
-                                    className="text-left w-full text-sm text-foreground/80 hover:text-primary py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors truncate"
+                                    className="w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-[#191918]/75 transition-colors hover:bg-black/[0.045] hover:text-[#191918] dark:text-[#f2f2ef]/75 dark:hover:bg-white/[0.06] dark:hover:text-[#f2f2ef]"
                                     title={header.text}
                                 >
                                     {header.text}

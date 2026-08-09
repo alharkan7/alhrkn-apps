@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X, Menu } from 'lucide-react'
+import { BookOpen, Search, Settings, Sparkles, Database, LoaderCircle, ExternalLink, ChevronDown, Check, Bot, ArrowLeft, ArrowRight, Lightbulb, GraduationCap, Quote, Filter, Paperclip, ArrowUpDown, Download, X, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -640,6 +640,13 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
 
   const uniqueSources = Array.from(new Set(results.map(r => r.source))).filter(Boolean)
 
+  const sortOptions = [
+    { value: 'score', label: 'Sort by: Score' },
+    { value: 'year', label: 'Sort by: Year' },
+    { value: 'citations', label: 'Sort by: Citations' },
+  ] as const
+  const currentSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? 'Sort by: Score'
+
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#f7f7f5] font-sans text-[#191918] dark:bg-[#10100f] dark:text-[#f2f2ef]">
       
@@ -659,26 +666,27 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
 
       {/* --- Top Navigation --- */}
       <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
-        <AppsHeader 
+        <AppsHeader
           leftButton={
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
-                onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}
-                aria-label="Open search history"
-              >
-                <Menu size={18} />
-              </Button>
-              {pageId && (
-                <Link href="/beeblio" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Link>
-              )}
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}
+              aria-label="Open search history"
+            >
+              <Menu size={18} />
+            </Button>
           }
-          title={<span className="text-sm font-semibold tracking-[-0.01em]">Beeblio</span>}
+          title={
+            <Link
+              href="/beeblio"
+              title="Back to Beeblio"
+              className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] text-[#191918] transition-opacity hover:opacity-65 dark:text-[#f2f2ef]"
+            >
+              Beeblio
+            </Link>
+          }
         />
         {!isOwner && (
             <div 
@@ -730,8 +738,8 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
 
           {pageId ? (
             /* --- COMPACT SEARCH BAR (Results Page) --- */
-            <div 
-              className={`relative rounded-full border bg-background/80 backdrop-blur-2xl shadow-md flex items-center p-1.5 pr-2 gap-1.5 overflow-hidden transition-all duration-200 ${isDragging && activeTab === 'context' ? 'ring-2 ring-primary border-primary' : ''}`}
+            <div
+              className={`relative flex items-center gap-1.5 overflow-hidden rounded-full border bg-white/85 p-1.5 pr-2 shadow-md backdrop-blur-2xl transition-all duration-200 dark:bg-[#1b1b19]/85 ${isDragging && activeTab === 'context' ? 'ring-2 ring-primary border-primary' : ''}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -1018,8 +1026,8 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
               className="relative"
             >
-              <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full"></div>
-              <LoaderCircle className="h-12 w-12 text-indigo-500 relative z-10" />
+              <div className="absolute inset-0 rounded-full bg-black/5 blur-xl dark:bg-white/5"></div>
+              <LoaderCircle className="relative z-10 h-12 w-12 text-[#191918]/70 dark:text-[#f2f2ef]/70" />
             </motion.div>
             <h3 className="text-xl font-medium text-muted-foreground animate-pulse">Extracting from Scientific Databases...</h3>
           </motion.div>
@@ -1047,7 +1055,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-8 relative z-20"
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2 pb-4 border-b">
+              <div className="flex flex-row items-center justify-between gap-4 md:gap-2 pb-4 border-b">
                 <div className="flex items-center gap-2 md:gap-3">
                   <h3 className="text-xl md:text-2xl font-semibold tracking-tight">
                     <span className="md:hidden">Results</span>
@@ -1080,41 +1088,48 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <div className="relative">
-                    <select 
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full pl-8 pr-2 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-[76px] md:w-auto"
-                    >
-                      <option value="score" className="text-foreground">Sort by: Score</option>
-                      <option value="year" className="text-foreground">Sort by: Year</option>
-                      <option value="citations" className="text-foreground">Sort by: Citations</option>
-                    </select>
-                    {/* Fake Label for Mobile */}
-                    <div className="absolute inset-0 flex items-center pl-8 pointer-events-none md:hidden text-sm font-medium text-muted-foreground">
-                      Sort
-                    </div>
-                    <ArrowUpDown className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
-                  </div>
-                  <div className="relative">
-                    <select 
-                      value={filterSource}
-                      onChange={(e) => setFilterSource(e.target.value)}
-                      className="appearance-none bg-muted/30 border text-transparent md:text-muted-foreground hover:md:text-foreground text-sm font-medium rounded-full pl-8 pr-2 md:pl-9 md:pr-8 py-1.5 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer w-[150px] md:max-w-60 text-ellipsis overflow-hidden whitespace-nowrap"
-                    >
-                      <option value="all" className="text-foreground">All Sources</option>
-                      {uniqueSources.map(source => (
-                        <option key={source} value={source} className="text-foreground">{source}</option>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 shrink-0 rounded-full border-muted-foreground/30 bg-muted/30 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground md:px-4">
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                        <span className="hidden md:inline">{currentSortLabel}</span>
+                        <ChevronDown className="hidden h-3 w-3 opacity-70 md:block" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                      {sortOptions.map((opt) => (
+                        <DropdownMenuItem
+                          key={opt.value}
+                          onClick={() => setSortBy(opt.value)}
+                          className="cursor-pointer font-medium"
+                        >
+                          <Check className={cn('h-3.5 w-3.5', sortBy === opt.value ? 'opacity-100' : 'opacity-0')} />
+                          {opt.label}
+                        </DropdownMenuItem>
                       ))}
-                    </select>
-                    {/* Fake Label for Mobile */}
-                    <div className="absolute inset-0 flex items-center pl-8 pointer-events-none md:hidden text-sm font-medium text-muted-foreground">
-                      Publisher
-                    </div>
-                    <Filter className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
-                  </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 shrink-0 rounded-full border-muted-foreground/30 bg-muted/30 px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground md:px-4">
+                        <Filter className="h-3.5 w-3.5" />
+                        <span className="hidden max-w-[150px] truncate md:inline">{filterSource === 'all' ? 'All Sources' : filterSource}</span>
+                        <ChevronDown className="hidden h-3 w-3 opacity-70 md:block" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-[320px] overflow-y-auto rounded-xl">
+                      <DropdownMenuItem onClick={() => setFilterSource('all')} className="cursor-pointer font-medium">
+                        <Check className={cn('h-3.5 w-3.5', filterSource === 'all' ? 'opacity-100' : 'opacity-0')} />
+                        All Sources
+                      </DropdownMenuItem>
+                      {uniqueSources.map((source) => (
+                        <DropdownMenuItem key={source} onClick={() => setFilterSource(source)} className="cursor-pointer font-medium">
+                          <Check className={cn('h-3.5 w-3.5', filterSource === source ? 'opacity-100' : 'opacity-0')} />
+                          {source}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
@@ -1133,7 +1148,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                     transition={{ layout: { type: "spring", stiffness: 300, damping: 30 }, opacity: { delay: idx * 0.05 }, y: { delay: idx * 0.05 } }}
                     className="min-w-0 w-full"
                   >
-                    <div className="relative group rounded-3xl transition-all duration-500 hover:-translate-y-1 border shadow-sm bg-card">
+                    <div className="relative group rounded-3xl border border-black/[0.06] bg-white shadow-sm transition-all duration-500 hover:-translate-y-1 dark:border-white/[0.08] dark:bg-[#1b1b19]">
                       
                       {/* Inner Card */}
                       <div className="relative h-full rounded-3xl p-6 sm:p-8 flex flex-col gap-5">
@@ -1152,12 +1167,12 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                                 <div className="relative group/score shrink-0 cursor-default">
                                   {paper.overallScore != null ? (
                                     <>
-                                      <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-500/60 shadow-md hover:bg-indigo-500/20 px-4 py-1.5 rounded-full font-extrabold text-sm transition-colors">
+                                      <Badge className="rounded-full border border-amber-500/45 bg-amber-500/10 px-4 py-1.5 text-sm font-extrabold text-amber-800 shadow-sm transition-colors hover:bg-amber-500/15 dark:text-amber-200">
                                         {paper.overallScore.toFixed(1)}
                                       </Badge>
                                       {/* Tooltip */}
                                       {paper.rubrics && (
-                                        <div className="absolute top-full right-0 mt-2 w-56 p-3 rounded-xl bg-popover text-popover-foreground shadow-[0_10px_30px_rgba(99,102,241,0.2)] border-2 border-indigo-500/50 opacity-0 invisible group-hover/score:opacity-100 group-hover/score:visible transition-all z-[100] backdrop-blur-md">
+                                        <div className="absolute top-full right-0 mt-2 w-56 rounded-xl border border-amber-500/30 bg-[#fbfbf9] p-3 text-[#191918] opacity-0 shadow-[0_16px_40px_rgba(25,25,24,0.16)] backdrop-blur-md transition-all invisible group-hover/score:opacity-100 group-hover/score:visible z-[100] dark:bg-[#1b1b19] dark:text-[#f2f2ef]">
                                           <div className="space-y-2">
                                             {Object.entries(paper.rubrics).map(([key, value]) => (
                                               <div key={key} className="flex justify-between items-center text-xs">
@@ -1238,7 +1253,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                     size="lg" 
                     onClick={goToPrevPage} 
                     disabled={page === 1 || isLoadingMore || isEvaluating}
-                    className="rounded-full px-6 bg-card"
+                    className="rounded-full bg-white px-6 dark:bg-[#1b1b19]"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Previous
                   </Button>
@@ -1252,7 +1267,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                     size="lg" 
                     onClick={goToNextPage} 
                     disabled={isLoadingMore || isEvaluating}
-                    className="rounded-full px-6 bg-card"
+                    className="rounded-full bg-white px-6 dark:bg-[#1b1b19]"
                   >
                     {isLoadingMore ? (
                       <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Loading...</>

@@ -36,9 +36,9 @@ const edgeTypes = {};
 const defaultEdgeOptions = {
   type: 'default',
   style: {
-    stroke: '#3182CE',
+    stroke: '#9a978f',
     strokeWidth: 1.5,
-    strokeOpacity: 0.8,
+    strokeOpacity: 0.7,
     strokeDasharray: '0',
     zIndex: 1000
   },
@@ -68,6 +68,7 @@ const MindMapFlow = ({ isOwner = true, onInteract }: { isOwner?: boolean, onInte
   const [nodesDraggable, setNodesDraggable] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   // Get current layout direction from the layout preset
   const currentLayout = LAYOUT_PRESETS[currentLayoutIndex];
@@ -89,6 +90,21 @@ const MindMapFlow = ({ isOwner = true, onInteract }: { isOwner?: boolean, onInte
 
     return () => {
       window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
+  // Track dark mode (toggle-based .dark class or system preference) so the
+  // ReactFlow background dots stay calm in both themes.
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => setIsDark(document.documentElement.classList.contains('dark') || mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => {
+      mq.removeEventListener('change', update);
+      observer.disconnect();
     };
   }, []);
 
@@ -141,9 +157,10 @@ const MindMapFlow = ({ isOwner = true, onInteract }: { isOwner?: boolean, onInte
     }
   }, [reactFlow]); // Only depend on reactFlow, not nodes.length
 
-  // Set background color based on CSS variables
-  const bgColor = 'var(--background)';
-  const dotColor = 'var(--foreground-muted, #94a3b8)'; // Add a foreground color with fallback
+  // Canvas is transparent so the warm page shell shows through; the Background
+  // component draws warm dots that adapt to the active theme.
+  const bgColor = 'transparent';
+  const dotColor = isDark ? 'rgba(242,242,239,0.10)' : 'rgba(25,25,24,0.16)';
   const dotSize = 1.5; // Slightly larger dots for better visibility
   const dotGap = 24;
 
@@ -206,20 +223,20 @@ const MindMapFlow = ({ isOwner = true, onInteract }: { isOwner?: boolean, onInte
       >
         <button
           onClick={cycleLayout}
-          className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.08] bg-white/85 text-black/70 shadow-sm backdrop-blur transition-colors hover:bg-black/[0.05] hover:text-black focus:outline-none dark:border-white/[0.1] dark:bg-[#1b1b19]/85 dark:text-white/70 dark:hover:bg-white/[0.1] dark:hover:text-white"
         >
           <Network
             size={16}
-            className={`text-gray-700 dark:text-gray-300 ${isClient && currentLayoutDirection === 'LR' ? '-rotate-90' : ''} transition-transform`}
+            className={`${isClient && currentLayoutDirection === 'LR' ? '-rotate-90' : ''} transition-transform`}
           />
         </button>
       </div>
 
       {showLoadingIndicator && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-          <div className="transform scale-75 p-8 flex flex-col items-center">
+          <div className="flex scale-75 flex-col items-center p-8">
             <MindMapLoader />
-            <div className="text-lg font-medium text-gray-800 dark:text-gray-200">
+            <div className="text-base font-medium text-[#191918] dark:text-[#f2f2ef]">
               {getLoadingText()}
             </div>
           </div>
