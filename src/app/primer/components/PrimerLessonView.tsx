@@ -5,6 +5,8 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from './tooltips/TooltipProvider';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
+import { DocumentMap } from '@/app/outliner/components/DocumentMap';
+
 import { PrimerBreadcrumbs, type PrimerBreadcrumbItem } from './PrimerBreadcrumbs';
 import { PrimerNetworkMap } from './PrimerNetworkMap';
 import { PrimerChat } from './chat/PrimerChat';
@@ -206,6 +208,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
 
   return (
     <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText} onExplanationSaved={handleExplanationSaved}>
+      <div id="document-wrapper">
       <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <PrimerBreadcrumbs items={breadcrumbs} />
         {phase === 'error' ? (
@@ -239,9 +242,11 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
         )}
       </article>
       <PrimerBibliography entries={builtCitations.bibliography} />
+      </div>
       <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />
       <PrimerChat title={chatTitle} topic={topic} excerpt={chatExcerpt} />
       <PrimerCitations primerId={id} refMap={refMap} onCitationSaved={handleCitationSaved} />
+      <DocumentMap containerId="document-wrapper" />
     </TooltipProvider>
   );
 }
