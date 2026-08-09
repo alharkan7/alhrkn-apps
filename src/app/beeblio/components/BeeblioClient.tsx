@@ -1029,7 +1029,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               <div className="absolute inset-0 rounded-full bg-black/5 blur-xl dark:bg-white/5"></div>
               <LoaderCircle className="relative z-10 h-12 w-12 text-[#191918]/70 dark:text-[#f2f2ef]/70" />
             </motion.div>
-            <h3 className="text-xl font-medium text-muted-foreground animate-pulse">Extracting from Scientific Databases...</h3>
+            <h3 className="text-base sm:text-xl font-medium text-muted-foreground animate-pulse text-center">Extracting from Scientific Databases...</h3>
           </motion.div>
         )}
 

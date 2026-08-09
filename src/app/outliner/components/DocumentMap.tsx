@@ -250,18 +250,22 @@ export function DocumentMap({ containerId }: { containerId: string }) {
                     </button>
                 </div>
                 <div className="max-h-[calc(60vh-48px)] overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/15 dark:[&::-webkit-scrollbar-thumb]:bg-white/15">
-                    <ul className="space-y-1 pb-2">
+                    <ul className="m-0 list-none space-y-1 p-0 pb-2">
                         {headers.map((header) => (
                             <li 
                                 key={header.id}
-                                style={{ paddingLeft: `${(header.level - 1) * 0.75}rem` }}
+                                className="m-0 p-0"
+                                style={{ marginLeft: `${(header.level - 1) * 0.75}rem` }}
                             >
                                 <button
                                     onClick={() => scrollToHeader(header.element)}
-                                    className="w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-[#191918]/75 transition-colors hover:bg-black/[0.045] hover:text-[#191918] dark:text-[#f2f2ef]/75 dark:hover:bg-white/[0.06] dark:hover:text-[#f2f2ef]"
+                                    className="flex w-full items-center rounded-md py-1.5 pl-1.5 pr-2 text-left text-sm text-[#191918]/75 transition-colors hover:bg-black/[0.045] hover:text-[#191918] dark:text-[#f2f2ef]/75 dark:hover:bg-white/[0.06] dark:hover:text-[#f2f2ef]"
                                     title={header.text}
                                 >
-                                    {header.text}
+                                    <span className="flex w-3 flex-shrink-0 items-center justify-start">
+                                        <span className="h-[3px] w-[3px] rounded-full bg-black/40 dark:bg-white/40" />
+                                    </span>
+                                    <span className="truncate flex-1">{header.text}</span>
                                 </button>
                             </li>
                         ))}
