@@ -121,6 +121,12 @@ export function MarkdownRenderer({
           a: ConceptLinkAnchor,
           pre: ({ children }) => <>{children}</>,
           code: CodeBlock,
+          h1: ({node, children, ...props}) => { const id = `header-1-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h1 id={id} {...props}>{children}</h1>; },
+          h2: ({node, children, ...props}) => { const id = `header-2-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h2 id={id} {...props}>{children}</h2>; },
+          h3: ({node, children, ...props}) => { const id = `header-3-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h3 id={id} {...props}>{children}</h3>; },
+          h4: ({node, children, ...props}) => { const id = `header-4-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h4 id={id} {...props}>{children}</h4>; },
+          h5: ({node, children, ...props}) => { const id = `header-5-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h5 id={id} {...props}>{children}</h5>; },
+          h6: ({node, children, ...props}) => { const id = `header-6-${extractText(children).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`; return <h6 id={id} {...props}>{children}</h6>; },
         }}
       >
         {children}

@@ -79,7 +79,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
             const container = document.getElementById(containerId);
             if (!container) return;
 
-            const headerElements = Array.from(container.querySelectorAll('.ce-header, #references-header')) as HTMLElement[];
+            const headerElements = Array.from(container.querySelectorAll('.ce-header, h1, h2, h3, h4, h5, h6, #references-header')) as HTMLElement[];
             
             const newHeaders = headerElements.map((el, index) => {
                 let level = 2;
@@ -118,7 +118,7 @@ export function DocumentMap({ containerId }: { containerId: string }) {
                 if (
                     mutation.type === 'childList' || 
                     mutation.type === 'characterData' || 
-                    (mutation.type === 'attributes' && (mutation.target as HTMLElement).classList?.contains('ce-header'))
+                    (mutation.type === 'attributes' && ((mutation.target as HTMLElement).classList?.contains('ce-header') || /^H[1-6]$/.test((mutation.target as HTMLElement).tagName)))
                 ) {
                     shouldUpdate = true;
                     break;
