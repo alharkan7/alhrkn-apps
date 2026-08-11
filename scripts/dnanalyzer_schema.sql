@@ -93,3 +93,13 @@ INSERT INTO "dnanalyzer_variables" ("id", "variable", "data_type", "statement_ty
    (2, 'organization', 'short text', 1),
    (3, 'concept', 'short text', 1),
    (4, 'agreement', 'boolean', 1) ON CONFLICT DO NOTHING;
+
+-- DNAnalyzer data is accessed through the server-only Postgres connection.
+ALTER TABLE "dnanalyzer_coders" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_statement_types" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_variables" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_documents" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_statements" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_entities" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_data_short_text" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "dnanalyzer_data_boolean" ENABLE ROW LEVEL SECURITY;

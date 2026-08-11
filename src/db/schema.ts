@@ -1,6 +1,6 @@
 // src/lib/db/schema.ts
 import {
-  pgTable,
+  pgTable as pgTableWithoutRLS,
   uuid,
   text,
   timestamp,
@@ -13,6 +13,12 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+
+// Every application table is private to the server-side Postgres connection.
+// Keep RLS in the Drizzle schema so `drizzle-kit push` cannot recreate a table
+// as publicly accessible through Supabase's Data API.
+const pgTable = ((...args: Parameters<typeof pgTableWithoutRLS>) =>
+  pgTableWithoutRLS(...args).enableRLS()) as typeof pgTableWithoutRLS;
 
 // Main mindmaps table
 export const mindmaps = pgTable('mindmaps', {

@@ -29,3 +29,6 @@ ALTER TABLE posterly_posters
 
 ALTER TABLE posterly_posters
   ADD COLUMN IF NOT EXISTS html text;
+
+-- Posterly data is accessed through the server-only Postgres connection.
+ALTER TABLE posterly_posters ENABLE ROW LEVEL SECURITY;

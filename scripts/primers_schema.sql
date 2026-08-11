@@ -37,3 +37,8 @@ CREATE TABLE IF NOT EXISTS "primer_explanations" (
 
 CREATE UNIQUE INDEX IF NOT EXISTS "primer_explanations_lookup_idx"
   ON "primer_explanations" ("primer_id", "selection_key");
+
+-- These tables are accessed through the server-only Postgres connection, not
+-- directly by anon/authenticated Data API roles. No policy means deny by default.
+ALTER TABLE "primers" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "primer_explanations" ENABLE ROW LEVEL SECURITY;
