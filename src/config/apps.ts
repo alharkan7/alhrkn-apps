@@ -1,4 +1,4 @@
-import { Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen, LineChart, GraduationCap, Presentation } from 'lucide-react'
+import { Clapperboard, Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen, LineChart, GraduationCap, Presentation } from 'lucide-react'
 
 export interface AppConfig {
   name: string
@@ -78,6 +78,13 @@ export const apps: AppConfig[] = [
     slug: 'dnanalyzer',
     description: 'Automatic Discourse Extractor for DNAnalyzer',
     type: 'academic'
+  },
+  {
+    name: 'Mograph Studio', 
+    icon: Clapperboard, 
+    slug: 'https://mograph.enaiblr.org', 
+    description: 'Create Motion Graphics in Seconds',
+    type: 'general'
   },
   {
     name: 'Wiki Reels',
