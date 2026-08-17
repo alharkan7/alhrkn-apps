@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildGlossaryMap } from '../../lib/parse';
 import { computePassageOccurrence, computeSelectionOccurrence } from '../../lib/occurrence';
-import type { GlossaryEntry } from '../../types';
+import type { GlossaryEntry, PrimerOptions } from '../../types';
 import { TooltipLayer } from './TooltipLayer';
 import { SelectionPrompt, type SelectionPromptData } from './SelectionPrompt';
 
@@ -33,6 +33,7 @@ interface TooltipContextValue {
   glossaryMap: Map<string, GlossaryEntry>;
   chain: ChainEntry[];
   primerId: string;
+  options?: PrimerOptions;
   /** Hover-intent open (respects HOVER_OPEN_MS, depth cap, circular refs). */
   requestOpen: (term: string, anchorEl: HTMLElement, parentChainPath: string[]) => void;
   /** Immediate open + lock (click / Enter / touch). */
@@ -75,6 +76,7 @@ export function TooltipProvider({
   glossary,
   lessonText,
   onExplanationSaved,
+  options,
   children,
 }: {
   primerId: string;
@@ -82,6 +84,7 @@ export function TooltipProvider({
   lessonText?: string;
   /** Notified when a selection explanation is generated so the body can underline it live. */
   onExplanationSaved?: (term: string, definition: string, occurrence: number | null) => void;
+  options?: PrimerOptions;
   children: React.ReactNode;
 }) {
   // Live explanations added in-session are folded into the glossary so a re-opened
@@ -252,8 +255,8 @@ export function TooltipProvider({
   }, [selectionPrompt]);
 
   const value = useMemo<TooltipContextValue>(
-    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll }),
-    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll],
+    () => ({ primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll, options }),
+    [primerId, glossaryMap, chain, requestOpen, activate, lockByAnchor, registerExplanation, dismissAll, options],
   );
 
   return (

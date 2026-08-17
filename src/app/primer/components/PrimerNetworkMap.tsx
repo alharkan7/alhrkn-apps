@@ -214,7 +214,7 @@ export function PrimerNetworkMap({ primerId, open, onOpenChange }: PrimerNetwork
         </DialogHeader>
         <div className={`relative w-full flex-1 overflow-hidden ${surfaceClass}`}>
           {loading ? (
-            <div className={`flex h-full items-center justify-center gap-2 text-sm ${loadingTextClass}`}><Loader2 className={`h-5 w-5 animate-spin ${spinnerClass}`} />Loading map…</div>
+            <div className={`flex h-full items-center justify-center gap-2 text-sm ${loadingTextClass}`}><Loader2 className={`h-5 w-5 animate-spin ${spinnerClass}`} />Loading Map…</div>
           ) : error ? (
             <div className={`flex h-full items-center justify-center text-sm ${errorTextClass}`}>{error}</div>
           ) : (

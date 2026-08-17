@@ -88,20 +88,35 @@ export default async function PrimerIdPage({ params }: { params: Promise<{ id: s
     isCurrent: index === ancestorRows.length - 1,
   }));
 
+  const tone = primer.options?.tone || 'general';
+  let fontOption = 'sans';
+  if (['academic', 'shakespeare', 'noir', 'pirate'].includes(tone)) {
+    fontOption = 'serif';
+  } else if (['casual', 'eli5'].includes(tone)) {
+    fontOption = 'rounded';
+  } else if (['gen_alpha', 'sarcastic'].includes(tone)) {
+    fontOption = 'mono';
+  } else if (['hype_bro'].includes(tone)) {
+    fontOption = 'lexend';
+  }
+
   return (
     <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">Loading...</div>}>
-      <PrimerLessonView
-        id={primer.id}
-        title={primer.title}
-        topic={primer.topic}
-        status={primer.status}
-        content={primer.content}
-        glossary={glossary}
-        autoLinkTargets={autoLinkTargets}
-        createdAt={primer.createdAt ? primer.createdAt.toISOString() : null}
-        breadcrumbs={breadcrumbs}
-        initialCitations={initialCitations}
-      />
+      <div data-primer-font={fontOption} className="contents">
+        <PrimerLessonView
+          id={primer.id}
+          title={primer.title}
+          topic={primer.topic}
+          status={primer.status}
+          content={primer.content}
+          glossary={glossary}
+          autoLinkTargets={autoLinkTargets}
+          createdAt={primer.createdAt ? primer.createdAt.toISOString() : null}
+          breadcrumbs={breadcrumbs}
+          initialCitations={initialCitations}
+          options={primer.options ?? undefined}
+        />
+      </div>
     </Suspense>
   );
 }

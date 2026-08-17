@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
     const options: PrimerOptions = {
       audience: typeof rawOptions.audience === 'string' && rawOptions.audience.trim() ? rawOptions.audience.trim() : undefined,
       language: typeof rawOptions.language === 'string' && rawOptions.language.trim() ? rawOptions.language.trim() : undefined,
+      length: ['brief', 'moderate', 'detailed'].includes(rawOptions.length) ? rawOptions.length : 'moderate',
+      tone: typeof rawOptions.tone === 'string' && rawOptions.tone.trim() ? rawOptions.tone.trim() : 'general',
       context: typeof rawOptions.context === 'string' && rawOptions.context.trim() ? rawOptions.context.trim().slice(0, 1600) : undefined,
     };
 

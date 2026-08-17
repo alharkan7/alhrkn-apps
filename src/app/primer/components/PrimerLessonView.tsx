@@ -14,7 +14,7 @@ import { PrimerBibliography } from './PrimerBibliography';
 import { PrimerCitations } from './citations/PrimerCitations';
 import { buildCitations, dedupeKey } from '../lib/citation-merge';
 import { getDisplayBody, parseMeta, type AutoLinkTarget } from '../lib/parse';
-import type { GlossaryEntry, PrimerCitation } from '../types';
+import type { GlossaryEntry, PrimerCitation, PrimerOptions } from '../types';
 
 export interface PrimerLessonViewProps {
   id: string;
@@ -28,6 +28,7 @@ export interface PrimerLessonViewProps {
   createdAt: string | null;
   breadcrumbs: PrimerBreadcrumbItem[];
   initialCitations?: PrimerCitation[];
+  options?: PrimerOptions;
 }
 
 type Phase = 'streaming' | 'waiting' | 'error';
@@ -36,7 +37,7 @@ const GENERATION_TIMEOUT_MS = 2 * 60 * 1000;
 const POLL_INTERVAL_MS = 1500;
 
 export function PrimerLessonView(props: PrimerLessonViewProps) {
-  const { id, title, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs, initialCitations } = props;
+  const { id, title, topic, content: initialContent, glossary: initialGlossary, status: initialStatus, autoLinkTargets: initialAutoLinkTargets, breadcrumbs, initialCitations, options } = props;
 
   const [streamed, setStreamed] = useState('');
   const [phase, setPhase] = useState<Phase>(initialStatus === 'error' ? 'error' : 'streaming');
@@ -207,7 +208,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
   }, []);
 
   return (
-    <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText} onExplanationSaved={handleExplanationSaved}>
+    <TooltipProvider primerId={id} glossary={glossary} lessonText={bodyText} onExplanationSaved={handleExplanationSaved} options={options}>
       <div id="document-wrapper">
       <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <PrimerBreadcrumbs items={breadcrumbs} />
@@ -244,7 +245,7 @@ export function PrimerLessonView(props: PrimerLessonViewProps) {
       <PrimerBibliography entries={builtCitations.bibliography} />
       </div>
       <PrimerNetworkMap primerId={id} open={mapOpen} onOpenChange={setMapOpen} />
-      <PrimerChat title={chatTitle} topic={topic} excerpt={chatExcerpt} />
+      <PrimerChat title={chatTitle} topic={topic} excerpt={chatExcerpt} options={options} />
       <PrimerCitations primerId={id} refMap={refMap} onCitationSaved={handleCitationSaved} />
       <DocumentMap containerId="document-wrapper" />
     </TooltipProvider>

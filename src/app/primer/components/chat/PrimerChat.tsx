@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 import { usePrimerChat, type ChatMessage } from './usePrimerChat';
 
+import type { PrimerOptions } from '../../types';
+
 interface Attachment {
   term: string;
   definition?: string;
@@ -18,6 +20,7 @@ interface PrimerChatProps {
   title: string;
   topic: string;
   excerpt?: string;
+  options?: PrimerOptions;
 }
 
 // --- Floating action button (draggable, snaps to a corner) ---
@@ -291,7 +294,7 @@ function ChatPanel({ open, title, attachment, messages, isStreaming, input, setI
 
 // --- Root ---
 
-export function PrimerChat({ title, topic, excerpt }: PrimerChatProps) {
+export function PrimerChat({ title, topic, excerpt, options }: PrimerChatProps) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [attachment, setAttachment] = useState<Attachment | null>(null);
@@ -302,6 +305,7 @@ export function PrimerChat({ title, topic, excerpt }: PrimerChatProps) {
     topic,
     excerpt,
     attachment,
+    options,
   });
 
   useEffect(() => setMounted(true), []);

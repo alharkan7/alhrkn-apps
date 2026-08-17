@@ -55,6 +55,15 @@ export async function POST(req: NextRequest) {
         `They opened this chat from the glossary entry for "${term}"${definition ? `: ${definition}` : ''}. Treat references to "it" or the term as meaning this concept unless they say otherwise.`,
       );
     }
+    
+    if (ctx.options) {
+      const { getPrimerOptionsInstructions } = await import('@/app/primer/lib/prompt');
+      const instructions = getPrimerOptionsInstructions(ctx.options);
+      if (instructions.length > 0) {
+        systemParts.push('Respond matching the intended tone and persona of the lesson:', ...instructions);
+      }
+    }
+
     const system = systemParts.join('\n\n');
 
     const result = streamText({

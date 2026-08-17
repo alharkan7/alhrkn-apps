@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AppsFooter from '@/components/apps-footer';
@@ -17,6 +18,8 @@ export function TopicInputForm() {
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('');
   const [language, setLanguage] = useState('');
+  const [length, setLength] = useState('moderate');
+  const [tone, setTone] = useState('general');
   const [showOptions, setShowOptions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,6 +36,8 @@ export function TopicInputForm() {
           options: {
             audience: audience.trim() || undefined,
             language: language.trim() || undefined,
+            length,
+            tone,
           },
         }),
       });
@@ -111,10 +116,29 @@ export function TopicInputForm() {
               <div className="overflow-hidden">
                 <div
                   className={cn(
-                    'grid gap-2 px-1 pb-3 pt-1 transition-[opacity,transform] duration-300 ease-out sm:grid-cols-2',
+                    'grid gap-2 px-1 pb-3 pt-1 transition-[opacity,transform] duration-300 ease-out sm:grid-cols-3',
                     showOptions ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
                   )}
                 >
+                  <div className="relative min-w-0 flex-1">
+                    <Select value={tone} onValueChange={setTone}>
+                      <SelectTrigger className="h-10 w-full rounded-xl border-black/[0.07] bg-black/[0.025] text-sm shadow-none focus:ring-0 dark:border-white/[0.08] dark:bg-white/[0.035]">
+                        <SelectValue placeholder="Tone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">📝 General</SelectItem>
+                        <SelectItem value="academic">🔬 Academic / Formal</SelectItem>
+                        <SelectItem value="casual">☕️ Casual / Friendly</SelectItem>
+                        <SelectItem value="eli5">🧸 Explain Like I'm 5</SelectItem>
+                        <SelectItem value="gen_alpha">💀 Gen Alpha Slang</SelectItem>
+                        <SelectItem value="pirate">🏴‍☠️ Pirate</SelectItem>
+                        <SelectItem value="shakespeare">🎭 Shakespearean</SelectItem>
+                        <SelectItem value="sarcastic">😒 Sarcastic & Snarky</SelectItem>
+                        <SelectItem value="hype_bro">💪 Hype Bro</SelectItem>
+                        <SelectItem value="noir">🕵🏻‍♂️ Noir Detective</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <OptionInput icon={User} value={audience} onChange={setAudience} placeholder="Audience, e.g. curious student" />
                   <OptionInput icon={Languages} value={language} onChange={setLanguage} placeholder="Language, e.g. English" />
                 </div>
@@ -122,37 +146,50 @@ export function TopicInputForm() {
             </div>
 
             <div className="flex items-center justify-between gap-2 border-t border-black/[0.055] px-1 pt-3 dark:border-white/[0.07]">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'h-9 rounded-xl border border-black/[0.065] bg-black/[0.025] px-3 text-xs font-medium text-black/50 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/48 dark:hover:bg-white/[0.07] dark:hover:text-white',
-                  showOptions && 'bg-black/[0.07] text-black dark:bg-white/[0.1] dark:text-white',
-                )}
-                onClick={() => setShowOptions((visible) => !visible)}
-                aria-expanded={showOptions}
-              >
-                <Settings className="mr-1.5 size-3.5" />
-                Options
-              </Button>
-              <Button
-                type="submit"
-                disabled={!topic.trim() || submitting}
-                className="group h-10 shrink-0 rounded-xl bg-[#191918] px-4 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Building…
-                  </>
-                ) : (
-                  <>
-                    Build
-                    <ArrowUp className="ml-1 size-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-9 rounded-xl border border-black/[0.065] bg-black/[0.025] px-3 text-xs font-medium text-black/50 shadow-none hover:bg-black/[0.055] hover:text-black dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/48 dark:hover:bg-white/[0.07] dark:hover:text-white',
+                    showOptions && 'bg-black/[0.07] text-black dark:bg-white/[0.1] dark:text-white',
+                  )}
+                  onClick={() => setShowOptions((visible) => !visible)}
+                  aria-expanded={showOptions}
+                >
+                  <Settings className="size-3.5" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={length} onValueChange={setLength}>
+                  <SelectTrigger className="h-10 w-[130px] rounded-xl border-black/[0.07] bg-black/[0.025] shadow-none focus:ring-0 dark:border-white/[0.08] dark:bg-white/[0.035]">
+                    <SelectValue placeholder="Length" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="brief">Brief</SelectItem>
+                    <SelectItem value="moderate">Moderate</SelectItem>
+                    <SelectItem value="detailed">Detailed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="submit"
+                  disabled={!topic.trim() || submitting}
+                  className="group h-10 shrink-0 rounded-xl bg-[#191918] px-4 font-semibold text-white shadow-[0_2px_8px_rgba(25,25,24,0.16)] transition-all hover:-translate-y-px hover:bg-black hover:shadow-[0_5px_14px_rgba(25,25,24,0.2)] disabled:translate-y-0 disabled:opacity-30 dark:bg-[#f2f2ef] dark:text-[#191918] dark:hover:bg-white"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Building…
+                    </>
+                  ) : (
+                    <>
+                      Build
+                      <ArrowUp className="ml-1 size-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.25} />
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </motion.div>

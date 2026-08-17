@@ -59,14 +59,42 @@ export const PRIMER_SYSTEM_PROMPT = [
   'LANGUAGE: Write in the language requested by the user (default English). If unspecified, use the dominant language of the topic.',
 ].join('\n');
 
-export function buildPrimerUserPrompt(topic: string, options?: PrimerOptions): string {
+export function getPrimerOptionsInstructions(options?: PrimerOptions): string[] {
+  const instructions: string[] = [];
+  
   const audience = options?.audience?.trim() || 'a curious first-year university student';
   const language = options?.language?.trim() || 'the dominant language of the topic (default English)';
+  instructions.push(`Target audience: ${audience}.`);
+  instructions.push(`Language: ${language}.`);
+
+  if (options?.length === 'brief') {
+    instructions.push('Length: Keep the lesson EXTREMELY brief and concise. Strictly limit the entire lesson to a maximum of 300-400 words (about 1 short page). Only cover the most essential core concepts.');
+  } else if (options?.length === 'detailed') {
+    instructions.push('Length: Provide a highly detailed, comprehensive, and in-depth lesson. Use extensive explanations, multiple sections, and deep dives (1500+ words, roughly 4-5 pages).');
+  } else if (options?.length) {
+    instructions.push('Length: Keep the lesson moderately long, well-paced, and balanced (around 600-800 words, roughly 2 pages).');
+  }
+
+  const tone = options?.tone || 'general';
+  if (tone === 'academic') instructions.push('Tone: Academic and Scientific. Use formal, rigorous, and highly precise language.');
+  else if (tone === 'casual') instructions.push('Tone: Casual and Conversational. Keep it light, friendly, and easy to read.');
+  else if (tone === 'eli5') instructions.push('Tone: ELI5 (Explain Like I\'m 5). Use very simple analogies, basic words, and extreme clarity.');
+  else if (tone === 'gen_alpha') instructions.push('Tone: Gen Alpha / Brainrot / Internet Slang. Go crazy with modern internet slang (skibidi, rizz, sigma, cap, etc.). Be extremely funny and absurd but still teach the concepts accurately.');
+  else if (tone === 'pirate') instructions.push('Tone: Pirate. Speak like a swashbuckling pirate navigating the high seas (Ahoy, matey, shiver me timbers).');
+  else if (tone === 'shakespeare') instructions.push('Tone: Shakespearean. Use Elizabethan English, poetic verses, and dramatic flair.');
+  else if (tone === 'sarcastic') instructions.push('Tone: Sarcastic and Snarky. Be witty, slightly condescending but humorous, like a grumpy genius forced to explain obvious things.');
+  else if (tone === 'hype_bro') instructions.push('Tone: Hype Bro / Fitness Influencer. Use high-energy, motivational, "let\'s go bro", alpha mindset language.');
+  else if (tone === 'noir') instructions.push('Tone: Noir Detective. Speak in a gritty, cinematic, dramatic inner-monologue typical of a 1940s private investigator.');
+  else if (options?.tone) instructions.push('Tone: General and straightforward. Informative and educational.');
+
+  return instructions;
+}
+
+export function buildPrimerUserPrompt(topic: string, options?: PrimerOptions): string {
   return [
     `Topic to teach: ${topic.trim()}`,
     '',
-    `Target audience: ${audience}.`,
-    `Language: ${language}.`,
+    ...getPrimerOptionsInstructions(options),
     options?.context?.trim() ? `Context from the parent lesson:\n${options.context.trim()}` : '',
     '',
     'Write the complete lesson now, following all format rules exactly (concept links, optional widgets/expanded readings, and the final primer:meta glossary block).',

@@ -59,7 +59,7 @@ export function TooltipCard({
   onClose: () => void;
 }) {
   const def = lookupGlossary(glossaryMap, entry.term);
-  const { registerExplanation, dismissAll } = useTooltip();
+  const { registerExplanation, dismissAll, options } = useTooltip();
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<Pos>({ top: -9999, left: -9999 });
   const [explanation, setExplanation] = useState<{ status: 'loading' | 'ready' | 'error'; description?: string }>({ status: entry.source === 'selection' && !def ? 'loading' : 'ready' });
@@ -97,7 +97,7 @@ export function TooltipCard({
           signal: controller.signal,
           cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ selection: entry.term, context: entry.context, occurrence: entry.occurrence ?? null }),
+          body: JSON.stringify({ selection: entry.term, context: entry.context, occurrence: entry.occurrence ?? null, options }),
         });
         const data = response.status === 409
           ? await poll()
@@ -119,7 +119,7 @@ export function TooltipCard({
       active = false;
       controller.abort();
     };
-  }, [def, entry.context, entry.source, entry.term, primerId, retry, registerExplanation]);
+  }, [def, entry.context, entry.source, entry.term, primerId, retry, registerExplanation, options]);
 
   const handleLearnMore = async () => {
     setLearnMoreLoading(true);
@@ -131,7 +131,10 @@ export function TooltipCard({
         body: JSON.stringify({
           topic: entry.term,
           parentId: primerId,
-          options: entry.context ? { context: entry.context } : {},
+          options: {
+            ...(options || {}),
+            ...(entry.context ? { context: entry.context } : {})
+          },
         }),
       });
       const data = await response.json().catch(() => null);

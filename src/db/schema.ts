@@ -427,7 +427,7 @@ export const primers = pgTable('primers', {
   title: text('title'),
   content: text('content'), // markdown body; null until generation completes
   glossary: jsonb('glossary').$type<{ term: string; definition: string }[]>().default([]),
-  options: jsonb('options').$type<{ audience?: string; language?: string; context?: string }>().default({}),
+  options: jsonb('options').$type<import('@/app/primer/types').PrimerOptions>().default({}),
   status: text('status').$type<'pending' | 'generating' | 'ready' | 'error'>().notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),

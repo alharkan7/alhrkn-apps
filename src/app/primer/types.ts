@@ -13,6 +13,8 @@ export interface PrimerMeta {
 export interface PrimerOptions {
   audience?: string;
   language?: string;
+  length?: 'brief' | 'moderate' | 'detailed';
+  tone?: string;
   /** Nearby lesson context used to disambiguate a selected phrase. */
   context?: string;
 }

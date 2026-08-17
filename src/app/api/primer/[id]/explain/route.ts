@@ -157,6 +157,7 @@ export async function POST(
           `Selected phrase: ${selection}`,
           `Lesson topic: ${primer.topic}`,
           context ? `Nearby context (use only to choose the correct sense of the phrase; never quote or restate it in the answer):\n${context}` : '',
+          ...(body?.options ? (await import('@/app/primer/lib/prompt')).getPrimerOptionsInstructions(body.options) : []),
         ].filter(Boolean).join('\n\n'),
         maxOutputTokens: 320,
         abortSignal: req.signal,

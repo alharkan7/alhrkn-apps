@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PrimerOptions } from '../../types';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,6 +13,7 @@ export interface ChatContext {
   topic: string;
   excerpt?: string;
   attachment?: { term: string; definition?: string } | null;
+  options?: PrimerOptions;
 }
 
 /**
