@@ -15,7 +15,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 const title = "Research & Learning Apps"
-const description = "Practical apps for research, ideas, and learning by @alhrkn"
+const description = "Experimental Tools by @alhrkn"
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://apps.raihankalla.id'), // Replace with your actual domain
