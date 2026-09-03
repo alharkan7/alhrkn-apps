@@ -93,11 +93,11 @@ export const apps: AppConfig[] = [
     description: 'Wikipedia Pages with TikTok UX + Games',
     type: 'general'
   },
-  {
-    name: 'Enaiblr Apps',
-    icon: Infinity,
-    slug: 'https://enaiblr.org',
-    description: 'Free Mini AI Apps',
-    type: 'general'
-  }
+  // {
+  //   name: 'Enaiblr Apps',
+  //   icon: Infinity,
+  //   slug: 'https://enaiblr.org',
+  //   description: 'Free Mini AI Apps',
+  //   type: 'general'
+  // }
 ]
