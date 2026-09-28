@@ -145,7 +145,7 @@ Provision the added `parent_id` column, index, and `primer_explanations` table w
 
 ## Config + env
 
-- `src/config/apps.ts`: add `{ name:'Primer', icon:GraduationCap, slug:'primer', description:'Learn Anything via Interactive Lessons', type:'academic' }` (import `GraduationCap`; `BookOpen` is taken by Beeblio).
+- `src/config/apps.ts`: add `{ name:'Primer', icon:GraduationCap, slug:'primer', description:'Learn Anything via Interactive Lessons', type:'academic' }` (import `GraduationCap`; `BookOpen` is taken by Auto Lit).
 - `.env` + `.env.example`: add `PRIMER_MODEL=google/gemini-2.5-flash`.
 
 ## Pitfalls (from validation)

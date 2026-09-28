@@ -113,13 +113,14 @@ export function AppsGrid({ trigger, useHardReload = false }: AppsGridProps) {
         <div className="apps-grid-content gap-3 grid grid-cols-2 max-h-[310px] pb-2 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full">
           {allApps.map((app) => {
             const Icon = app.icon;
+            const isBeeblio = app.name === 'Beeblio';
             return (
               // <Tooltip key={app.slug}>
               //   <TooltipTrigger asChild disabled={!showTooltips}>
               <Button
                 key={app.slug}
                 variant="ghost"
-                className="relative h-[90px] w-full flex flex-col items-center justify-center gap-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 group"
+                className={`relative h-[90px] w-full flex flex-col items-center justify-center gap-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 group ${isBeeblio ? 'ring-1 ring-inset ring-blue-500/50 bg-blue-50/50 dark:bg-blue-900/20' : ''}`}
                 onClick={() => handleAppClick(app.slug)}
               >
                 <Icon className="size-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:scale-110 duration-300" />

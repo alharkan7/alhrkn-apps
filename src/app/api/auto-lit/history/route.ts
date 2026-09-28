@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
-import { beeblioSearches, beeblioFiles } from '@/db/schema';
+import { autoLitSearches, autoLitFiles } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
@@ -19,22 +19,22 @@ export async function GET(request: Request) {
 
     const history = await db
       .select({
-        id: beeblioSearches.id,
-        originalQuery: beeblioSearches.originalQuery,
-        contextText: beeblioSearches.contextText,
-        fileName: beeblioFiles.fileName,
-        createdAt: beeblioSearches.createdAt,
+        id: autoLitSearches.id,
+        originalQuery: autoLitSearches.originalQuery,
+        contextText: autoLitSearches.contextText,
+        fileName: autoLitFiles.fileName,
+        createdAt: autoLitSearches.createdAt,
       })
-      .from(beeblioSearches)
-      .leftJoin(beeblioFiles, eq(beeblioSearches.id, beeblioFiles.searchId))
-      .where(eq(beeblioSearches.userId, user.id))
-      .orderBy(desc(beeblioSearches.createdAt))
+      .from(autoLitSearches)
+      .leftJoin(autoLitFiles, eq(autoLitSearches.id, autoLitFiles.searchId))
+      .where(eq(autoLitSearches.userId, user.id))
+      .orderBy(desc(autoLitSearches.createdAt))
       .limit(limit)
       .offset(offset);
 
     return NextResponse.json(history);
   } catch (error) {
-    console.error('Error fetching Beeblio history:', error);
+    console.error('Error fetching Auto Lit history:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

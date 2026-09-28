@@ -9,6 +9,7 @@ import { useTheme } from '@/components/theme-provider'
 
 function AppCard({ app }: { app: AppConfig }) {
   const IconComponent = app.icon
+  const isBeeblio = app.name === 'Beeblio'
   const isExternal = app.slug.startsWith('http')
   const href = isExternal ? app.slug : app.slug ? `/${app.slug}` : '/'
 
@@ -17,15 +18,19 @@ function AppCard({ app }: { app: AppConfig }) {
       href={href}
       target={isExternal ? '_blank' : undefined}
       rel={isExternal ? 'noopener noreferrer' : undefined}
-      className="group relative block h-[8.25rem] sm:h-auto"
+      className={`group relative block h-[8.25rem] sm:h-auto ${isBeeblio ? 'ring-2 ring-blue-500/50 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.3)]' : ''}`}
     >
-      <SpotlightCard spotlightColor="rgba(25, 25, 24, 0.055)" className="h-full overflow-hidden rounded-2xl border-black/[0.07] bg-white/76 p-3 shadow-[0_6px_24px_rgba(25,25,24,0.045)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-black/[0.12] hover:bg-white hover:shadow-[0_12px_34px_rgba(25,25,24,0.08)] dark:border-white/[0.08] dark:bg-[#191917]/76 dark:shadow-[0_8px_26px_rgba(0,0,0,0.2)] dark:hover:border-white/[0.13] dark:hover:bg-[#1d1d1b] dark:hover:shadow-[0_14px_38px_rgba(0,0,0,0.3)] sm:p-6">
+      <SpotlightCard spotlightColor="rgba(25, 25, 24, 0.055)" className={`h-full overflow-hidden rounded-2xl border-black/[0.07] bg-white/76 p-3 shadow-[0_6px_24px_rgba(25,25,24,0.045)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-black/[0.12] hover:bg-white hover:shadow-[0_12px_34px_rgba(25,25,24,0.08)] dark:border-white/[0.08] dark:bg-[#191917]/76 dark:shadow-[0_8px_26px_rgba(0,0,0,0.2)] dark:hover:border-white/[0.13] dark:hover:bg-[#1d1d1b] dark:hover:shadow-[0_14px_38px_rgba(0,0,0,0.3)] sm:p-6 ${isBeeblio ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/50 dark:border-blue-800/50' : ''}`}>
         {/* Mobile: left text + right icon, fixed height. Desktop: stacked layout. */}
         <div className="flex flex-row-reverse sm:flex-col items-start gap-2 sm:gap-0 h-full">
           <div className="flex items-center justify-between w-auto sm:w-full shrink-0 mb-0 sm:mb-4">
-            <div className="flex size-9 items-center justify-center rounded-xl border border-black/[0.055] bg-black/[0.04] text-black/48 transition-colors group-hover:bg-black/[0.075] group-hover:text-black/75 dark:border-white/[0.065] dark:bg-white/[0.055] dark:text-white/48 dark:group-hover:bg-white/[0.09] dark:group-hover:text-white/75 sm:size-12">
-              <IconComponent className="size-4 sm:size-5" />
-            </div>
+                        {isBeeblio ? (
+              <IconComponent className="size-9 sm:size-12 rounded-xl shadow-sm" />
+            ) : (
+              <div className="flex size-9 items-center justify-center rounded-xl border border-black/[0.055] bg-black/[0.04] text-black/48 transition-colors group-hover:bg-black/[0.075] group-hover:text-black/75 dark:border-white/[0.065] dark:bg-white/[0.055] dark:text-white/48 dark:group-hover:bg-white/[0.09] dark:group-hover:text-white/75 sm:size-12">
+                <IconComponent className="size-4 sm:size-5" />
+              </div>
+            )}
             <ArrowRight className="hidden size-5 -translate-x-2 text-black/30 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-black/60 group-hover:opacity-100 dark:text-white/30 dark:group-hover:text-white/60 sm:block" />
           </div>
           <div className="min-w-0 flex-1 flex flex-col overflow-hidden h-full sm:h-auto">

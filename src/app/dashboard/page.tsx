@@ -43,7 +43,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     db.execute(sql.raw(`
       SELECT 'papermap' as app, count(*) as total, count(DISTINCT user_id) as unique_users FROM mindmaps ${dateFilter}
       UNION ALL
-      SELECT 'beeblio', count(*), count(DISTINCT user_id) FROM beeblio_searches ${dateFilter}
+      SELECT 'auto-lit', count(*), count(DISTINCT user_id) FROM beeblio_searches ${dateFilter}
       UNION ALL
       SELECT 'inztagram', count(*), count(DISTINCT user_id) FROM inztagram_diagrams ${dateFilter}
       UNION ALL
@@ -74,7 +74,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
       WITH combined_activity AS (
         SELECT date_trunc('day', created_at) AS date, 'papermap' AS app FROM mindmaps WHERE created_at IS NOT NULL ${dateFilterAnd}
         UNION ALL
-        SELECT date_trunc('day', created_at) AS date, 'beeblio' AS app FROM beeblio_searches WHERE created_at IS NOT NULL ${dateFilterAnd}
+        SELECT date_trunc('day', created_at) AS date, 'auto-lit' AS app FROM beeblio_searches WHERE created_at IS NOT NULL ${dateFilterAnd}
         UNION ALL
         SELECT date_trunc('day', created_at) AS date, 'inztagram' AS app FROM inztagram_diagrams WHERE created_at IS NOT NULL ${dateFilterAnd}
         UNION ALL
@@ -111,7 +111,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
 
   const totals = {
     papermap: getStat('papermap').total,
-    beeblio: getStat('beeblio').total,
+    'auto-lit': getStat('auto-lit').total,
     inztagram: getStat('inztagram').total,
     outliner: getStat('outliner').total,
     flownote: getStat('flownote').total,
@@ -120,7 +120,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     totalUsers: parseInt(allUsersRes[0]?.count as string || '0', 10),
     uniqueUsersPerApp: {
       papermap: getStat('papermap').unique,
-      beeblio: getStat('beeblio').unique,
+      'auto-lit': getStat('auto-lit').unique,
       inztagram: getStat('inztagram').unique,
       outliner: getStat('outliner').unique,
       chat: getStat('chat').unique,

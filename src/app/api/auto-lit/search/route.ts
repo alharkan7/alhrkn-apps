@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@/lib/google-ai-proxy';
-import { Paper } from '@/app/beeblio/shared';
+import { Paper } from '@/app/auto-lit/shared';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
 import { eq } from 'drizzle-orm';
-import { beeblioSearches, beeblioPapers, beeblioSettings, beeblioFiles } from '@/db/schema';
+import { autoLitSearches, autoLitPapers, autoLitSettings, autoLitFiles } from '@/db/schema';
 import { downloadFile } from '@/lib/storage';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     if (!structuredQueries && (process.env.GOOGLE_API_KEY)) {
       try {
         const model = genAI.getGenerativeModel({ 
-          model: process.env.BEEBLIO_SEARCH_MODEL || 'gemini-2.5-flash',
+          model: process.env.AUTO_LIT_SEARCH_MODEL || 'gemini-2.5-flash',
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: querySchema,
@@ -256,19 +256,19 @@ export async function POST(req: Request) {
     let currentSearchId = searchId;
 
     if (!currentSearchId) {
-      const [searchRecord] = await db.insert(beeblioSearches).values({
+      const [searchRecord] = await db.insert(autoLitSearches).values({
         userId: user.id,
         originalQuery: query,
         contextText: contextMode ? query : null,
         databases,
         structuredQueries: finalQueries
-      }).returning({ id: beeblioSearches.id });
+      }).returning({ id: autoLitSearches.id });
       
       currentSearchId = searchRecord.id;
 
       // Save user settings specific to this search
       try {
-        await db.insert(beeblioSettings).values({
+        await db.insert(autoLitSettings).values({
           userId: user.id,
           searchId: currentSearchId,
           activeDatabases: databases,
@@ -283,9 +283,9 @@ export async function POST(req: Request) {
       // Link attachment to this search
       if (attachmentUrl) {
         try {
-          await db.update(beeblioFiles)
+          await db.update(autoLitFiles)
             .set({ searchId: currentSearchId })
-            .where(eq(beeblioFiles.fileUrl, attachmentUrl));
+            .where(eq(autoLitFiles.fileUrl, attachmentUrl));
         } catch (e) {
           console.warn("Failed to link file to search:", e);
         }
@@ -295,7 +295,7 @@ export async function POST(req: Request) {
     let insertedPapers: any[] = [];
     if (allPapers.length > 0) {
       try {
-        insertedPapers = await db.insert(beeblioPapers).values(
+        insertedPapers = await db.insert(autoLitPapers).values(
           allPapers.map(p => ({
             userId: user.id,
             searchId: currentSearchId,
@@ -308,7 +308,7 @@ export async function POST(req: Request) {
             citations: p.citations,
             url: p.url,
           }))
-        ).returning({ id: beeblioPapers.id, paperId: beeblioPapers.paperId });
+        ).returning({ id: autoLitPapers.id, paperId: autoLitPapers.paperId });
       } catch (dbErr) {
         console.error("Failed to insert papers into DB:", dbErr);
       }

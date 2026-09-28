@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { beeblioSearches, beeblioPapers, beeblioEvaluations } from '@/db/schema';
+import { autoLitSearches, autoLitPapers, autoLitEvaluations } from '@/db/schema';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     
     // Fetch original search
-    const originalSearchRecords = await db.select().from(beeblioSearches).where(eq(beeblioSearches.id, id));
+    const originalSearchRecords = await db.select().from(autoLitSearches).where(eq(autoLitSearches.id, id));
     if (!originalSearchRecords.length) {
       return NextResponse.json({ error: 'Search not found' }, { status: 404 });
     }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const newId = randomUUID();
 
     // Insert new search session
-    await db.insert(beeblioSearches).values({
+    await db.insert(autoLitSearches).values({
       id: newId,
       userId: user.id,
       originalQuery: original.originalQuery,
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     // Fetch original papers
-    const originalPapers = await db.select().from(beeblioPapers).where(eq(beeblioPapers.searchId, id));
+    const originalPapers = await db.select().from(autoLitPapers).where(eq(autoLitPapers.searchId, id));
 
     if (originalPapers.length > 0) {
       // Map papers to new searchId and generate new IDs
@@ -58,10 +58,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }));
 
       const papersToInsert = newPapers.map(({ oldId, ...rest }) => rest);
-      await db.insert(beeblioPapers).values(papersToInsert);
+      await db.insert(autoLitPapers).values(papersToInsert);
 
       // Fetch evaluations
-      const originalEvaluations = await db.select().from(beeblioEvaluations).where(eq(beeblioEvaluations.userId, original.userId));
+      const originalEvaluations = await db.select().from(autoLitEvaluations).where(eq(autoLitEvaluations.userId, original.userId));
       
       const evalsToInsert = [];
       for (const newPaper of newPapers) {
@@ -79,13 +79,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
 
       if (evalsToInsert.length > 0) {
-        await db.insert(beeblioEvaluations).values(evalsToInsert);
+        await db.insert(autoLitEvaluations).values(evalsToInsert);
       }
     }
 
     return NextResponse.json({ newId });
   } catch (error: any) {
-    console.error('Error duplicating beeblio search:', error);
+    console.error('Error duplicating auto-lit search:', error);
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }

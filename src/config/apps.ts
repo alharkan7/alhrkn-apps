@@ -1,8 +1,10 @@
+import React from "react";
+import { BeeblioIcon } from "../components/ui/beeblio-icon";
 import { Clapperboard, Flower, Clock, PenTool, Sparkles, Languages, LucideIcon, Infinity, Wallet, Waypoints, Feather, SquareKanban, Network, Snowflake, LibraryBig, BookOpen, LineChart, GraduationCap, Presentation } from 'lucide-react'
 
 export interface AppConfig {
   name: string
-  icon: LucideIcon
+  icon: any
   slug: string
   description: string
   type: string
@@ -18,16 +20,9 @@ export const apps: AppConfig[] = [
   },
   {
     name: 'Beeblio',
-    icon: BookOpen,
-    slug: 'beeblio',
-    description: 'Automated Scientific Literature Search',
-    type: 'academic'
-  },
-  {
-    name: 'Inztagram',
-    icon: SquareKanban,
-    slug: 'inztagram',
-    description: 'Create Any Diagram in Seconds',
+    icon: BeeblioIcon,
+    slug: "https://beeblio.raihankalla.id",
+    description: "Full Stack + Automatic AI Research Workspace",
     type: 'academic'
   },
   {
@@ -38,10 +33,24 @@ export const apps: AppConfig[] = [
     type: 'academic'
   },
   {
+    name: 'Auto Lit',
+    icon: BookOpen,
+    slug: 'auto-lit',
+    description: 'Automated Scientific Literature Search',
+    type: 'academic'
+  },
+  {
     name: 'Primer',
     icon: GraduationCap,
     slug: 'primer',
     description: 'Learn Anything via Interactive Lessons',
+    type: 'academic'
+  },
+  {
+    name: 'Inztagram',
+    icon: SquareKanban,
+    slug: 'inztagram',
+    description: 'Create Any Diagram in Seconds',
     type: 'academic'
   },
   {

@@ -21,7 +21,7 @@ import MiniOutlinerRenderer from './MiniOutlinerRenderer';
 
 type AppTotals = {
   papermap: number;
-  beeblio: number;
+  'auto-lit': number;
   inztagram: number;
   outliner: number;
   flownote: number;
@@ -30,7 +30,7 @@ type AppTotals = {
   totalUsers: number;
   uniqueUsersPerApp: {
     papermap: number;
-    beeblio: number;
+    'auto-lit': number;
     inztagram: number;
     outliner: number;
     chat: number;
@@ -52,7 +52,7 @@ interface ClientDashboardProps {
 
 const APP_COLORS = {
   papermap: '#0ea5e9',
-  beeblio: '#0284c7',
+  'auto-lit': '#0284c7',
   inztagram: '#3b82f6',
   outliner: '#6366f1',
   chat: '#8b5cf6',
@@ -62,7 +62,7 @@ const APP_COLORS = {
 
 const APP_ICONS = {
   papermap: Share2,
-  beeblio: Database,
+  'auto-lit': Database,
   inztagram: Layers,
   outliner: FileText,
   chat: MessageSquare,
@@ -331,7 +331,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
   const totalsData = useMemo(() => {
     const apps = {
       papermap: totals.papermap,
-      beeblio: totals.beeblio,
+      'auto-lit': totals['auto-lit'],
       inztagram: totals.inztagram,
       outliner: totals.outliner,
       chat: totals.chatSessions,
@@ -453,7 +453,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
                   <div className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{count.toLocaleString()}</div>
                   <p className="text-xs font-medium text-slate-500 mt-1">
                     {app === 'papermap' ? 'Mindmaps' : 
-                     app === 'beeblio' ? 'Searches' : 
+                     app === 'auto-lit' ? 'Searches' : 
                      app === 'inztagram' ? 'Diagrams' : 
                      app === 'outliner' ? 'Events' : 
                      app === 'flownote' ? 'Documents' : 
@@ -753,7 +753,7 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
                            </a>
                         </div>
                       </div>
-                    ) : activeDetailApp === 'beeblio' ? (
+                    ) : activeDetailApp === 'auto-lit' ? (
                       <div className="space-y-4">
                         {activityDetails.papers && activityDetails.papers.length > 0 ? (
                           <div className="space-y-3">
@@ -779,8 +779,8 @@ export function ClientDashboard({ totals, timeline }: ClientDashboardProps) {
                           </div>
                         )}
                         <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800 mt-6">
-                           <a href={`/beeblio/${activityDetails.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2 shadow-sm">
-                             Open Results in Beeblio
+                           <a href={`/auto-lit/${activityDetails.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2 shadow-sm">
+                             Open Results in Auto Lit
                            </a>
                         </div>
                       </div>

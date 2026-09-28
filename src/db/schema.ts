@@ -297,9 +297,9 @@ export const flownoteEvents = pgTable('flownote_events', {
 export type FlowNoteEvent = typeof flownoteEvents.$inferSelect;
 export type NewFlowNoteEvent = typeof flownoteEvents.$inferInsert;
 
-// --- Beeblio Tables ---
+// --- Auto Lit Tables ---
 
-export const beeblioSearches = pgTable('beeblio_searches', {
+export const autoLitSearches = pgTable('beeblio_searches', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
   originalQuery: text('original_query'),
@@ -309,13 +309,13 @@ export const beeblioSearches = pgTable('beeblio_searches', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export type BeeblioSearch = typeof beeblioSearches.$inferSelect;
-export type NewBeeblioSearch = typeof beeblioSearches.$inferInsert;
+export type AutoLitSearch = typeof autoLitSearches.$inferSelect;
+export type NewAutoLitSearch = typeof autoLitSearches.$inferInsert;
 
-export const beeblioPapers = pgTable('beeblio_papers', {
+export const autoLitPapers = pgTable('beeblio_papers', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  searchId: uuid('search_id').references(() => beeblioSearches.id, { onDelete: 'cascade' }),
+  searchId: uuid('search_id').references(() => autoLitSearches.id, { onDelete: 'cascade' }),
   paperId: text('paper_id').notNull(),
   source: text('source').notNull(),
   title: text('title').notNull(),
@@ -327,46 +327,46 @@ export const beeblioPapers = pgTable('beeblio_papers', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export type BeeblioPaper = typeof beeblioPapers.$inferSelect;
-export type NewBeeblioPaper = typeof beeblioPapers.$inferInsert;
+export type AutoLitPaper = typeof autoLitPapers.$inferSelect;
+export type NewAutoLitPaper = typeof autoLitPapers.$inferInsert;
 
-export const beeblioEvaluations = pgTable('beeblio_evaluations', {
+export const autoLitEvaluations = pgTable('beeblio_evaluations', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  paperId: uuid('paper_id').references(() => beeblioPapers.id, { onDelete: 'cascade' }),
+  paperId: uuid('paper_id').references(() => autoLitPapers.id, { onDelete: 'cascade' }),
   originalQuery: text('original_query'),
   overallScore: doublePrecision('overall_score'),
   rubrics: jsonb('rubrics'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export type BeeblioEvaluation = typeof beeblioEvaluations.$inferSelect;
-export type NewBeeblioEvaluation = typeof beeblioEvaluations.$inferInsert;
+export type AutoLitEvaluation = typeof autoLitEvaluations.$inferSelect;
+export type NewAutoLitEvaluation = typeof autoLitEvaluations.$inferInsert;
 
-export const beeblioFiles = pgTable('beeblio_files', {
+export const autoLitFiles = pgTable('beeblio_files', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  searchId: uuid('search_id').references(() => beeblioSearches.id, { onDelete: 'cascade' }),
+  searchId: uuid('search_id').references(() => autoLitSearches.id, { onDelete: 'cascade' }),
   fileName: text('file_name').notNull(),
   fileUrl: text('file_url').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export type BeeblioFile = typeof beeblioFiles.$inferSelect;
-export type NewBeeblioFile = typeof beeblioFiles.$inferInsert;
+export type AutoLitFile = typeof autoLitFiles.$inferSelect;
+export type NewAutoLitFile = typeof autoLitFiles.$inferInsert;
 
-export const beeblioSettings = pgTable('beeblio_settings', {
+export const autoLitSettings = pgTable('beeblio_settings', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  searchId: uuid('search_id').references(() => beeblioSearches.id, { onDelete: 'cascade' }),
+  searchId: uuid('search_id').references(() => autoLitSearches.id, { onDelete: 'cascade' }),
   activeDatabases: jsonb('active_databases'),
   aiOptimize: boolean('ai_optimize').default(true),
   aiReview: boolean('ai_review').default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-export type BeeblioSetting = typeof beeblioSettings.$inferSelect;
-export type NewBeeblioSetting = typeof beeblioSettings.$inferInsert;
+export type AutoLitSetting = typeof autoLitSettings.$inferSelect;
+export type NewAutoLitSetting = typeof autoLitSettings.$inferInsert;
 
 // --- AnimaChart Tables ---
 

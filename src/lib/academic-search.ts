@@ -1,5 +1,5 @@
 // Shared academic literature search across OpenAlex, Crossref, and Semantic
-// Scholar. Ported from Beeblio's /api/beeblio/search and Outliner's
+// Scholar. Ported from Auto Lit's /api/auto-lit/search and Outliner's
 // /api/outliner/cite, cleaned up for reuse. All three APIs are free; OpenAlex
 // and Crossref ask for a mailto for the polite pool (OPENALEX_EMAIL).
 //

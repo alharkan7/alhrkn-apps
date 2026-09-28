@@ -39,7 +39,7 @@ function getAppTableInfo(app: string) {
   let titleCol = 'id';
   switch (app) {
     case 'papermap': table = 'mindmaps'; titleCol = 'title'; break;
-    case 'beeblio': table = 'beeblio_searches'; titleCol = 'original_query'; break;
+    case 'auto-lit': table = 'beeblio_searches'; titleCol = 'original_query'; break;
     case 'inztagram': table = 'inztagram_diagrams'; titleCol = 'description'; break;
     case 'outliner': table = 'outliner_events'; titleCol = 'action'; break;
     case 'flownote': table = 'flownotes'; titleCol = 'title'; break;
@@ -206,7 +206,7 @@ export async function getActivityDetails(app: string, activityId: string) {
     
     if (!details) return { error: 'Not found' };
     
-    if (app === 'beeblio') {
+    if (app === 'auto-lit') {
       const papersQuery = `
         SELECT id, title, authors, year, source, citations, url
         FROM beeblio_papers

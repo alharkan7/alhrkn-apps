@@ -3,7 +3,7 @@
 import { HistorySidebar } from '@/components/history-sidebar';
 import { Search } from 'lucide-react';
 
-interface BeeblioHistoryItem {
+interface AutoLitHistoryItem {
   id: string;
   originalQuery: string | null;
   contextText: string | null;
@@ -11,12 +11,12 @@ interface BeeblioHistoryItem {
   createdAt: string;
 }
 
-export function BeeblioHistorySidebar() {
+export function AutoLitHistorySidebar() {
   return (
-    <HistorySidebar<BeeblioHistoryItem>
-      apiEndpoint="/api/beeblio/history"
-      itemUrlPrefix="/beeblio/"
-      eventName="toggleBeeblioHistorySidebar"
+    <HistorySidebar<AutoLitHistoryItem>
+      apiEndpoint="/api/auto-lit/history"
+      itemUrlPrefix="/auto-lit/"
+      eventName="toggleAutoLitHistorySidebar"
       title="Recent Searches"
       variant="quiet"
       emptyMessage="No search history found."

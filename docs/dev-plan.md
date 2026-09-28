@@ -1,8 +1,8 @@
-# Beeblio: AI-Powered Scientific Paper Search & Review
+# Auto Lit: AI-Powered Scientific Paper Search & Review
 
 ## 1. Overview
-Beeblio is an intelligent literature review app that enhances the traditional academic search experience by layering Large Language Models (LLMs) on top of standard scientific databases. 
-Instead of relying solely on exact keyword matches, Beeblio understands research context, optimizes search queries automatically, and acts as an AI reviewer to rank and highlight the most relevant literature.
+Auto Lit is an intelligent literature review app that enhances the traditional academic search experience by layering Large Language Models (LLMs) on top of standard scientific databases. 
+Instead of relying solely on exact keyword matches, Auto Lit understands research context, optimizes search queries automatically, and acts as an AI reviewer to rank and highlight the most relevant literature.
 
 ## 2. Architecture & Tech Stack
 - **Framework**: Next.js 14+ (App Router)
@@ -15,9 +15,9 @@ Instead of relying solely on exact keyword matches, Beeblio understands research
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant UI as BeeblioClient (Frontend)
-    participant S_API as /api/beeblio/search
-    participant E_API as /api/beeblio/evaluate
+    participant UI as AutoLitClient (Frontend)
+    participant S_API as /api/auto-lit/search
+    participant E_API as /api/auto-lit/evaluate
     participant GEMINI as Gemini API
     participant DB as Databases (OpenAlex, S2, Crossref)
 
@@ -42,7 +42,7 @@ sequenceDiagram
     
     UI-->>U: Render curated results list
     U->>UI: Export to BibTeX
-    UI-->>U: beeblio_export.bib Download
+    UI-->>U: auto-lit_export.bib Download
 ```
 
 ## 3. Core Features & AI Layers
@@ -79,22 +79,22 @@ Users can provide search parameters via a tabbed interface:
 ## 6. Phased Execution Plan
 ### Phase 1: Foundation & UI Construction
 - [x] Register app in `apps.ts`.
-- [x] Build the static UI components in `src/app/beeblio/page.tsx` (Search bar, settings, mock paper cards).
+- [x] Build the static UI components in `src/app/auto-lit/page.tsx` (Search bar, settings, mock paper cards).
 - [x] Establish React state for inputs and toggles.
 
 ### Phase 2: Database Integrations
 - [x] Integrate Database & Storage
-- [x] Define `beeblio_` prefixed tables
+- [x] Define `auto-lit_` prefixed tables
 - [x] Save all queries and settings
 - [x] Save papers mapped to search
 - [x] Save Gemini evaluations
-- [x] File upload to `beeblio` GCS bucket and pass to Geminitegrations
+- [x] File upload to `auto-lit` GCS bucket and pass to Geminitegrations
 - [x] Create fetching utilities for OpenAlex, Crossref, and Semantic Scholar.
-- [x] Integrate parallel fetching logic into Server APIs (`src/app/api/beeblio/search/route.ts`).
+- [x] Integrate parallel fetching logic into Server APIs (`src/app/api/auto-lit/search/route.ts`).
 
 ### Phase 3: AI Layers (Gemini)
 - [x] Implement Layer 1 (Query Optimization) in Search API.
-- [x] Implement Layer 2 (Results Review) in Evaluate API (`src/app/api/beeblio/evaluate/route.ts`).
+- [x] Implement Layer 2 (Results Review) in Evaluate API (`src/app/api/auto-lit/evaluate/route.ts`).
 - [x] Add developer fallback logic for API Quota (429) errors.
 - [x] Wire the UI to trigger these APIs based on toggle states.
 

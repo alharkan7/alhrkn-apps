@@ -19,7 +19,7 @@ import AppsFooter from '@/components/apps-footer'
 import { cn } from '@/lib/utils'
 
 import { Paper } from '../shared'
-import { BeeblioHistorySidebar } from './BeeblioHistorySidebar'
+import { AutoLitHistorySidebar } from './AutoLitHistorySidebar'
 
 const decodeEntities = (str: string) => {
   return str
@@ -54,12 +54,12 @@ const cleanText = (text: string) => {
 
 import { toast } from 'sonner'
 
-interface BeeblioClientProps {
+interface AutoLitClientProps {
   pageId?: string;
   isOwner?: boolean;
 }
 
-export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientProps) {
+export default function AutoLitClient({ pageId, isOwner = true }: AutoLitClientProps) {
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const searchParams = useSearchParams()
@@ -89,10 +89,10 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
   const handleMakeCopy = async () => {
     if (!pageId) return;
     try {
-      const res = await fetch(`/api/beeblio/${pageId}/duplicate`, { method: 'POST' });
+      const res = await fetch(`/api/auto-lit/${pageId}/duplicate`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to duplicate');
       const data = await res.json();
-      window.location.href = `/beeblio/${data.newId}`;
+      window.location.href = `/auto-lit/${data.newId}`;
     } catch (error) {
       console.error('Failed to duplicate document', error);
       toast.error('Failed to copy document. Please try again.');
@@ -168,11 +168,11 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
           let data;
 
           if (isUuid) {
-            const res = await fetch(`/api/beeblio/search/${pageId}`);
+            const res = await fetch(`/api/auto-lit/search/${pageId}`);
             data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to load search history');
           } else {
-            const res = await fetch('/api/beeblio/search', {
+            const res = await fetch('/api/auto-lit/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -205,7 +205,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
           }
 
           if (data.searchId && !isUuid) {
-            const newUrl = `/beeblio/${data.searchId}?q=${encodeURIComponent(initialQuery)}&tab=${tabParam || 'keywords'}&optimize=${optimizeParam || 'false'}&review=${reviewParam || 'true'}`;
+            const newUrl = `/auto-lit/${data.searchId}?q=${encodeURIComponent(initialQuery)}&tab=${tabParam || 'keywords'}&optimize=${optimizeParam || 'false'}&review=${reviewParam || 'true'}`;
             window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
             
             // Clear the attachment after successful search so the badge disappears
@@ -227,7 +227,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
                 abstract: p.abstract
               }));
               
-              const evalRes = await fetch('/api/beeblio/evaluate', {
+              const evalRes = await fetch('/api/auto-lit/evaluate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -303,7 +303,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
     setIsLoadingMore(true);
     setPage(nextPage);
     try {
-      const res = await fetch('/api/beeblio/search', {
+      const res = await fetch('/api/auto-lit/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -331,7 +331,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
             id: p.id, dbId: p.dbId, title: p.title, abstract: p.abstract
           }));
           
-          const evalRes = await fetch('/api/beeblio/evaluate', {
+          const evalRes = await fetch('/api/auto-lit/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ papers: papersToEval, originalQuery: initialQuery, criteria: structuredQueries?.evaluationCriteria })
@@ -402,7 +402,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
       const formData = new FormData();
       formData.append('file', file);
       
-      const res = await fetch('/api/beeblio/upload', {
+      const res = await fetch('/api/auto-lit/upload', {
         method: 'POST',
         body: formData
       });
@@ -495,13 +495,13 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
     }).join('\n\n');
 
     const blob = new Blob([bibtex], { type: 'text/plain;charset=utf-8' });
-    downloadFile(blob, 'beeblio_export.bib');
+    downloadFile(blob, 'auto-lit_export.bib');
   };
 
   const handleExportJSON = () => {
     const currentResults = getCurrentExportResults();
     const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
-    downloadFile(blob, 'beeblio_export.json');
+    downloadFile(blob, 'auto-lit_export.json');
   };
 
   const handleExportCSV = async () => {
@@ -518,7 +518,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
       Score: p.overallScore || ''
     })));
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    downloadFile(blob, 'beeblio_export.csv');
+    downloadFile(blob, 'auto-lit_export.csv');
   };
 
   const handleExportExcel = async () => {
@@ -553,7 +553,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
     
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    downloadFile(blob, 'beeblio_export.xlsx');
+    downloadFile(blob, 'auto-lit_export.xlsx');
   };
 
   const handleSearch = async () => {
@@ -566,7 +566,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
       sessionStorage.removeItem('beeblio_attachment');
     }
 
-    router.push(`/beeblio/new?q=${encodeURIComponent(query)}&tab=${activeTab}&optimize=${aiOptimize}&review=${aiReview}`)
+    router.push(`/auto-lit/new?q=${encodeURIComponent(query)}&tab=${activeTab}&optimize=${aiOptimize}&review=${aiReview}`)
   }
 
   if (!mounted) return null
@@ -662,7 +662,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
         )}
       </div>
 
-      <BeeblioHistorySidebar />
+      <AutoLitHistorySidebar />
 
       {/* --- Top Navigation --- */}
       <div className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-[#f7f7f5]/80 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#10100f]/80">
@@ -672,7 +672,7 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
               variant="ghost"
               size="icon"
               className="sidebar-toggle size-9 rounded-xl text-black/60 hover:bg-black/[0.06] hover:text-black dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
-              onClick={() => window.dispatchEvent(new Event('toggleBeeblioHistorySidebar'))}
+              onClick={() => window.dispatchEvent(new Event('toggleAutoLitHistorySidebar'))}
               aria-label="Open search history"
             >
               <Menu size={18} />
@@ -680,11 +680,11 @@ export default function BeeblioClient({ pageId, isOwner = true }: BeeblioClientP
           }
           title={
             <Link
-              href="/beeblio"
-              title="Back to Beeblio"
+              href="/auto-lit"
+              title="Back to Auto Lit"
               className="inline-flex items-center text-sm font-semibold tracking-[-0.01em] text-[#191918] transition-opacity hover:opacity-65 dark:text-[#f2f2ef]"
             >
-              Beeblio
+              Auto Lit
             </Link>
           }
         />

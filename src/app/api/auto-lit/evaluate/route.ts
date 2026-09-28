@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@/lib/google-ai-proxy';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
-import { beeblioEvaluations } from '@/db/schema';
+import { autoLitEvaluations } from '@/db/schema';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       };
 
       const model = genAI.getGenerativeModel({ 
-        model: process.env.BEEBLIO_EVALUATE_MODEL || 'gemini-2.5-flash',
+        model: process.env.AUTO_LIT_EVALUATE_MODEL || 'gemini-2.5-flash',
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: evaluationSchema,
@@ -112,7 +112,7 @@ ${batchPapers.map((p: any, i: number) => `[Paper ${i+1}]\nID: ${p.id}\nTitle: ${
 
       if (evaluations && evaluations.length > 0) {
         try {
-          await db.insert(beeblioEvaluations).values(
+          await db.insert(autoLitEvaluations).values(
             evaluations.map((e: any) => {
               const paperDbId = batchPapers.find((p: any) => p.id === e.id)?.dbId;
               return {

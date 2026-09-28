@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
-import BeeblioClient from '../components/BeeblioClient'
+import AutoLitClient from '../components/AutoLitClient'
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
 import { isBotRequest } from '@/lib/bot';
-import { beeblioSearches } from '@/db/schema';
+import { autoLitSearches } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import type { Metadata } from 'next';
 
@@ -13,12 +13,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   let searchData = null;
   if (id !== 'new') {
-    searchData = await db.query.beeblioSearches.findFirst({
-      where: eq(beeblioSearches.id, id)
+    searchData = await db.query.autoLitSearches.findFirst({
+      where: eq(autoLitSearches.id, id)
     });
   }
 
-  const title = searchData?.originalQuery ? `Beeblio - ${searchData.originalQuery}` : 'Beeblio Search';
+  const title = searchData?.originalQuery ? `Auto Lit - ${searchData.originalQuery}` : 'Auto Lit Search';
   const description = 'Experimental Apps by @alhrkn';
 
   return {
@@ -27,18 +27,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title,
       description,
-      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=beeblio/${id}`],
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=auto-lit/${id}`],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=beeblio/${id}`],
+      images: [`/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&path=auto-lit/${id}`],
     },
   };
 }
 
-export default async function BeeblioResultsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AutoLitResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   
   const supabase = await createServerSupabaseClient();
@@ -48,13 +48,13 @@ export default async function BeeblioResultsPage({ params }: { params: Promise<{
 
   if (!user) {
     if (isBot) return <div />;
-    redirect(`/login?next=/beeblio/${resolvedParams.id}`);
+    redirect(`/login?next=/auto-lit/${resolvedParams.id}`);
   }
 
   let searchData = null;
   if (resolvedParams.id !== 'new') {
-    searchData = await db.query.beeblioSearches.findFirst({
-      where: eq(beeblioSearches.id, resolvedParams.id)
+    searchData = await db.query.autoLitSearches.findFirst({
+      where: eq(autoLitSearches.id, resolvedParams.id)
     });
   }
 
@@ -62,7 +62,7 @@ export default async function BeeblioResultsPage({ params }: { params: Promise<{
 
   return (
     <Suspense fallback={<div>Loading results...</div>}>
-      <BeeblioClient pageId={resolvedParams.id} isOwner={isOwner} />
+      <AutoLitClient pageId={resolvedParams.id} isOwner={isOwner} />
     </Suspense>
   )
 }

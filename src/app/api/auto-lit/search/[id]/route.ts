@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db } from '@/db';
-import { beeblioSearches, beeblioPapers, beeblioEvaluations } from '@/db/schema';
+import { autoLitSearches, autoLitPapers, autoLitEvaluations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,18 +16,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id: searchId } = await params;
 
     // Fetch Search
-    const searchRecords = await db.select().from(beeblioSearches).where(eq(beeblioSearches.id, searchId));
+    const searchRecords = await db.select().from(autoLitSearches).where(eq(autoLitSearches.id, searchId));
     if (!searchRecords.length) {
       return NextResponse.json({ error: 'Search not found' }, { status: 404 });
     }
     const searchRecord = searchRecords[0];
 
     // Fetch Papers
-    const papers = await db.select().from(beeblioPapers).where(eq(beeblioPapers.searchId, searchId));
+    const papers = await db.select().from(autoLitPapers).where(eq(autoLitPapers.searchId, searchId));
 
     // Fetch Evaluations
     // Since evaluations are per paper, we can get all evaluations for the user who owns the search
-    const evaluations = await db.select().from(beeblioEvaluations).where(eq(beeblioEvaluations.userId, searchRecord.userId));
+    const evaluations = await db.select().from(autoLitEvaluations).where(eq(autoLitEvaluations.userId, searchRecord.userId));
 
     // Map them to the frontend Paper format
     const mappedPapers = papers.map((p) => {
